@@ -63,8 +63,16 @@ banner{height:140px;background:linear-gradient(90deg,var(--orange),#ffb86b);bord
 	.products-page{display:block;padding:0 8px}
 	.product-filters{min-width:0;max-width:none;width:100%;margin-bottom:12px}
 	.products-main{width:100%;min-width:0}
-	#product-list.product-list{display:flex;overflow-x:auto;overflow-y:hidden;gap:12px;padding:8px 4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-	#product-list.product-list::-webkit-scrollbar{display:none}
-	#product-list.product-list .item{flex:0 0 220px;min-width:220px;max-width:220px;scroll-snap-align:start}
+	#product-list.product-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:8px 0;overflow:visible}
+	#product-list.product-list .item{min-width:0;max-width:none;background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 6px rgba(0,0,0,.08);display:flex;flex-direction:column}
+	#product-list.product-list .image-wrap img{height:160px;object-fit:contain;object-position:center}
+	#product-list.product-list .image-wrap .add-circle{width:42px;height:42px;right:6px;bottom:6px}
+	#product-list.product-list .weight-chips{margin:8px 0 6px;gap:8px;padding-left:2px}
+	#product-list.product-list .product-name{max-width:none;height:auto;min-height:44px;margin-top:6px}
+	#product-list.product-list .price{margin-top:6px}
+}
+
+@media (max-width:420px){
+	#product-list.product-list{grid-template-columns:1fr}
 }
 
