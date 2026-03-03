@@ -1,0 +1,16 @@
+/* Desktop adjustments only */
+body{max-width:1200px;margin:0 auto}
+.top{padding:18px 24px}
+.logo{font-size:20px}
+.banner{height:220px}
+.products .item{min-width:220px}
+.product-list{grid-template-columns:repeat(4,1fr)}
+
+/* desktop: make cart panel narrower and fixed to right similar to screenshot */
+.cart-panel{width:360px}
+
+/* hide image slider dots on desktop (use thumbnails instead) */
+@media (min-width:900px){
+	.image-dots{display:none !important}
+}
+

@@ -1,0 +1,70 @@
+/* Mobile-first styles */
+main{padding:8px}
+.logo{font-size:16px}
+banner{height:140px;background:linear-gradient(90deg,var(--orange),#ffb86b);border-radius:8px}
+
+@media (max-width:899px){
+	.products .item img{width:100%;height:182.4px;object-fit:contain;object-position:center;border-radius:6px;padding:6px;background:#fff}
+	.brands-list .item img{width:80px;height:40px;object-fit:contain}
+}
+
+/* Product detail mobile adjustments */
+@media (max-width:899px){
+	.product-grid{display:block}
+	.product-grid .gallery{width:100%;margin-bottom:12px}
+	.product-grid .details{width:100%;padding:0 6px}
+	.gallery .main-image{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;background:#fff;border-radius:8px}
+	.gallery .main-image .media-frame{width:100%;height:auto;max-height:none;aspect-ratio:auto;padding:0;background:#fff}
+	.gallery .main-image #main-img-wrap{width:100%;height:auto;max-height:none}
+	.gallery .main-image .media-frame img{width:100%;height:auto;max-height:none;object-fit:contain}
+	.gallery .main-image img#main-img{width:100%;max-width:420px;height:auto;object-fit:contain;border-radius:6px}
+	/* ensure dots sit below the image and are centered */
+	.gallery #image-dots{width:100%;display:flex;justify-content:center;margin-top:10px}
+	/* thumbs: show as horizontal strip on mobile */
+	.thumbs{display:flex;flex-direction:row;gap:8px;overflow:auto;padding:6px 0}
+	.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #f0f0f0;padding:4px;background:#fff}
+
+	/* hide thumbs on mobile to favor slide + dots (keeps desktop thumbs intact) */
+	.thumbs{display:none}
+
+	/* image dots style */
+	.image-dots{display:flex;gap:8px;justify-content:center;padding-top:8px}
+	.image-dots .dot{width:10px;height:10px;border-radius:10px;border:0;background:rgba(0,0,0,0.12);cursor:pointer}
+	.image-dots .dot.active{background:var(--orange)}
+
+	/* make product title and meta more compact */
+	.product-title{font-size:18px;line-height:1.15;margin:8px 0}
+	.meta-row .code{font-size:13px;color:#666;margin-bottom:8px}
+
+	/* mobile: fixed action bar at bottom with qty at left and add button at right */
+	.buy-actions{position:fixed;left:6%;right:6%;bottom:12px;display:flex;align-items:center;gap:8px;padding:8px;border-radius:12px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,0.08);z-index:1400}
+	.buy-actions .qty{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+	.buy-actions .btn{flex:1;margin-left:6px}
+	.buy-actions .qty .qty-btn{width:34px;height:34px;font-size:14px}
+	.buy-actions .qty .qty-val{width:48px;height:30px;font-size:14px}
+
+	/* add spacing at bottom of page so fixed bar doesn't cover content */
+	#product-detail, main{padding-bottom:110px}
+
+	/* ensure description and nutrition have proper spacing */
+	.product-below .description{padding:6px 0}
+	.product-below .nutri{margin-top:12px}
+}
+.cart-panel{width:92%;right:4%;left:auto}
+.product-name{font-size:14px;margin-top:6px}
+.price{color:var(--orange);font-weight:700}
+
+
+/* search look like attached design */
+.search-area input{border-radius:30px;border:2px solid var(--orange);padding:12px 18px}
+
+/* Products page mobile: avoid filter pushing cards out of viewport */
+@media (max-width:899px){
+	.products-page{display:block;padding:0 8px}
+	.product-filters{min-width:0;max-width:none;width:100%;margin-bottom:12px}
+	.products-main{width:100%;min-width:0}
+	#product-list.product-list{display:flex;overflow-x:auto;overflow-y:hidden;gap:12px;padding:8px 4px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+	#product-list.product-list::-webkit-scrollbar{display:none}
+	#product-list.product-list .item{flex:0 0 220px;min-width:220px;max-width:220px;scroll-snap-align:start}
+}
+

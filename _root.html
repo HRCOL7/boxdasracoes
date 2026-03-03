@@ -1,0 +1,292 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Box das RaÃ§Ãµes</title>
+  <meta name="description" content="Box das RaÃ§Ãµes â raÃ§Ãµes, medicamentos, petiscos e acessÃ³rios para cÃ£es, gatos e outros pets. Atendimento humanizado e entrega rÃ¡pida.">
+  <!-- Favicon: single canonical .ico plus PNG fallbacks (versioned) -->
+  <link rel="shortcut icon" href="imagens/favicon.ico?v=20251224132000" />
+  <link rel="icon" href="imagens/site-icon.png?v=20251224132000" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="imagens/site-icon.png?v=20251224132000" />
+  <!-- removed external font to use browser/system default font for better performance -->
+  <!-- Bootstrap CSS (quick layout improvements) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.refactor.css">
+  <style>
+    /* PequeÌno CSS de suporte inline para testes imediatos (opcional se jÃ¡ tiver style.css) */
+    /* Caso mantenha style.css atualizado, esse bloco nÃ£o Ã© necessÃ¡rio. */
+  </style>
+</head>
+<body>
+  <!-- START: Header mobile refeito (substituir o bloco <header> existente) -->
+<header class="header-mobile" role="banner" aria-label="CabeÃ§alho do site">
+  <!-- Linha 1: menu | logo | carrinho -->
+  <div class="header-row header-row-top">
+    <!-- Menu toggle on the left (moved out of header-actions) -->
+    <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" type="button">
+      <span class="hamburger-icon" aria-hidden="true"></span>
+    </button>
+
+    <div class="header-logo" role="img" aria-label="Box das RaÃ§Ãµes">
+      <img src="imagens/logobox.png" alt="Box das RaÃ§Ãµes" class="logo">
+    </div>
+
+    <div class="header-actions">
+      <!-- Favoritos removido por solicitaÃ§Ã£o -->
+      <button id="header-cart" class="header-cart-btn" aria-label="Abrir carrinho" type="button">
+        <img src="imagens/Cart-L2.png" alt="Carrinho" class="header-icon">
+        <span id="cart-count" class="cart-count-badge" aria-hidden="false">0</span>
+      </button>
+      <!-- Import button for manual product load (temporary) -->
+      <button id="import-produtos-btn" class="btn btn-sm btn-outline-primary ms-2" type="button" aria-label="Importar produtos">
+        Importar produtos
+      </button>
+    </div>
+  </div>
+
+  <!-- Linha 2: busca (100% largura) -->
+  <div class="header-row header-row-search" role="search">
+    <div class="search-container">
+      <form class="search-form" onsubmit="return false;" aria-label="Buscar produtos">
+        <div style="position:relative">
+          <input id="mobile-search" class="mobile-search-input" type="text" placeholder="O seu pet merece o melhor!" aria-label="Buscar produtos">
+          <button type="submit" id="mobile-search-btn" class="mobile-search-btn" aria-label="Pesquisar" title="Pesquisar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+        <div id="search-suggestions" class="search-suggestions" aria-hidden="true"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Linha 3: info endereÃ§o / retirada -->
+  <!-- Linha 3: info endereÃ§o / retirada (removido) -->
+</header>
+<!-- END: Header mobile refeito -->
+
+  <!-- Mobile search handled by header-row-search to avoid duplication -->
+
+  <!-- Category pills removed per request -->
+
+  <!-- Mobile nav and backdrop -->
+  <nav id="mobile-nav" class="mobile-nav" aria-hidden="true" aria-label="Menu principal">
+    <ul>
+      <li class="has-submenu icon-caes">
+        <a href="#" id="menu-caes">CÃES</a>
+        <ul class="submenu" id="submenu-caes" style="display:none">
+          <li><a href="products.html?group=Cães&sub=Ração%20Seca">Ração Seca</a></li>
+          <li><a href="products.html?group=Cães&sub=Ração%20Úmida">Ração Úmida</a></li>
+          <li><a href="products.html?group=Cães&sub=Brinquedos">Brinquedos</a></li>
+          <li><a href="products.html?group=Cães&sub=Acessórios">Acessórios</a></li>
+          <li><a href="products.html?group=Cães&sub=Higiene%20%26%20Limpeza">Higiene &amp; Limpeza</a></li>
+        </ul>
+      </li>
+
+      <li class="has-submenu icon-gatos">
+        <a href="#" id="menu-gatos">GATOS</a>
+        <ul class="submenu" id="submenu-gatos" style="display:none">
+          <li><a href="products.html?group=Gatos&sub=Ração%20Seca">Ração Seca</a></li>
+          <li><a href="products.html?group=Gatos&sub=Ração%20Úmida">Ração Úmida</a></li>
+          <li><a href="products.html?group=Gatos&sub=Brinquedos">Brinquedos</a></li>
+          <li><a href="products.html?group=Gatos&sub=Acessórios">Acessórios</a></li>
+          <li><a href="products.html?group=Gatos&sub=Higiene%20%26%20Limpeza">Higiene &amp; Limpeza</a></li>
+        </ul>
+      </li>
+
+      <li class="has-submenu icon-outros">
+        <a href="#" id="menu-outros">OUTROS</a>
+        <ul class="submenu" id="submenu-outros" style="display:none">
+          <li><a href="products.html?group=Outros&sub=Peixes">Peixes</a></li>
+          <li><a href="products.html?group=Outros&sub=Aves">Aves</a></li>
+          <li><a href="products.html?group=Outros&sub=Roedores">Roedores</a></li>
+        </ul>
+      </li>
+
+      <li class="has-submenu icon-medicamentos">
+        <a href="#" id="menu-medicamentos">MEDICAMENTOS</a>
+        <ul class="submenu" id="submenu-medicamentos" style="display:none">
+          <li><a href="products.html?group=Medicamentos&sub=Antibióticos">Antibióticos</a></li>
+          <li><a href="products.html?group=Medicamentos&sub=Antifúngicos">Antifúngicos</a></li>
+          <li><a href="products.html?group=Medicamentos&sub=Anti-inflamatórios">Anti-inflamatórios</a></li>
+          <li><a href="products.html?group=Medicamentos&sub=Analgésicos">Analgésicos</a></li>
+          <li><a href="products.html?group=Medicamentos&sub=Suplementos%20e%20Vitaminas">Suplementos e Vitaminas</a></li>
+          <li><a href="products.html?group=Medicamentos&sub=Dermatológicos">Dermatológicos</a></li>
+        </ul>
+      </li>
+
+      <li class="icon-promocoes"><a href="#" id="menu-promocoes">PROMOÃÃES</a></li>
+    </ul>
+  </nav>
+  <div id="mobile-backdrop" class="mobile-backdrop" aria-hidden="true"></div>
+
+  <div class="custom-carousel" aria-label="Carrossel de imagens" role="region">
+    <button id="carousel-prev" class="carousel-nav carousel-prev" aria-label="Slide anterior" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 6 L9 12 L15 18" /></svg>
+    </button>
+    <div class="carousel-track" aria-live="polite">
+      <div class="carousel-slide active" aria-hidden="false">
+          <img loading="lazy" src="imagens/carousel-1.svg" alt="Filhotes de cachorro" width="1200" height="800" onerror="this.onerror=null;this.src='imagens/carousel-placeholder.svg'">
+      </div>
+      <div class="carousel-slide" aria-hidden="true">
+          <img loading="lazy" src="imagens/carousel-2.svg" alt="Cachorro feliz" width="1200" height="800" onerror="this.onerror=null;this.src='imagens/carousel-placeholder.svg'">
+      </div>
+      <div class="carousel-slide" aria-hidden="true">
+          <img loading="lazy" src="imagens/carousel-3.svg" alt="Gato deitado" width="1200" height="800" onerror="this.onerror=null;this.src='imagens/carousel-placeholder.svg'">
+      </div>
+    </div>
+    <button id="carousel-next" class="carousel-nav carousel-next" aria-label="PrÃ³ximo slide" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6 L15 12 L9 18" /></svg>
+    </button>
+  </div>
+
+  <main class="container my-4">
+    <section class="section" id="produtos">
+      <h2>Produtos Em Destaque</h2>
+
+      <!-- Consolidated product carousels (moved into Produtos em destaque) -->
+      <div class="products-highlight">
+          <div id="produtos-carousel-main" class="products-section">
+            <div class="product-carousel" aria-label="Produtos em destaque - carrossel Ãºnico">
+              <button class="carousel-nav carousel-prev" aria-label="Anterior produtos" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 6 L9 12 L15 18" /></svg>
+              </button>
+              <!-- product items will be injected here and wrapped into .product-track by JS -->
+              <button class="carousel-nav carousel-next" aria-label="PrÃ³ximo produtos" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6 L15 12 L9 18" /></svg>
+              </button>
+            </div>
+          </div>
+      </div>
+
+      <!-- fallback general list (kept for compatibility) -->
+      <div id="produtos-geral" style="display:none">
+        <div class="product-list"></div>
+      </div>
+    </section>
+
+    <section class="section" id="sobre">
+      <h2>Sobre nÃ³s</h2>
+      <p>Somos apaixonados por animais e oferecemos os melhores produtos para garantir a saÃºde e felicidade dos seus pets. Atendimento humanizado e entrega rÃ¡pida!</p>
+    </section>
+
+    <section class="section" id="contato">
+      <h2>Contato</h2>
+      <p>
+        ð (+55) 79 99902-8870 <br>
+        ð Rua Silvio Romero â 328 - Santo AntÃ´nio<br>
+        ð± <a href="https://wa.me/5579999028870" target="_blank" rel="noopener noreferrer">Fale conosco no WhatsApp</a>
+      </p>
+    </section>
+  </main>
+
+  <!-- RodapÃ© removido conforme solicitado -->
+
+  <!-- Floating legacy buttons removed â using header buttons instead -->
+
+  <!-- Sidebar Carrinho (bottom-sheet structure) -->
+  <div id="cart-sidebar" class="sidebar" aria-label="Carrinho" aria-hidden="true">
+    <div class="cart-header">
+      <div class="cart-handle" aria-hidden="true"><span></span></div>
+      <h2>Seu Carrinho</h2>
+      <button type="button" class="close-btn" aria-label="Fechar">Ã</button>
+    </div>
+
+    <div id="cart-items" class="cart-items" aria-live="polite"></div>
+
+    <div class="cart-footer">
+        <div class="cart-summary">
+          <div class="cart-total">Total: <span id="cart-total">R$ 0,00</span></div>
+        </div>
+
+      <div class="cart-actions">
+        <button id="clear-cart-btn" class="clear-cart"><span class="btn-lines">Limpar<br>carrinho</span></button>
+        <button id="whatsapp-checkout" class="whatsapp-checkout"><span class="btn-lines">Finalizar via<br>WhatsApp</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Favoritos (minimal) -->
+  <div id="fav-sidebar" class="sidebar" aria-label="Favoritos" aria-hidden="true">
+    <div class="cart-handle" aria-hidden="true"><span></span></div>
+    <button type="button" class="close-btn" aria-label="Fechar">Ã</button>
+    <h2>Favoritos</h2>
+    <div id="fav-items" class="fav-items" aria-live="polite">
+      <p class="muted">VocÃª nÃ£o tem favoritos ainda.</p>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="overlay" aria-hidden="true"></div>
+
+  <!-- Modais e filtros removidos conforme solicitado -->
+
+  <script src="cart.js"></script>
+  <script src="products.js"></script>
+  <script src="cart-handlers.js"></script>
+  <script src="menu.js"></script>
+  <script src="ui-helpers.js"></script>
+  <script src="script.js"></script>
+  <script src="cart-toggle.js"></script>
+  <!-- Bootstrap JS bundle (optional for components) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Manual import helper (triggered by header button) -->
+  <script>
+    async function importProdutosToLocalStorage() {
+      try {
+        const res = await fetch('/produtos.json', { cache: 'no-cache' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error('Formato invÃ¡lido');
+        localStorage.setItem('produtos_v1', JSON.stringify(data));
+        localStorage.setItem('produtos_v1_updated', String(Date.now()));
+        alert('Produtos importados: ' + data.length);
+        location.reload();
+      } catch (err) {
+        console.error('Import failed', err);
+        alert('Falha ao importar: ' + (err && err.message));
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+      const btn = document.getElementById('import-produtos-btn');
+      if (btn) btn.addEventListener('click', importProdutosToLocalStorage);
+    });
+  </script>
+  <!-- Fallback de renderizaÃ§Ã£o: se nenhum produto for renderizado pelo JS principal,
+       busca `produtos.json` e injeta cards bÃ¡sicos para garantir que itens apareÃ§am. -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async function(){
+      try{
+        // jÃ¡ existem produtos renderizados?
+        if (document.querySelectorAll('.product').length > 0) return;
+        const res = await fetch('/produtos.json', { cache: 'no-cache' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!Array.isArray(data) || data.length === 0) return;
+        const target = document.querySelector('#produtos-carousel-main .product-carousel') || document.querySelector('.product-carousel') || document.querySelector('.product-list');
+        if (!target) return;
+        data.forEach(p => {
+          try {
+            const art = document.createElement('article');
+            art.className = 'product card h-100';
+            art.setAttribute('data-id', p.id || '');
+            art.innerHTML = `
+              <div class="thumb-wrap card-img-top">
+                <img class="product-thumb card-img-top" src="${(p.imagens && p.imagens[0]) || p.imagem || 'imagens/product-placeholder.svg'}" alt="${(p.nome||'Produto')}" loading="lazy" onerror="this.onerror=null;this.src='imagens/product-placeholder.svg'">
+              </div>
+              <div class="card-body product-info">
+                <h5 class="product-title card-title">${p.nome || ''}</h5>
+                <div class="product-price">${(p.precoPromocional || p.precoPromocional === 0) ? ('R$ '+(Number(p.precoPromocional).toFixed(2))) : (p.preco ? ('R$ '+(Number(p.preco).toFixed(2))) : '')}</div>
+              </div>
+            `;
+            target.appendChild(art);
+          } catch (inner) { console.warn('fallback render item failed', inner); }
+        });
+      } catch (err) { console.warn('Fallback produtos render failed', err); }
+    });
+  </script>
+</body>
+</html>

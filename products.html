@@ -1,0 +1,41 @@
+  <!-- logo in header now links to home; removed manual back link -->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Produtos - Box Das Rações</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="css/desktop.css" media="(min-width:900px)">
+</head>
+<body>
+  <script src="js/header.js"></script>
+  <script src="js/menu.js" defer></script>
+  <script src="js/search.js" defer></script>
+  <script>
+    (function(){
+      var s = document.createElement('script');
+      s.src = '/config.js';
+      s.onload = function(){};
+      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
+      (document.head || document.documentElement).appendChild(s);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-client.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/customer-auth.js" defer></script>
+  <main>
+    <h1>Produtos</h1>
+    <div class="products-page">
+      <aside id="product-filters" class="product-filters"></aside>
+      <div class="products-main">
+        <div id="product-list" class="product-list"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/products.js" defer></script>
+  <script src="js/cart.js" defer></script>
+</body>
+</html>

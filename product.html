@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Produto — Box Das Rações</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="css/desktop.css" media="(min-width:900px)">
+</head>
+<body>
+  <script src="js/header.js"></script>
+  <script src="js/menu.js" defer></script>
+  <script src="js/search.js" defer></script>
+  <script>
+    (function(){
+      var s = document.createElement('script');
+      s.src = '/config.js';
+      s.onload = function(){};
+      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
+      (document.head || document.documentElement).appendChild(s);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-client.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/customer-auth.js" defer></script>
+
+  <main>
+    <section id="product-detail" class="product-detail" style="padding:16px;">
+      <!-- rendered by product.js -->
+    </section>
+
+    <section class="catalog">
+      <h2>Você também pode gostar</h2>
+      <div id="products-carousel" class="carousel products"></div>
+    </section>
+  </main>
+
+  <script>
+  (async function(){
+    function qs(name){ const u=new URL(location.href); return u.searchParams.get(name); }
+    function slugify(s){ if(!s) return ''; return String(s).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+    const id = Number(qs('id')) || null;
+    const nameParam = qs('name');
+    const pathSlug = (function(){ const p = location.pathname || '/'; const cleaned = p.replace(/^\//,'').replace(/\/$/,''); // '' if root
+      // ignore actual file names like 'product.html'
+      if(!cleaned) return '';
+      if(cleaned.toLowerCase().endsWith('.html')) return ''; return cleaned;
+    })();
+    let products;
+    try{ products = (window.appUtils && typeof window.appUtils.readJSON === 'function') ? window.appUtils.readJSON('products', []) : JSON.parse(localStorage.getItem('products')||'[]'); }
+    catch(e){ console.error('Failed to parse products', e); products = []; }
+    // If no products in localStorage, try to fetch produtos.json from server
+    if(!Array.isArray(products) || products.length === 0){
+      try{
+        const res = await fetch('/produtos.json', {cache: 'no-cache'});
+        if(res && res.ok){
+          const data = await res.json();
+          if(Array.isArray(data) && data.length>0){
+            products = data;
+            try{ localStorage.setItem('products', JSON.stringify(data)); } catch(e){ /* ignore storage errors */ }
+          }
+        }
+      }catch(e){ /* fetch failed */ }
+    }
+
+    let p = id ? products.find(x=>x.id===id) : null;
+    if(!p && pathSlug){ p = products.find(x=> slugify(x.name || '') === pathSlug); }
+    const root = document.getElementById('product-detail');
+    if(!p && !nameParam){
+      root.innerHTML = '<p>Produto não encontrado.</p>';
+    } else if(!p && nameParam){
+      document.title = nameParam + ' — Box Das Rações';
+      root.innerHTML = `<div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap"><div style="max-width:520px"><h1 style="margin:0 0 8px">${String(nameParam).replace(/</g,'&lt;')}</h1><p>Dados do produto não estão disponíveis.</p></div></div>`;
+    } else {
+      const primaryImg = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || '');
+      const img = primaryImg ? `<img src="${primaryImg}" style="width:260px;height:260px;object-fit:contain;padding:6px;background:#fff;border-radius:8px">` : '';
+      const price = (Array.isArray(p.variants) && p.variants.length)? Number(p.variants[0].price).toFixed(2) : Number(p.price||0).toFixed(2);
+      const desc = p.description || '';
+      // prefer pre-generated HTML table (`garantia`) created by admin; else use centralized parser
+      const garantiaHtml = p.garantia ? p.garantia : ( (window.appUtils && typeof window.appUtils.buildGarantiaHtml === 'function') ? window.appUtils.buildGarantiaHtml(p.garantia_raw || '') : (typeof window.buildGarantiaHtml === 'function' ? window.buildGarantiaHtml(p.garantia_raw || '') : '') );
+
+      // prepare variants list for selector
+      const variants = (Array.isArray(p.variants) && p.variants.length) ? p.variants : (p.variant ? [{weight: p.variant, price: p.price||0}] : []);
+      const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
+      const variantOptions = variants.map((v,i)=>`<option value="${i}">${esc(v.weight||'')}${v.weight? ' — ' : ''}R$ ${Number(v.price||0).toFixed(2)}</option>`).join('');
+
+      const displayName = p.name || nameParam || 'Produto';
+      document.title = displayName + ' — Box Das Rações';
+      const safeCategory = esc(p.category||'Ração');
+      root.innerHTML = `
+        <nav class="breadcrumb" style="font-size:13px;color:#666;margin-bottom:8px">Pet Shop &gt; ${ safeCategory }</nav>
+        <div class="product-grid ${p.video ? 'has-video' : ''}">
+            <aside class="gallery">
+            <div class="thumbs" id="thumbs"></div>
+            <div class="main-image"><div id="main-media-wrap"></div><div id="image-dots" class="image-dots"></div></div>
+          </aside>
+          <section class="details">
+            <h1 class="product-title">${esc(displayName)}</h1>
+            <div class="meta-row">
+              <div class="code">Código: ${esc(p.id || '')}</div>
+              ${ p.image_illustrative ? '<div class="illustrative">* imagens meramente ilustrativas</div>' : '' }
+            </div>
+            <div class="price-row">
+              <div id="product-price" class="price">R$ ${price}</div>
+              <button id="favorite-btn" class="favorite" title="Favoritar">♡</button>
+            </div>
+            <div class="variants">${ variants.length>0 ? `<label>Selecione o tamanho:</label><div class="ptz-selector-wrapper"><select id="variant-select">${variantOptions}</select></div>` : '' }</div>
+
+            <div class="buy-actions">
+              <div class="qty">
+                <button id="qty-dec" class="qty-btn">−</button>
+                <input id="qty-val" class="qty-val" type="number" min="1" value="1" inputmode="numeric" aria-label="Quantidade">
+                <button id="qty-inc" class="qty-btn">+</button>
+              </div>
+              <button id="add-to-cart" class="btn btn-orange">Adicionar ao carrinho</button>
+            </div>
+
+            <div class="extra-actions">
+              <a href="#" class="consult-stock">Consulte nosso estoque</a>
+            </div>
+          </section>
+        </div>
+
+        <div class="product-below">
+          <div class="description">${esc(desc)}</div>
+          ${ garantiaHtml ? `<div class="nutri"><strong>Tabela Nutricional</strong>${garantiaHtml}</div>` : '' }
+        </div>
+      `;
+
+      // wire variant selector to update price
+      const variantSelect = document.getElementById('variant-select');
+      const priceEl = document.getElementById('product-price');
+      function updatePriceForVariant(idx){
+        const v = variants[idx] || {};
+        const pval = Number(v.price||p.price||0).toFixed(2);
+        if(priceEl) priceEl.textContent = 'R$ ' + pval;
+      }
+      if(variantSelect){
+        variantSelect.addEventListener('change', (e)=>{ updatePriceForVariant(Number(variantSelect.value)); });
+        updatePriceForVariant(Number(variantSelect.value||0));
+      }
+
+      // quantity controls (allow typing in the number input)
+      const qtyVal = document.getElementById('qty-val');
+      let qty = 1;
+      const dec = document.getElementById('qty-dec');
+      const inc = document.getElementById('qty-inc');
+      function setQty(n){ qty = Math.max(1, Math.floor(Number(n)) || 1); if(qtyVal) qtyVal.value = qty; }
+      dec?.addEventListener('click', ()=> setQty(qty-1));
+      inc?.addEventListener('click', ()=> setQty(qty+1));
+      // typing directly into the input
+      qtyVal?.addEventListener('input', (e)=>{ const v = Number(e.target.value); if(Number.isNaN(v) || v < 1){ /* don't update until valid */ } else { setQty(v); } });
+      // ensure changes by typing are normalized on change/blur
+      qtyVal?.addEventListener('change', (e)=>{ setQty(e.target.value); });
+      qtyVal?.addEventListener('blur', (e)=>{ setQty(e.target.value); });
+
+      // add to cart
+      document.getElementById('add-to-cart')?.addEventListener('click',()=>{
+        const variantIndex = variantSelect ? Number(variantSelect.value||0) : 0;
+        document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id: p.id, variantIndex: variantIndex, qty: qty}}));
+        alert('Adicionado à sacola');
+      });
+
+      // favorite toggle
+      const favBtn = document.getElementById('favorite-btn');
+      favBtn?.addEventListener('click', ()=>{
+        const active = favBtn.classList.toggle('active');
+        favBtn.textContent = active ? '❤' : '♡';
+      });
+
+      // thumbnails + dots + swipe: unified media list (images + optional video)
+      const thumbs = document.getElementById('thumbs');
+      const mediaWrap = document.getElementById('main-media-wrap');
+      const dotsWrap = document.getElementById('image-dots');
+      const images = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : []);
+      const mediaList = [];
+      (images||[]).forEach(src=> mediaList.push({type:'image', src}));
+      if(p.video){ const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(p.video||''); const thumb = (yt && yt[1]) ? `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg` : (images && images[0]) || ''; mediaList.push({type:'video', src: p.video, thumb}); }
+      let currentImageIndex = 0; let showingVideo = false;
+
+      function renderDots(){ if(!dotsWrap) return; dotsWrap.innerHTML = ''; mediaList.forEach((_,i)=>{ const btn = document.createElement('button'); btn.className = 'dot'; btn.dataset.index = String(i); btn.setAttribute('aria-label', 'mídia ' + (i+1)); dotsWrap.appendChild(btn); }); updateDots(); }
+      function updateDots(){ if(!dotsWrap) return; Array.from(dotsWrap.children).forEach((b,idx)=> b.classList.toggle('active', idx===currentImageIndex)); }
+
+      function makeVideoPlayerIframe(src){ if(!src) return null; const container = document.createElement('div'); container.className = 'media-frame'; const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(src); if(yt && yt[1]){ const id = yt[1]; const iframe = document.createElement('iframe'); iframe.setAttribute('src', 'https://www.youtube.com/embed/' + encodeURIComponent(id) + '?autoplay=1'); iframe.setAttribute('frameborder','0'); iframe.setAttribute('allow','accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture'); iframe.setAttribute('allowfullscreen',''); container.appendChild(iframe); return container; } const video = document.createElement('video'); video.id = 'main-video'; video.controls = true; video.autoplay = true; video.src = src; container.appendChild(video); return container; }
+
+      function makeVideoThumbnail(src, fallbackImage){ const container = document.createElement('div'); container.className = 'media-frame'; const inner = document.createElement('div'); inner.className = 'video-thumb'; inner.dataset.src = src || ''; const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(src||''); const thumb = (yt && yt[1]) ? ('https://img.youtube.com/vi/' + yt[1] + '/hqdefault.jpg') : (fallbackImage || ''); if(thumb) inner.style.backgroundImage = 'url("' + thumb + '")'; const btn = document.createElement('button'); btn.className = 'play-btn'; btn.setAttribute('aria-label','Reproduzir'); btn.textContent = '▶'; inner.appendChild(btn); container.appendChild(inner); return container; }
+
+      function showMediaImage(i){ if(!mediaWrap) return; showingVideo = false; currentImageIndex = i < 0 ? 0 : (i >= mediaList.length ? 0 : i); const item = mediaList[currentImageIndex]; mediaWrap.innerHTML = ''; if(item && item.type === 'image'){ const wrap = document.createElement('div'); wrap.id = 'main-img-wrap'; wrap.className = 'media-frame'; const imgEl = document.createElement('img'); imgEl.id = 'main-img'; imgEl.src = item.src; imgEl.alt = esc(displayName); wrap.appendChild(imgEl); mediaWrap.appendChild(wrap); const mainImgEl = imgEl; if(mainImgEl){ let touchStartX = 0; mainImgEl.addEventListener('touchstart', (e)=>{ touchStartX = e.changedTouches[0].clientX; }, {passive:true}); mainImgEl.addEventListener('touchend', (e)=>{ const dx = e.changedTouches[0].clientX - touchStartX; if(Math.abs(dx) > 30){ if(dx < 0) showMediaAt(currentImageIndex + 1); else showMediaAt(currentImageIndex - 1); } }, {passive:true}); } } else { const no = document.createElement('div'); no.className = 'no-image'; no.textContent = 'Sem imagem'; mediaWrap.appendChild(no); } if(thumbs){ Array.from(thumbs.children).forEach((el,idx)=> el.classList.toggle('active', idx===currentImageIndex)); } updateDots(); const mainImageContainer = mediaWrap.closest('.main-image'); if(mainImageContainer){ mainImageContainer.classList.remove('has-video'); } }
+
+      function showMediaVideo(i){ if(!mediaWrap) return; showingVideo = true; currentImageIndex = i < 0 ? 0 : (i >= mediaList.length ? 0 : i); const item = mediaList[currentImageIndex]; mediaWrap.innerHTML = ''; if(!item){ const no = document.createElement('div'); no.className = 'no-image'; no.textContent = 'Vídeo indisponível'; mediaWrap.appendChild(no); return; } const thumbElContainer = makeVideoThumbnail(item.src, item.thumb || images[0]); mediaWrap.appendChild(thumbElContainer); updateDots(); const mainImageContainer = mediaWrap.closest('.main-image'); if(mainImageContainer){ mainImageContainer.classList.add('has-video'); } const thumbInner = mediaWrap.querySelector('.video-thumb'); if(thumbInner){ thumbInner.addEventListener('click', (ev)=>{ const src = thumbInner.dataset.src; const player = makeVideoPlayerIframe(src); mediaWrap.innerHTML = ''; mediaWrap.appendChild(player || (function(){ const no = document.createElement('div'); no.className='no-image'; no.textContent='Vídeo indisponível'; return no; })()); }, {once:true}); } if(thumbs){ Array.from(thumbs.children).forEach((el,idx)=> el.classList.toggle('active', idx===currentImageIndex)); } }
+
+      function showMediaAt(idx){ const item = mediaList[idx]; if(!item) return; if(item.type==='video') showMediaVideo(idx); else showMediaImage(idx); }
+
+      if(dotsWrap && mediaList.length>0){ renderDots(); dotsWrap.addEventListener('click', (ev)=>{ const b = ev.target.closest('button[data-index]'); if(b) showMediaAt(Number(b.dataset.index)); }); }
+
+      if(thumbs){ thumbs.innerHTML = ''; mediaList.forEach((m,i)=>{ if(m.type==='image'){ const im = document.createElement('img'); im.src = m.src; im.dataset.index = String(i); im.alt = 'thumb'; thumbs.appendChild(im); } else { const div = document.createElement('div'); div.className = 'thumb-video'; div.dataset.index = String(i); div.style.width = '64px'; div.style.height = '64px'; if(m.thumb) div.style.backgroundImage = 'url("' + m.thumb + '")'; div.style.backgroundSize = 'cover'; div.style.borderRadius = '6px'; div.style.border = '1px solid #f0f0f0'; thumbs.appendChild(div); } }); thumbs.addEventListener('click',(ev)=>{ const t = ev.target.closest('[data-index]'); if(t){ const idx=Number(t.dataset.index); if(!Number.isNaN(idx)) showMediaAt(idx); } }); const first = thumbs.querySelector('[data-index="0"]'); if(first) first.classList.add('active'); }
+
+      if(mediaList.length>0){ showMediaAt(0); }
+
+      // touch support handled when image is rendered (see showMediaImage)
+    }
+
+    // render carousel of other products
+    const carousel=document.getElementById('products-carousel'); if(carousel){ carousel.innerHTML=''; products.forEach(prod=>{
+      const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
+      const div=document.createElement('div'); div.className='item';
+      const imgAttr = String(prod.image||'https://via.placeholder.com/182').replace(/"/g,'&quot;');
+      div.innerHTML = `
+        <div class="image-wrap"><img src="${imgAttr}" alt="${esc(prod.name||'')}"></div>
+        <div class="product-name">${esc(prod.name||'')}</div>
+        <div class="price">R$ ${Number((Array.isArray(prod.variants)&&prod.variants.length)?prod.variants[0].price:prod.price||0).toFixed(2)}</div>
+      `;
+      div.addEventListener('click',()=>{ window.location.href = 'product.html?id='+encodeURIComponent(prod.id)+'&name='+encodeURIComponent(prod.name||''); });
+      carousel.appendChild(div);
+    })}
+  })();
+  </script>
+
+  <script src="js/cart.js" defer></script>
+</body>
+</html>

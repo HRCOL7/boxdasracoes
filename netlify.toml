@@ -1,0 +1,8 @@
+[build]
+  command = "node build-config.js"
+  publish = "."
+
+[context.production.environment]
+  # These should be set in Netlify UI (Site settings → Build & deploy → Environment)
+  # SUPABASE_URL = "https://your-project.supabase.co"
+  # SUPABASE_ANON_KEY = "public-anon-key"

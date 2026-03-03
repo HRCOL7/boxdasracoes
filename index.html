@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Box Das Rações</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="css/desktop.css" media="(min-width:900px)">
+  <link rel="icon" href="favicon.ico">
+</head>
+<body>
+  <header class="top">
+    <button id="hamburger" aria-label="menu" class="icon">☰</button>
+    <div class="logo"><img src="logobox.png" alt="logo" class="logo-img"></div>
+    <div id="customer-auth-holder"></div>
+    <button id="cart-btn" class="icon"><img src="cart-l2.png" alt="carrinho" class="cart-icon"><span id="cart-count" class="cart-count">0</span></button>
+  </header>
+
+  <div id="search-area" class="search-area">
+    <div style="position:relative">
+      <input id="search" placeholder="O seu pet merece o melhor !">
+      <button id="search-btn" class="search-btn" aria-label="Pesquisar" title="Pesquisar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+    </div>
+    <div id="search-results" class="search-results"></div>
+  </div>
+
+  <main>
+    <section id="top-carousel" class="carousel banner"></section>
+
+    <section class="catalog">
+      <h2>Produtos Em Destaque</h2>
+      <div id="products-carousel" class="carousel products"></div>
+    </section>
+
+    <section class="brands">
+      <h3>Marcas Parceiras</h3>
+      <div id="brands-carousel" class="carousel brands-list"></div>
+    </section>
+  </main>
+
+  <aside id="cart-panel" class="cart-panel hidden">
+    <div class="cart-header">
+      <h3>Seu Carrinho</h3>
+      <button id="cart-close" class="cart-close">✕</button>
+    </div>
+    <div id="cart-items" class="cart-items"></div>
+    <div class="cart-footer">
+      <div class="cart-total">Total: <span id="cart-total">R$ 0,00</span></div>
+      <div class="cart-controls">
+        <button id="clear-cart" class="btn btn-orange btn-left"><span class="btn-line">Limpar<br>carrinho</span></button>
+        <button id="checkout" class="btn btn-green btn-right" disabled><span class="btn-line">Finalizar via<br>WhatsApp</span></button>
+      </div>
+      <div class="cart-actions">
+        <label style="display:block;margin-top:8px;font-weight:700">Pagamento:</label>
+        <div class="payment-row" style="display:flex;gap:8px;align-items:center;margin-top:6px">
+          <select id="payment" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd">
+            <option value="">Selecione</option>
+            <option value="PIX">PIX</option>
+            <option value="DEBITO">DÉBITO</option>
+            <option value="CREDITO">CRÉDITO</option>
+            <option value="DINHEIRO">DINHEIRO</option>
+            <option value="BANESE_CREDITO">BANESE CRÉDITO</option>
+            <option value="BANESE_DEBITO">BANESE DÉBITO</option>
+            <option value="LINK">LINK DE PAGAMENTO</option>
+          </select>
+        </div>
+        <div id="cash-change" class="hidden" style="margin-top:8px">
+          <label>Precisa de troco? <select id="need-change"><option value="no">Não</option><option value="yes">Sim</option></select></label>
+          <div id="cash-amount-row" class="hidden" style="margin-top:8px">Valor que irá pagar: <input id="cash-amount" type="text" placeholder="ex: 200.00" style="padding:8px;border-radius:6px;border:1px solid #ddd;width:100%"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="js/carousel.js" defer></script>
+  <script src="js/menu.js" defer></script>
+  <script>
+    (function(){
+      var s = document.createElement('script');
+      s.src = '/config.js';
+      s.onload = function(){};
+      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
+      (document.head || document.documentElement).appendChild(s);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="js/supabase-client.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/customer-auth.js" defer></script>
+  <script src="js/products.js" defer></script>
+  <script src="js/search.js" defer></script>
+  <script src="js/cart.js" defer></script>
+  <script src="js/whatsapp.js" defer></script>
+</body>
+</html>

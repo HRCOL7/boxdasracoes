@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - Cadastrar Produto</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/mobile.css">
+  <link rel="stylesheet" href="../css/desktop.css" media="(min-width:900px)">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <!-- Header removed for admin page to avoid site header injection -->
+  <main class="admin-layout">
+    <aside class="admin-form">
+      <div class="admin-head">
+        <img src="../img/logobox.png" alt="Box Das Rações" class="admin-head-logo">
+        <h1 class="admin-head-title">Admin — Produtos</h1>
+      </div>
+      <div class="admin-section-head">
+        <h2>Cadastro de produto</h2>
+        <button type="button" class="help-btn" data-help="Aqui você cria, edita e salva produtos. Os campos de categoria e subgrupo impactam no menu e na organização da vitrine.">?</button>
+      </div>
+      <div id="admin-status" aria-live="polite" style="margin-bottom:12px;display:none;padding:8px;border-radius:6px"></div>
+      <form id="product-form">
+        <label>Nome: <input name="name" required></label>
+        <label>Preço (ex: 120.50): <input name="price" type="number" step="0.01" required></label>
+        <label>Categoria: 
+          <select name="group" id="group-select" required>
+            <option value="">(selecionar)</option>
+          </select>
+        </label>
+        <label>Fabricante: <input name="brand"></label>
+        <label>Tipo/Subgrupo: 
+          <select name="subgroup" id="subgroup-select">
+            <option value="">(selecionar)</option>
+            <option value="Antiparasitários">Antiparasitários</option>
+          </select>
+        </label>
+        <label>Código interno (aparecerá apenas no WhatsApp): <input name="internal"></label>
+        <label>Variantes (uma por linha — peso,preço):
+          <button type="button" class="help-btn" data-help="Exemplo: 1kg,25.90 em cada linha. Quando houver mais de uma variante, o cliente escolhe o KG antes de adicionar ao carrinho.">?</button>
+          <textarea name="variants" placeholder="ex: 1 kg,25.99\n7 kg,109.99" rows="6"></textarea>
+        </label>
+        <label>Descrição do produto:
+          <textarea name="description" rows="8" placeholder="Descrição detalhada, ingredientes, modo de uso..."></textarea>
+        </label>
+        <label>Níveis de garantia (tabela nutricional):
+          <textarea name="garantia" rows="8" placeholder="Use CSV: Ex: Proteínas,25%\nGorduras,12%\nFibra,3% — ou cole uma tabela HTML &lt;table&gt;..."></textarea>
+        </label>
+        <div style="margin-top:8px">
+          <strong>Preview (antes de salvar):</strong>
+          <div id="garantia-preview" class="garantia-preview" aria-live="polite"></div>
+        </div>
+        <label>URLs das imagens (uma por linha):
+          <button type="button" class="help-btn" data-help="Você pode usar links diretos (https://...) ou enviar arquivos abaixo. A primeira imagem vira capa do produto.">?</button>
+          <textarea name="image_urls" id="image-urls" rows="3" placeholder="http://..." ></textarea>
+        </label>
+        <label>Ou enviar arquivos (PNG/JPEG/WEBP) — pode selecionar múltiplos:
+          <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp" multiple>
+        </label>
+        <input type="hidden" name="images" id="images-hidden">
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+          <div id="image-preview" class="image-preview" style="display:block"></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button type="button" id="remove-images" class="btn">Remover imagens</button>
+          </div>
+        </div>
+          <label>Vídeo URL (YouTube/Vimeo ou link direto):
+            <button type="button" class="help-btn" data-help="Use link do YouTube/Vimeo ou URL direta. Se remover e salvar, o vídeo deve sair do cadastro do produto.">?</button>
+            <input name="video" id="video-url" placeholder="https://... (opcional)">
+          </label>
+          <label>Ou enviar arquivo de vídeo: <input type="file" id="video-file" accept="video/*"></label>
+          <video id="video-preview" class="video-preview" src="" controls style="display:none;max-width:100%;border-radius:8px;margin-top:8px"></video>
+          <div style="margin-top:8px"><button type="button" id="remove-video" class="btn">Remover vídeo</button></div>
+        <label style="display:block;margin-top:6px"><input type="checkbox" name="image_illustrative" id="image-illustrative"> Imagem meramente ilustrativa</label>
+        <div style="display:flex;gap:8px;margin-top:8px"><button type="submit" class="btn btn-orange">Salvar</button><button type="reset" class="btn">Cancelar</button></div>
+      </form>
+    </aside>
+    <section class="admin-list">
+      <div class="admin-tools">
+        <input id="admin-search" class="admin-search" placeholder="Buscar por nome ou categoria">
+        <button id="export-json" class="btn">Exportar JSON</button>
+        <button id="admin-logout" class="btn">Sair</button>
+        <button id="clear-products" class="btn btn-danger">Limpar cache local</button>
+      </div>
+      <section id="site-settings" class="site-settings-card">
+        <div class="admin-section-head">
+          <h3>Configurações do site</h3>
+          <button type="button" class="help-btn" data-help="Essas configurações controlam banners, marcas, categorias e o comportamento da mensagem de checkout no WhatsApp.">?</button>
+        </div>
+        <div class="site-settings-grid">
+          <label>Banners (uma URL por linha)
+            <textarea id="admin-banners" rows="4" placeholder="img/banner1.jpg\nimg/banner2.jpg"></textarea>
+            <div class="site-upload-row">
+              <input type="file" id="admin-banners-files" accept="image/png,image/jpeg,image/webp" multiple>
+              <button type="button" id="admin-banners-add-files" class="btn">Adicionar imagens</button>
+            </div>
+            <div id="admin-banners-preview" class="site-media-preview"></div>
+          </label>
+          <label>Marcas parceiras (uma por linha: Nome|URL da imagem)
+            <button type="button" class="help-btn" data-help="Formato recomendado: Marca A|https://url-da-logo.png. Se não informar imagem, o sistema usa placeholder.">?</button>
+            <textarea id="admin-brands" rows="4" placeholder="MarcaA|https://...\nMarcaB|https://..."></textarea>
+            <div class="site-upload-row">
+              <input type="file" id="admin-brands-files" accept="image/png,image/jpeg,image/webp" multiple>
+              <button type="button" id="admin-brands-add-files" class="btn">Adicionar logos</button>
+            </div>
+            <div id="admin-brands-preview" class="site-media-preview"></div>
+          </label>
+        </div>
+        <div class="site-settings-toggle-row">
+          <label class="site-settings-toggle-label">
+            <input type="checkbox" id="admin-whatsapp-customer-toggle">
+            Enviar dados de cadastro do cliente na mensagem do WhatsApp
+          </label>
+        </div>
+        <div class="site-settings-categories-wrap">
+          <div class="admin-section-head small">
+            <strong>Categorias e subgrupos</strong>
+            <button type="button" class="help-btn" data-help="Crie, edite ou exclua categorias que aparecem no menu lateral e no cadastro de produtos.">?</button>
+          </div>
+          <div class="site-settings-category-row">
+            <select id="admin-category-select" class="admin-category-select"></select>
+            <button type="button" id="admin-category-remove" class="btn">Excluir categoria selecionada</button>
+          </div>
+          <div class="site-settings-category-grid">
+            <label>Nome da categoria
+              <input id="admin-category-name" placeholder="Ex: CÃES">
+            </label>
+            <label>Subgrupos (uma linha por subgrupo)
+              <textarea id="admin-category-subs" rows="4" placeholder="Ração Seca\nRação Úmida"></textarea>
+            </label>
+          </div>
+          <div class="site-settings-actions-row">
+            <button type="button" id="admin-category-save" class="btn btn-orange">Criar/Atualizar categoria</button>
+          </div>
+        </div>
+        <div class="site-settings-actions-row">
+          <button type="button" id="admin-settings-save" class="btn btn-orange">Salvar configurações</button>
+        </div>
+      </section>
+      <div id="admin-products" class="admin-products"></div>
+    </section>
+  </main>
+
+  <!-- login modal similar to screenshot -->
+  <div id="admin-login" class="modal">
+    <div class="modal-body admin-login-card">
+      <h3 class="admin-login-title">Entrar no painel</h3>
+      <p class="admin-login-subtitle">Use seu acesso de administrador para cadastrar e editar produtos.</p>
+      <label class="admin-login-label">Email cadastrado no Supabase
+        <input id="admin-email" type="email" placeholder="admin@exemplo.com" autocomplete="email">
+      </label>
+      <label class="admin-login-label">Senha
+        <input id="admin-pass" type="password" placeholder="Senha" autocomplete="current-password">
+      </label>
+      <div class="admin-login-actions">
+        <button id="admin-enter" class="btn btn-orange">Entrar</button>
+        <button id="admin-close" class="btn">Voltar ao site</button>
+      </div>
+    </div>
+  </div>
+  <script src="../js/storage-idb.js" defer></script>
+  <!-- Supabase configuration: load external config.js or fallback to placeholders -->
+  <script>
+    (function(){
+      var s = document.createElement('script');
+      s.src = '/config.js';
+      s.onload = function(){};
+      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
+      (document.head || document.documentElement).appendChild(s);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="../js/supabase-client.js" defer></script>
+  <script src="../js/utils.js" defer></script>
+  <script src="../js/admin.js" defer></script>
+  <script src="../js/admin-ui.js" defer></script>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', ()=>{
+      try{
+        // attempt to initialize supabase client; no UI status created in production
+        if(window.supa && typeof window.supa.init === 'function') window.supa.init();
+      }catch(e){ console.warn('supa test failed', e); }
+    });
+  </script>
+</body>
+</html>

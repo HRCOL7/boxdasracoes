@@ -1,0 +1,30 @@
+param(
+  [string]$ProjectRoot = "D:\Hicaro\BOXDASRACOES",
+  [string]$PythonPath = ""
+)
+
+$connectorDir = Join-Path $ProjectRoot "erp_connector"
+if(-not (Test-Path $connectorDir)){
+  Write-Error "Pasta do conector não encontrada: $connectorDir"
+  exit 1
+}
+
+Set-Location $connectorDir
+
+if(-not $PythonPath){
+  $venvPython = Join-Path $connectorDir ".venv\Scripts\python.exe"
+  if(Test-Path $venvPython){
+    $PythonPath = $venvPython
+  } else {
+    $cmd = Get-Command python -ErrorAction SilentlyContinue
+    if($cmd){ $PythonPath = $cmd.Source }
+  }
+}
+
+if(-not $PythonPath -or -not (Test-Path $PythonPath)){
+  Write-Error "Python não encontrado. Informe -PythonPath ou crie .venv em $connectorDir"
+  exit 1
+}
+
+& $PythonPath "connector.py"
+exit $LASTEXITCODE
