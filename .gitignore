@@ -14,5 +14,4 @@ __pycache__/
 # Local Netlify folder
 .netlify
 
-# Local Supabase client config (generated at build or created locally). Keep secrets out of VCS.
-config.js
+# Supabase anon config is required for static hosts (GitHub Pages).
