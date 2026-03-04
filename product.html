@@ -170,6 +170,32 @@
         favBtn.textContent = active ? '❤' : '♡';
       });
 
+      const consultStock = document.querySelector('.consult-stock');
+      consultStock?.addEventListener('click', (ev)=>{
+        ev.preventDefault();
+        const defaultPhone = '5579999028870';
+        const phone = localStorage.getItem('whatsapp_phone') || defaultPhone;
+        const productName = String(displayName || p.name || 'Produto').trim();
+        const productUrl = location.href;
+        let imageUrl = '';
+        const firstImage = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || '');
+        if(firstImage && typeof firstImage === 'string' && !firstImage.startsWith('data:')){
+          try{ imageUrl = new URL(firstImage, location.origin).href; }catch(e){ imageUrl = firstImage; }
+        }
+        const lines = [
+          `Olá! Gostaria de saber se esse produto tem em estoque?`,
+          `Produto: ${productName}`,
+          `Link do produto: ${productUrl}`
+        ];
+        if(imageUrl) lines.push(`Imagem do produto: ${imageUrl}`);
+        const text = encodeURIComponent(lines.join('\n'));
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const url = isMobile
+          ? `https://api.whatsapp.com/send?phone=${phone}&text=${text}`
+          : `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
+        window.open(url, '_blank');
+      });
+
       // thumbnails + dots + swipe: unified media list (images + optional video)
       const thumbs = document.getElementById('thumbs');
       const mediaWrap = document.getElementById('main-media-wrap');
