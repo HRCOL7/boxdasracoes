@@ -6,3 +6,18 @@
   # These should be set in Netlify UI (Site settings → Build & deploy → Environment)
   # SUPABASE_URL = "https://your-project.supabase.co"
   # SUPABASE_ANON_KEY = "public-anon-key"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
