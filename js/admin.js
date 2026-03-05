@@ -1,5 +1,8 @@
 (function(){
   const KEY='products';
+  const LOG_PREFIX = '[admin]';
+  const logWarn = (message, ...args) => console.warn(`${LOG_PREFIX} ${message}`, ...args);
+  const logError = (message, ...args) => console.error(`${LOG_PREFIX} ${message}`, ...args);
   const form=document.getElementById('product-form');
   // pagination state
   let currentPage = 1;
@@ -18,7 +21,7 @@
   function getSiteSettingsSafe(){
     try{
       if(window.appUtils && typeof window.appUtils.getSiteSettings === 'function') return window.appUtils.getSiteSettings();
-    }catch(e){ console.warn('getSiteSettings failed', e); }
+    }catch(e){ logWarn('getSiteSettings failed', e); }
     return {
       banners: ['img/banner1.jpg','img/banner2.jpg','img/banner3.jpg'],
       brands: [{name:'MarcaA', image:''},{name:'MarcaB', image:''},{name:'MarcaC', image:''}],
@@ -37,7 +40,7 @@
       if(window.appUtils && typeof window.appUtils.saveSiteSettings === 'function') return window.appUtils.saveSiteSettings(settings);
       localStorage.setItem('site_settings', JSON.stringify(settings));
       return true;
-    }catch(e){ console.error('saveSiteSettings failed', e); return false; }
+    }catch(e){ logError('saveSiteSettings failed', e); return false; }
   }
 
   let adminSiteSettings = getSiteSettingsSafe();
@@ -140,7 +143,7 @@
       if(!files.length) return;
       const dataUrls = [];
       for(const f of files){
-        try{ dataUrls.push(await fileToDataURL(f)); }catch(e){ console.warn('Failed to read banner file', e); }
+        try{ dataUrls.push(await fileToDataURL(f)); }catch(e){ logWarn('Failed to read banner file', e); }
       }
       const bannersEl = document.getElementById('admin-banners');
       const current = parseLines(bannersEl && bannersEl.value || '');
@@ -160,7 +163,7 @@
           const dataUrl = await fileToDataURL(f);
           const baseName = String(f.name || 'Marca').replace(/\.[^.]+$/, '').replace(/[_\-]+/g, ' ').trim();
           appended.push({ name: baseName || 'Marca', image: dataUrl });
-        }catch(e){ console.warn('Failed to read brand file', e); }
+        }catch(e){ logWarn('Failed to read brand file', e); }
       }
       const next = current.concat(appended);
       if(brandsEl) brandsEl.value = next.map(b=>`${b.name}${b.image ? '|' + b.image : ''}`).join('\n');
@@ -280,7 +283,7 @@
   window.buildGarantiaHtml = function(raw){
     try{
       if(window.appUtils && typeof window.appUtils.buildGarantiaHtml === 'function') return window.appUtils.buildGarantiaHtml(raw);
-    }catch(e){/* ignore and fallback */}
+    }catch(e){ logWarn('Failed to build garantia HTML via appUtils, using fallback', e); }
     return '';
   };
   // Async read/save helpers that prefer IndexedDB when available
@@ -290,7 +293,7 @@
         return await window.idbProducts.getAll();
       }
       return JSON.parse(localStorage.getItem(KEY)||'[]');
-    }catch(e){ console.error('Failed to read products', e); return []; }
+    }catch(e){ logError('Failed to read products', e); return []; }
   }
   async function saveAll(list){
     try{
@@ -301,13 +304,13 @@
         return;
       }
       localStorage.setItem(KEY, JSON.stringify(list));
-    }catch(e){ console.error('Failed to save products', e); throw e; }
+    }catch(e){ logError('Failed to save products', e); throw e; }
   }
   async function mirrorToLocalStorage(list){
     try{
       const payload = Array.isArray(list) ? list : await readAll();
       localStorage.setItem(KEY, JSON.stringify(payload));
-    }catch(e){ console.warn('Failed to mirror products to localStorage', e); }
+    }catch(e){ logWarn('Failed to mirror products to localStorage', e); }
   }
   async function waitForAdminSupaReady(maxWaitMs = 5000){
     const started = Date.now();
@@ -339,12 +342,12 @@
       }
       if(!merged.length) return false;
       if(window.idbProducts && typeof window.idbProducts.clear === 'function' && typeof window.idbProducts.bulkPut === 'function'){
-        try{ await window.idbProducts.clear(); await window.idbProducts.bulkPut(merged); }catch(e){ console.warn('IDB hydrate from Supabase failed', e); }
+        try{ await window.idbProducts.clear(); await window.idbProducts.bulkPut(merged); }catch(e){ logWarn('IDB hydrate from Supabase failed', e); }
       }
       await mirrorToLocalStorage(merged);
       return true;
     }catch(err){
-      console.warn('hydrateAdminStoresFromSupabase failed', err);
+      logWarn('hydrateAdminStoresFromSupabase failed', err);
       return false;
     }
   }
@@ -372,7 +375,7 @@
           const all = await readAll(); totalCount = all.length; products = all.slice(offset, offset + pageSize);
         }
       }
-    }catch(e){ console.error('Failed to fetch products page', e); products = []; }
+    }catch(e){ logError('Failed to fetch products page', e); products = []; }
     products.forEach(p=>{
       const d=document.createElement('div');d.className='admin-row';
       const price = (Array.isArray(p.variants) && p.variants.length)? p.variants[0].price : Number(p.price||0);
@@ -441,7 +444,7 @@
         setAdminAuthState(user);
       }
     }catch(e){
-      console.warn('Failed to verify admin auth state', e);
+      logWarn('Failed to verify admin auth state', e);
       setAdminAuthState(null);
     }
     if(isAdminAuthenticated) return true;
@@ -471,7 +474,7 @@
         }
         await mirrorToLocalStorage();
         await renderAdmin();
-      }catch(err){ console.error('Failed to remove product', err); alert('Erro ao remover produto'); }
+      }catch(err){ logError('Failed to remove product', err); alert('Erro ao remover produto'); }
       return;
     }
     // edit
@@ -502,7 +505,7 @@
       const videoEl = form.querySelector('[name="video"]'); if(videoEl) videoEl.value = p.video || '';
       const imgIll = form.querySelector('[name="image_illustrative"]'); if(imgIll) imgIll.checked = !!p.image_illustrative;
       try{ const ev = new Event('input', { bubbles: true }); imageUrls?.dispatchEvent(ev); }catch(e){}
-    }catch(err){ console.error('Failed to populate edit form', err); }
+    }catch(err){ logError('Failed to populate edit form', err); }
 
   }
   if(form){
@@ -517,7 +520,7 @@
         statusEl.style.color = type === 'error' ? '#900' : '#062';
         statusEl.style.border = '1px solid '+(type === 'error' ? '#f5c6cb' : type === 'success' ? '#b8e5c7' : '#cce6ff');
         if(autoHide && autoHide > 0){ clearTimeout(statusEl._hideTimer); statusEl._hideTimer = setTimeout(()=>{ try{ statusEl.style.display='none'; }catch(e){} }, autoHide); }
-      }catch(e){ console.warn('showStatus failed', e); }
+      }catch(e){ logWarn('showStatus failed', e); }
     }
     function clearStatus(){ try{ if(!statusEl) return; statusEl.style.display='none'; clearTimeout(statusEl._hideTimer); }catch(e){} }
     form.addEventListener('submit', async e=>{
@@ -585,7 +588,7 @@
         }
         // ensure single image fallback matches sanitized images
         if(!p.image && Array.isArray(p.images) && p.images.length){ p.image = p.images[0]; }
-      }catch(e){ /* ignore sanitize errors */ }
+      }catch(e){ logWarn('Image sanitize step failed (continuing submit)', e); }
       // protect against storing very large video data-URLs in localStorage
       try{
         if(p.video && typeof p.video === 'string' && p.video.indexOf('data:')===0 && p.video.length > 5000000){
@@ -616,13 +619,13 @@
                   const up = await window.supa.uploadFile('product-media', file);
                   if(up && up.publicURL){ p.images[i] = up.publicURL; showStatus('Imagem '+(i+1)+' enviada', 'success', 1500); }
                   else { showStatus('Upload concluído (sem URL pública detectada)', 'info', 2000); }
-                }catch(uerr){ console.warn('Image upload failed for one image, keeping original data URL', uerr); showStatus('Falha ao enviar imagem '+(i+1), 'error', 5000); }
-              }catch(convErr){ console.warn('Failed to convert/upload image data URL', convErr); showStatus('Erro ao processar imagem '+(i+1), 'error', 5000); }
+                }catch(uerr){ logWarn('Image upload failed for one image, keeping original data URL', uerr); showStatus('Falha ao enviar imagem '+(i+1), 'error', 5000); }
+              }catch(convErr){ logWarn('Failed to convert/upload image data URL', convErr); showStatus('Erro ao processar imagem '+(i+1), 'error', 5000); }
             }
           }
           clearStatus();
         }
-      }catch(e){ console.warn('Error uploading images to Supabase', e); showStatus('Erro ao enviar imagens: '+(e && e.message?e.message:String(e)), 'error', 8000); }
+      }catch(e){ logWarn('Error uploading images to Supabase', e); showStatus('Erro ao enviar imagens: '+(e && e.message?e.message:String(e)), 'error', 8000); }
       try{
         // In production with Supabase configured, do not allow local-only saves.
         if(hasSupabaseConfig()){
@@ -643,9 +646,9 @@
                 else { list.push(toSave); }
                 await saveAll(list);
               }
-            }catch(syncErr){ console.warn('Failed to sync server product locally', syncErr); }
+            }catch(syncErr){ logWarn('Failed to sync server product locally', syncErr); }
           }catch(supaErr){
-            console.error('Supabase upsert failed', supaErr);
+            logError('Supabase upsert failed', supaErr);
             throw supaErr;
           }
           await hydrateAdminStoresFromSupabase();
@@ -661,11 +664,11 @@
         await renderAdmin(); form.reset(); delete form.dataset.editId;
         document.dispatchEvent(new CustomEvent('products-updated'));
       }catch(saveErr){
-        console.error('Failed to save products to localStorage', saveErr);
+        logError('Failed to save products to localStorage', saveErr);
         try{
           const existing = await readAll();
           if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(JSON.stringify(existing, null, 2)); }
-        }catch(copyErr){ console.error('Failed to copy products JSON to clipboard', copyErr); }
+        }catch(copyErr){ logError('Failed to copy products JSON to clipboard', copyErr); }
         alert('Erro ao salvar cadastro no armazenamento local: ' + (saveErr && saveErr.message ? saveErr.message : String(saveErr)) + '\n\nOs dados foram copiados para a área de transferência (JSON) quando possível. Verifique o console para mais detalhes.');
       }
       
@@ -689,7 +692,7 @@
           localStorage.removeItem('products');
         }
         await mirrorToLocalStorage();
-      }catch(e){ console.warn('Migration failed', e); }
+      }catch(e){ logWarn('Migration failed', e); }
       await renderAdmin();
       fillSiteSettingsForm();
       bindSiteSettingsUI();
@@ -727,7 +730,7 @@
                 alert('Login efetuado com sucesso.');
                 return;
               }catch(authErr){
-                console.warn('Supabase sign-in failed', authErr);
+                logWarn('Supabase sign-in failed', authErr);
                 setAdminAuthState(null);
                 alert('Falha ao autenticar via Supabase: ' + (authErr && authErr.message ? authErr.message : String(authErr)));
                 return;
@@ -736,13 +739,13 @@
               alert('Supabase não está configurado no cliente. Verifique `config.js`.');
               return;
             }
-          }catch(err){ console.error('Admin password flow failed', err); alert('Erro ao validar a senha.'); }
+          }catch(err){ logError('Admin password flow failed', err); alert('Erro ao validar a senha.'); }
         });
       close.addEventListener('click',()=>{ window.location.href = '../index.html'; });
       if(window.supa && typeof window.supa.onAuthStateChange === 'function'){
         try{
           window.supa.onAuthStateChange(async ()=>{ await ensureAdminAuthenticated(false); });
-        }catch(e){ console.warn('onAuthStateChange bind failed', e); }
+        }catch(e){ logWarn('onAuthStateChange bind failed', e); }
       }
     }
     document.getElementById('export-json')?.addEventListener('click', async ()=>{
@@ -783,7 +786,7 @@
           try{ await navigator.clipboard.writeText(json); }catch(e){ /* ignore clipboard errors */ }
         }
         alert('JSON exportado (download criado e copiado para a área de transferência quando disponível)');
-      }catch(err){ console.error('Export failed', err); alert('Falha ao exportar JSON: '+ (err && err.message ? err.message : String(err))); }
+      }catch(err){ logError('Export failed', err); alert('Falha ao exportar JSON: '+ (err && err.message ? err.message : String(err))); }
     });
 
     document.getElementById('admin-logout')?.addEventListener('click', async ()=>{
@@ -792,7 +795,7 @@
           await window.supa.signOut();
         }
       }catch(err){
-        console.warn('Sign out failed', err);
+        logWarn('Sign out failed', err);
       }
       setAdminAuthState(null);
       alert('Sessão encerrada. Faça login novamente para continuar.');
@@ -819,7 +822,7 @@
         localStorage.removeItem(KEY);
         alert('Cache local limpo com sucesso. Você pode recarregar os dados a partir do Supabase.');
         await renderAdmin(1);
-      }catch(err){ console.error('Clear local cache failed', err); alert('Falha ao limpar cache local: '+String(err)); }
+      }catch(err){ logError('Clear local cache failed', err); alert('Falha ao limpar cache local: '+String(err)); }
     });
   });
 })();

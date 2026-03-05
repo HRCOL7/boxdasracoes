@@ -1,5 +1,8 @@
 (function(){
   const KEY='cart';
+  const LOG_PREFIX = '[cart]';
+  const logWarn = (message, ...args) => console.warn(`${LOG_PREFIX} ${message}`, ...args);
+  const logError = (message, ...args) => console.error(`${LOG_PREFIX} ${message}`, ...args);
   let cartCacheRaw = null;
   let cartCacheParsed = [];
   function read(){
@@ -9,7 +12,7 @@
       cartCacheRaw = raw;
       cartCacheParsed = JSON.parse(raw);
       return cartCacheParsed;
-    } catch(e){ console.error('Failed to parse cart from localStorage', e); return []; }
+    } catch(e){ logError('Failed to parse cart from localStorage', e); return []; }
   }
   function save(v){
     try{
@@ -17,7 +20,7 @@
       localStorage.setItem(KEY,raw);
       cartCacheRaw = raw;
       cartCacheParsed = Array.isArray(v) ? v : [];
-    } catch(e){ console.error('Failed to save cart to localStorage', e); throw e; }
+    } catch(e){ logError('Failed to save cart to localStorage', e); throw e; }
   }
   function updateCount(){const c=document.getElementById('cart-count'); if(!c) return; const count=read().reduce((s,i)=>s+i.qty,0); c.textContent=count}
 
@@ -99,7 +102,7 @@
         save(cart);
         alert('Espaço de armazenamento local estourado; imagens removidas do carrinho para salvar os itens.');
       }catch(e2){
-        console.error('Failed to save cart after clearing images', e2);
+        logError('Failed to save cart after clearing images', e2);
         alert('Não foi possível salvar o carrinho (localStorage cheio). Reinicie o navegador ou limpe o armazenamento.');
       }
     }
@@ -111,7 +114,6 @@
   }
 
   function increaseOne(key){ const cart=read(); const idx=cart.findIndex(x=>x.key===key); if(idx>-1){ cart[idx].qty += 1; save(cart); updateCount(); renderCart(); } }
-  function deleteItem(key){ const cart=read(); const idx=cart.findIndex(x=>x.key===key); if(idx>-1){ cart.splice(idx,1); save(cart); updateCount(); renderCart(); } }
 
   function removeOne(key){ const cart=read(); const idx=cart.findIndex(x=>x.key===key); if(idx<0) return; cart[idx].qty-=1; if(cart[idx].qty<=0) cart.splice(idx,1); save(cart); updateCount(); renderCart(); }
 

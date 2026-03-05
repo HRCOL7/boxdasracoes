@@ -8,6 +8,11 @@
     return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
+  function isEmailConfirmationError(err){
+    const msg = String((err && (err.message || err.error_description || err.code)) || '').toLowerCase();
+    return msg.includes('email not confirmed') || msg.includes('email_not_confirmed') || msg.includes('confirm your email') || msg.includes('confirme seu email');
+  }
+
   function getClient(){
     try{
       if(window.supa && typeof window.supa.init === 'function') return window.supa.init();
@@ -154,6 +159,18 @@
         setTimeout(()=>closeModal(true), 250);
       }catch(err){
         console.warn('Customer login failed', err);
+        if(isEmailConfirmationError(err)){
+          let resent = false;
+          try{
+            if(window.supa && typeof window.supa.resendConfirmation === 'function'){
+              await window.supa.resendConfirmation(email);
+              resent = true;
+            }
+          }catch(resendErr){ console.warn('Resend confirmation failed', resendErr); }
+          if(resent) setStatus('Email não confirmado. Reenviamos um novo link de confirmação para seu email.', 'error');
+          else setStatus('Confirme seu email para concluir o login.', 'error');
+          return;
+        }
         setStatus('Falha no login: ' + (err && err.message ? err.message : String(err)), 'error');
       }
     });
@@ -196,15 +213,28 @@
       if(!client) { setStatus('Supabase não configurado no site.', 'error'); return; }
 
       try{
+        const emailRedirectTo = `${window.location.origin}${window.location.pathname}`;
         const signUpRes = await client.auth.signUp({
           email: payload.email,
           password: payload.password,
-          options: { data: { full_name: payload.full_name, phone: payload.phone, document: payload.document, address: address, zip: payload.zip, state: payload.state, street: payload.street, number: payload.number, complement: payload.complement, neighborhood: payload.neighborhood, city: payload.city } }
+          options: {
+            emailRedirectTo,
+            data: { full_name: payload.full_name, phone: payload.phone, document: payload.document, address: address, zip: payload.zip, state: payload.state, street: payload.street, number: payload.number, complement: payload.complement, neighborhood: payload.neighborhood, city: payload.city }
+          }
         });
         if(signUpRes && signUpRes.error) throw signUpRes.error;
 
+        let awaitingEmailConfirmation = false;
         if(window.supa && typeof window.supa.signIn === 'function'){
-          await window.supa.signIn(payload.email, payload.password);
+          try{
+            await window.supa.signIn(payload.email, payload.password);
+          }catch(signInErr){
+            if(isEmailConfirmationError(signInErr)){
+              awaitingEmailConfirmation = true;
+            } else {
+              throw signInErr;
+            }
+          }
         }
 
         currentUser = await getUser();
@@ -235,8 +265,19 @@
           }catch(err){ console.warn('Failed to enqueue customer ERP sync', err); }
         }
 
-        setStatus('Cadastro concluído! Login ativo.', 'success');
-        setTimeout(()=>closeModal(true), 350);
+        if(currentUser){
+          setStatus('Cadastro concluído! Login ativo.', 'success');
+          setTimeout(()=>closeModal(true), 350);
+          return;
+        }
+
+        if(awaitingEmailConfirmation){
+          setStatus('Cadastro criado. Confirme seu email para ativar a conta e depois faça login.', 'success');
+          setTimeout(()=>closeModal(false), 1200);
+          return;
+        }
+
+        setStatus('Cadastro concluído. Faça login para continuar.', 'success');
       }catch(err){
         console.warn('Customer signup failed', err);
         setStatus('Falha no cadastro: ' + (err && err.message ? err.message : String(err)), 'error');
@@ -267,12 +308,31 @@
     return new Promise(resolve=>{ resolver = resolve; });
   }
 
+  function ensureAuthHolder(){
+    let holder = document.getElementById('customer-auth-holder');
+    if(holder) return holder;
+
+    const topRow = document.querySelector('header.top .top-row');
+    if(!topRow) return null;
+
+    holder = document.createElement('div');
+    holder.id = 'customer-auth-holder';
+
+    const cartBtn = topRow.querySelector('#cart-btn');
+    if(cartBtn && cartBtn.parentNode === topRow){
+      topRow.insertBefore(holder, cartBtn);
+    } else {
+      topRow.appendChild(holder);
+    }
+
+    return holder;
+  }
+
   function updateAuthUi(){
-    const holder = document.getElementById('customer-auth-holder');
+    const holder = ensureAuthHolder();
     if(!holder) return;
     if(currentUser){
-      const name = escapeHtml((currentUser.user_metadata && currentUser.user_metadata.full_name) || currentUser.email || 'Cliente');
-      holder.innerHTML = `<button type="button" id="customer-auth-btn" class="btn">${name}</button>`;
+      holder.innerHTML = '<button type="button" id="customer-auth-btn" class="btn">Sair</button>';
       holder.querySelector('#customer-auth-btn')?.addEventListener('click', async ()=>{
         try{ if(window.supa && typeof window.supa.signOut === 'function') await window.supa.signOut(); }catch(e){}
         currentUser = null;
@@ -293,6 +353,8 @@
       }catch(e){ console.warn('Auth state listener failed', e); }
     }
   });
+
+  document.addEventListener('header:loaded', ()=>{ updateAuthUi(); });
 
   window.customerAuth = {
     ensureAuthenticated,

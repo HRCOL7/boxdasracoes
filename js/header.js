@@ -1,6 +1,8 @@
 (function(){
   // header loader: insert a lightweight placeholder synchronously so other scripts can bind,
   // then fetch the full include and replace it when available.
+  const LOG_PREFIX = '[header]';
+  const logWarn = (message, ...args) => console.warn(`${LOG_PREFIX} ${message}`, ...args);
   const tries = ['includes/header.html','../includes/header.html','/includes/header.html'];
 
   function createPlaceholder(){
@@ -55,7 +57,7 @@
       }catch(e){/* ignore */}
 
       document.dispatchEvent(new CustomEvent('header:loaded'));
-    }catch(e){/* ignore */}
+    }catch(e){ logWarn('Failed to insert fetched header include', e); }
   }
 
   async function tryLoad(paths){
@@ -66,7 +68,7 @@
         const text = await res.text();
         insertHeader(text);
         return true;
-      }catch(e){/* ignore */}
+      }catch(e){ logWarn('Header include fetch failed for path: ' + p, e); }
     }
     return false;
   }

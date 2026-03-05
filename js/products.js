@@ -1,6 +1,9 @@
 (function(){
   const KEY='products';
   const qs=(s)=>document.querySelector(s);
+  const LOG_PREFIX = '[products]';
+  const logWarn = (message, ...args) => console.warn(`${LOG_PREFIX} ${message}`, ...args);
+  const logError = (message, ...args) => console.error(`${LOG_PREFIX} ${message}`, ...args);
   let productsCacheRaw = null;
   let productsCacheParsed = [];
   function slugify(s){ if(!s) return ''; return String(s).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
@@ -12,9 +15,9 @@
       productsCacheRaw = raw;
       productsCacheParsed = JSON.parse(raw);
       return productsCacheParsed;
-    }catch(e){ console.error('Failed to parse products from localStorage', e); return []; }
+    }catch(e){ logError('Failed to parse products from localStorage', e); return []; }
   }
-  function save(list){ try{ const raw = JSON.stringify(list); localStorage.setItem(KEY,raw); productsCacheRaw = raw; productsCacheParsed = Array.isArray(list) ? list : []; }catch(e){ console.error('Failed to save products to localStorage', e); throw e; } }
+  function save(list){ try{ const raw = JSON.stringify(list); localStorage.setItem(KEY,raw); productsCacheRaw = raw; productsCacheParsed = Array.isArray(list) ? list : []; }catch(e){ logError('Failed to save products to localStorage', e); throw e; } }
   function sleep(ms){ return new Promise(resolve=>setTimeout(resolve, ms)); }
   function hasSupabaseConfig(){
     return !!(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey);
@@ -63,7 +66,7 @@
       const merged = [];
       for(let page = 0; page < maxPages; page++){
         let rows = [];
-        try{ rows = await fetchProductsDirect(offset, limit); }catch(e){ console.warn('Supabase initial fetch failed', e); break; }
+        try{ rows = await fetchProductsDirect(offset, limit); }catch(e){ logWarn('Supabase initial fetch failed', e); break; }
         if(!rows.length) break;
         merged.push(...rows);
         if(rows.length < limit) break;
@@ -72,10 +75,10 @@
       if(!merged.length) return false;
       save(merged);
       if(window.idbProducts && typeof window.idbProducts.clear === 'function' && typeof window.idbProducts.bulkPut === 'function'){
-        try{ await window.idbProducts.clear(); await window.idbProducts.bulkPut(merged); }catch(e){ console.warn('Failed syncing Supabase data to IndexedDB', e); }
+        try{ await window.idbProducts.clear(); await window.idbProducts.bulkPut(merged); }catch(e){ logWarn('Failed syncing Supabase data to IndexedDB', e); }
       }
       return true;
-    }catch(err){ console.warn('hydrateFromSupabase failed', err); return false; }
+    }catch(err){ logWarn('hydrateFromSupabase failed', err); return false; }
   }
 
   async function hydrateFromHelperFallback(){
@@ -97,11 +100,11 @@
       if(!merged.length) return false;
       save(merged);
       if(window.idbProducts && typeof window.idbProducts.clear === 'function' && typeof window.idbProducts.bulkPut === 'function'){
-        try{ await window.idbProducts.clear(); await window.idbProducts.bulkPut(merged); }catch(e){ console.warn('Fallback helper sync to IDB failed', e); }
+        try{ await window.idbProducts.clear(); await window.idbProducts.bulkPut(merged); }catch(e){ logWarn('Fallback helper sync to IDB failed', e); }
       }
       return true;
     }catch(err){
-      console.warn('hydrateFromHelperFallback failed', err);
+      logWarn('hydrateFromHelperFallback failed', err);
       return false;
     }
   }
@@ -118,13 +121,13 @@
       if(!hydrated){
         hydrated = await hydrateFromHelperFallback();
       }
-    }catch(e){ /* non-fatal */ }
+    }catch(e){ logWarn('Initial product hydration failed (non-fatal)', e); }
 
     try{
       if(hasSupabaseConfig()){
         const existing = read();
         if(isLikelySampleData(existing)){
-          try{ save([]); }catch(e){ /* ignore */ }
+          try{ save([]); }catch(e){ logWarn('Failed to clear sample data from local cache', e); }
         }
       } else {
         let shouldSeed = false;
@@ -140,10 +143,10 @@
             {id:2,name:'Ração Gato Sabor Salmão',group:'Rações',subgroup:'Gatos',brand:'MarcaB',variants:[{weight:'1 kg',price:22.5},{weight:'3 kg',price:60.0}],image:''},
             {id:3,name:'Petisco Crocante',group:'Petiscos',subgroup:'Cães',brand:'MarcaA',variant:'100g',price:9.9,image:''}
           ];
-          try{ save(sample); }catch(e){ /* ignore save errors */ }
+          try{ save(sample); }catch(e){ logWarn('Failed to seed local sample products', e); }
         }
       }
-    }catch(err){ console.warn('Seeding check failed', err); }
+    }catch(err){ logWarn('Seeding check failed', err); }
 
     renderCarousel();
     renderList();
@@ -290,12 +293,6 @@
     });
   }
 
-
-  function emitFilter(group){
-    const ev=new CustomEvent('filter', {detail: {group}});
-    document.dispatchEvent(ev);
-  }
-
   document.addEventListener('DOMContentLoaded', async ()=>{
     await syncAndRenderProducts();
 
@@ -330,7 +327,7 @@
           try{
             if(item && item.id !== undefined){
               if(window.idbProducts && typeof window.idbProducts.put === 'function'){
-                try{ await window.idbProducts.put(item); }catch(e){ console.warn('idb put failed', e); }
+                try{ await window.idbProducts.put(item); }catch(e){ logWarn('idb put failed', e); }
               }
               try{
                 const raw = localStorage.getItem('products') || '[]';
@@ -341,14 +338,14 @@
               }catch(e){ /* non-fatal */ }
               scheduleRealtimeRender();
             }
-          }catch(e){ console.warn('handleUpsert error', e); }
+          }catch(e){ logWarn('handleUpsert error', e); }
         };
 
         const handleDelete = async (id) => {
           try{
             if(id===undefined || id===null) return;
             if(window.idbProducts && typeof window.idbProducts.delete === 'function'){
-              try{ await window.idbProducts.delete(id); }catch(e){ console.warn('idb delete failed', e); }
+              try{ await window.idbProducts.delete(id); }catch(e){ logWarn('idb delete failed', e); }
             }
             try{
               const raw = localStorage.getItem('products') || '[]';
@@ -356,7 +353,7 @@
               localStorage.setItem('products', JSON.stringify(arr));
             }catch(e){}
             scheduleRealtimeRender();
-          }catch(e){ console.warn('handleDelete error', e); }
+          }catch(e){ logWarn('handleDelete error', e); }
         };
 
         // subscribe via helper
@@ -370,19 +367,19 @@
                 if(!record) return;
                 handleUpsert(record);
               }
-            }catch(e){ console.warn('realtime handler failed', e); }
+            }catch(e){ logWarn('realtime handler failed', e); }
           });
           // support async or sync return
           Promise.resolve(maybePromise).then(sub => {
             window.__productsRealtimeSub = sub;
-          }).catch(e=>{ console.warn('subscribeProducts returned error', e); });
+          }).catch(e=>{ logWarn('subscribeProducts returned error', e); });
 
           // ensure we unsubscribe when leaving the page
           window.addEventListener('beforeunload', ()=>{ try{ supaHelper.unsubscribeProducts(); }catch(e){} });
-        }catch(e){ console.warn('subscribeProducts failed', e); }
+        }catch(e){ logWarn('subscribeProducts failed', e); }
 
         console.info('Supabase realtime subscription (products) initialized (via helper)');
-      }catch(err){ console.warn('realtime setup failed', err); }
+      }catch(err){ logWarn('realtime setup failed', err); }
     })();
 
     // listen for add clicks
