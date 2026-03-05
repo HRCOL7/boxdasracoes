@@ -18,6 +18,22 @@
   function hasSupabaseConfig(){
     return !!(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey);
   }
+  function normalizeEmail(email){ return String(email || '').trim().toLowerCase(); }
+  function getAllowedAdminEmails(){
+    const fromWindow = Array.isArray(window.ADMIN_ALLOWED_EMAILS) ? window.ADMIN_ALLOWED_EMAILS : [];
+    const fromStorage = String(localStorage.getItem('admin_allowed_emails') || '')
+      .split(',')
+      .map(s=>normalizeEmail(s))
+      .filter(Boolean);
+    const all = fromWindow.concat(fromStorage).map(normalizeEmail).filter(Boolean);
+    return Array.from(new Set(all));
+  }
+  function isAllowedAdminUser(user){
+    const email = normalizeEmail(user && user.email ? user.email : '');
+    if(!email) return false;
+    const allowed = getAllowedAdminEmails();
+    return allowed.includes(email);
+  }
   function getSiteSettingsSafe(){
     try{
       if(window.appUtils && typeof window.appUtils.getSiteSettings === 'function') return window.appUtils.getSiteSettings();
@@ -425,8 +441,9 @@
   }
 
   function setAdminAuthState(user){
-    currentAdminUser = user || null;
-    isAdminAuthenticated = !!currentAdminUser;
+    const allowedUser = (user && isAllowedAdminUser(user)) ? user : null;
+    currentAdminUser = allowedUser;
+    isAdminAuthenticated = !!allowedUser;
     const modal = document.getElementById('admin-login');
     if(modal){
       if(isAdminAuthenticated) modal.classList.remove('visible');
@@ -448,7 +465,7 @@
       setAdminAuthState(null);
     }
     if(isAdminAuthenticated) return true;
-    if(showWarning) alert('Faça login com um email cadastrado no Supabase para cadastrar, editar ou remover produtos.');
+    if(showWarning) alert('Acesso negado. Faça login com um email autorizado como administrador.');
     return false;
   }
 
@@ -726,6 +743,12 @@
                 await window.supa.signIn(email, pass);
                 const user = (window.supa && typeof window.supa.getUser === 'function') ? await window.supa.getUser() : null;
                 if(!user){ throw new Error('Sessão não encontrada após login.'); }
+                if(!isAllowedAdminUser(user)){
+                  try{ if(window.supa && typeof window.supa.signOut === 'function') await window.supa.signOut(); }catch(e){}
+                  setAdminAuthState(null);
+                  alert('Seu usuário está autenticado, mas não possui permissão de administrador.');
+                  return;
+                }
                 setAdminAuthState(user);
                 alert('Login efetuado com sucesso.');
                 return;

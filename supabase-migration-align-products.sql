@@ -125,13 +125,21 @@ on public.products
 for select
 using (true);
 
--- Authenticated write (recommended)
+-- Admin write only (recommended)
+-- IMPORTANT: update the email list below to your real admin users.
 drop policy if exists "Authenticated write" on public.products;
-create policy "Authenticated write"
+drop policy if exists "Admin write" on public.products;
+create policy "Admin write"
 on public.products
 for all
-using (auth.role() = 'authenticated')
-with check (auth.role() = 'authenticated');
+using (
+  auth.role() = 'authenticated'
+  and lower(coalesce(auth.jwt() ->> 'email', '')) in ('hicarodev@outlook.com')
+)
+with check (
+  auth.role() = 'authenticated'
+  and lower(coalesce(auth.jwt() ->> 'email', '')) in ('hicarodev@outlook.com')
+);
 
 -- Optional: if you need temporary open writes from browser without auth, uncomment below.
 -- WARNING: insecure for production.
