@@ -1,2 +1,6 @@
 window.SUPABASE_CONFIG = { url: 'https://oynglhcquvylyddovyas.supabase.co', anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bmdsaGNxdXZ5bHlkZG92eWFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2OTYwNzksImV4cCI6MjA4NTI3MjA3OX0.PsWp80euaYNz5QXonqW7-f7DkDlLavVwkNL1tR-HJVk' };
-window.ADMIN_ALLOWED_EMAILS = ['hicarodev@outlook.com'];
+window.ADMIN_ALLOWED_EMAILS = [
+	'hicarodev@outlook.com',
+	'boxdasracoes@hotmail.com',
+	'derlaajuse@gmail.com'
+];

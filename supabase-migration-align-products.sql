@@ -134,11 +134,19 @@ on public.products
 for all
 using (
   auth.role() = 'authenticated'
-  and lower(coalesce(auth.jwt() ->> 'email', '')) in ('hicarodev@outlook.com')
+  and lower(coalesce(auth.jwt() ->> 'email', '')) in (
+    'hicarodev@outlook.com',
+    'boxdasracoes@hotmail.com',
+    'derlaajuse@gmail.com'
+  )
 )
 with check (
   auth.role() = 'authenticated'
-  and lower(coalesce(auth.jwt() ->> 'email', '')) in ('hicarodev@outlook.com')
+  and lower(coalesce(auth.jwt() ->> 'email', '')) in (
+    'hicarodev@outlook.com',
+    'boxdasracoes@hotmail.com',
+    'derlaajuse@gmail.com'
+  )
 );
 
 -- Optional: if you need temporary open writes from browser without auth, uncomment below.
