@@ -23,6 +23,7 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
   <script src="js/supabase-client.js" defer></script>
+  <script src="js/analytics.js" defer></script>
   <script src="js/utils.js" defer></script>
   <script src="js/customer-auth.js" defer></script>
 
@@ -219,6 +220,14 @@
         const url = isMobile
           ? `https://api.whatsapp.com/send?phone=${phone}&text=${text}`
           : `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
+        try{
+          if(window.siteAnalytics && typeof window.siteAnalytics.track === 'function'){
+            window.siteAnalytics.track('stock_whatsapp_opened', {
+              product_id: p.id,
+              meta: { product_name: productName }
+            });
+          }
+        }catch(e){}
         window.open(url, '_blank');
       });
 

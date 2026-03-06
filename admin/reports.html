@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - Relatorios</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/mobile.css">
+  <link rel="stylesheet" href="../css/desktop.css" media="(min-width:900px)">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <main class="admin-layout reports-layout">
+    <section class="admin-list reports-panel">
+      <div class="admin-head">
+        <img src="../img/logobox.png" alt="Box Das Racoes" class="admin-head-logo">
+        <h1 class="admin-head-title">Admin - Relatorios</h1>
+      </div>
+
+      <div class="admin-tools reports-tools">
+        <a href="./admin.html" class="btn">Produtos</a>
+        <button id="reports-refresh" class="btn btn-orange">Atualizar</button>
+        <button id="reports-logout" class="btn">Sair</button>
+      </div>
+
+      <section class="site-settings-card reports-filters">
+        <div class="site-settings-grid reports-filter-grid">
+          <label>Granularidade
+            <select id="reports-granularity">
+              <option value="day">Dia</option>
+              <option value="week">Semana</option>
+              <option value="month">Mes</option>
+            </select>
+          </label>
+          <label>Periodo rapido
+            <select id="reports-preset">
+              <option value="7d">Ultimos 7 dias</option>
+              <option value="30d" selected>Ultimos 30 dias</option>
+              <option value="this_month">Mes atual</option>
+              <option value="90d">Ultimos 90 dias</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </label>
+          <label>Data inicial
+            <input type="date" id="reports-start">
+          </label>
+          <label>Data final
+            <input type="date" id="reports-end">
+          </label>
+        </div>
+      </section>
+
+      <div id="reports-status" class="reports-status" aria-live="polite"></div>
+
+      <section class="reports-kpis" id="reports-kpis">
+        <article class="reports-kpi"><span class="label">Sessoes</span><strong id="kpi-sessions">0</strong></article>
+        <article class="reports-kpi"><span class="label">Visualizacoes</span><strong id="kpi-pageviews">0</strong></article>
+        <article class="reports-kpi"><span class="label">Produto visto</span><strong id="kpi-productviews">0</strong></article>
+        <article class="reports-kpi"><span class="label">Checkout iniciado</span><strong id="kpi-checkouts">0</strong></article>
+        <article class="reports-kpi"><span class="label">WhatsApp aberto</span><strong id="kpi-whatsapp">0</strong></article>
+        <article class="reports-kpi"><span class="label">WPP estoque</span><strong id="kpi-stock-whatsapp">0</strong></article>
+        <article class="reports-kpi"><span class="label">Pre-vendas</span><strong id="kpi-preorders">0</strong></article>
+        <article class="reports-kpi"><span class="label">Valor pre-vendas</span><strong id="kpi-value">R$ 0,00</strong></article>
+      </section>
+
+      <section class="admin-products reports-timeseries-wrap">
+        <h3>Serie temporal</h3>
+        <div id="reports-timeseries" class="reports-timeseries"></div>
+      </section>
+
+      <section class="admin-products reports-table-wrap">
+        <h3>Detalhamento por periodo</h3>
+        <div class="reports-table-scroll">
+          <table class="reports-table" id="reports-table">
+            <thead>
+              <tr>
+                <th>Periodo</th>
+                <th>Sessoes</th>
+                <th>Views</th>
+                <th>Produto</th>
+                <th>Checkout</th>
+                <th>WhatsApp</th>
+                <th>WPP estoque</th>
+                <th>Pre-venda</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="admin-login" class="modal">
+    <div class="modal-body admin-login-card">
+      <h3 class="admin-login-title">Entrar no painel</h3>
+      <p class="admin-login-subtitle">Use sua conta de administrador para ver os relatorios.</p>
+      <label class="admin-login-label">Email
+        <input id="admin-email" type="email" placeholder="admin@exemplo.com" autocomplete="email">
+      </label>
+      <label class="admin-login-label">Senha
+        <input id="admin-pass" type="password" placeholder="Senha" autocomplete="current-password">
+      </label>
+      <div class="admin-login-actions">
+        <button id="admin-enter" class="btn btn-orange">Entrar</button>
+        <button id="admin-close" class="btn">Voltar ao site</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var s = document.createElement('script');
+      s.src = '/config.js';
+      s.onload = function(){};
+      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
+      (document.head || document.documentElement).appendChild(s);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="../js/supabase-client.js" defer></script>
+  <script src="../js/admin-reports.js" defer></script>
+</body>
+</html>

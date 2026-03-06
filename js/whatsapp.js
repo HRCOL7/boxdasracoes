@@ -43,6 +43,15 @@
   document.addEventListener('checkout-ready', async e => {
     const data = e.detail || {};
     const items = Array.isArray(data.items) ? data.items : [];
+    try{
+      if(window.siteAnalytics && typeof window.siteAnalytics.track === 'function'){
+        window.siteAnalytics.track('checkout_started', {
+          total: Number(data.total || 0),
+          payment: data.payment || null,
+          meta: { items_count: items.length }
+        });
+      }
+    }catch(err){ console.warn('Falha ao registrar evento checkout_started', err); }
     const popup = window.open('', '_blank');
     const code = await createPreOrder(data) || ('ORD' + Date.now().toString(36).toUpperCase().slice(-8));
     const settings = (window.appUtils && typeof window.appUtils.getSiteSettings === 'function')
@@ -101,6 +110,28 @@
     } else {
       url = phone ? `https://web.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://web.whatsapp.com/send?text=${encoded}`;
     }
+
+    try{
+      if(window.siteAnalytics && typeof window.siteAnalytics.track === 'function'){
+        const orderNumber = Number(code);
+        const safeOrder = Number.isFinite(orderNumber) ? orderNumber : null;
+        const total = Number(data.total || 0);
+        window.siteAnalytics.track('whatsapp_opened', {
+          order_number: safeOrder,
+          total,
+          payment: data.payment || null,
+          meta: { items_count: items.length }
+        });
+        if(safeOrder){
+          window.siteAnalytics.track('preorder_created', {
+            order_number: safeOrder,
+            total,
+            payment: data.payment || null
+          });
+        }
+      }
+    }catch(err){ console.warn('Falha ao registrar eventos de checkout', err); }
+
     if(popup && !popup.closed){ popup.location.href = url; }
     else { window.open(url, '_blank'); }
   });

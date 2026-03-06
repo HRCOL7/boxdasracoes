@@ -84,3 +84,37 @@
   .admin-login-title{font-size:22px}
   .admin-login-actions{flex-direction:column}
 }
+
+.reports-layout{display:block;padding:14px}
+.reports-panel{max-width:1280px;margin:0 auto;padding:14px}
+.reports-tools{margin-bottom:10px}
+.reports-filters{margin-bottom:10px}
+.reports-filter-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+
+.reports-status{display:none;margin:10px 0;padding:10px 12px;border-radius:10px;border:1px solid #d7e3ff;background:#f2f7ff;color:#1e40af}
+.reports-status.success{border-color:#b8e5c7;background:#edfff3;color:#0f6b34}
+.reports-status.error{border-color:#f5c6cb;background:#fff2f2;color:#8b1a1a}
+
+.reports-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin:8px 0 12px}
+.reports-kpi{background:linear-gradient(180deg,#fff,#fff9f3);border:1px solid rgba(255,122,0,.25);border-radius:12px;padding:10px 12px;min-height:82px;display:flex;flex-direction:column;justify-content:space-between}
+.reports-kpi .label{font-size:12px;color:#7c5a34;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.reports-kpi strong{font-size:24px;line-height:1.1;color:#1f2937}
+
+.reports-timeseries-wrap h3,.reports-table-wrap h3{margin:0 0 10px;color:#1f2937}
+.reports-timeseries{display:flex;flex-direction:column;gap:8px}
+.reports-bar-row{display:grid;grid-template-columns:180px 1fr;gap:10px;align-items:center}
+.reports-bar-label{font-weight:700;color:#374151;font-size:13px}
+.reports-bar-group{display:flex;flex-direction:column;gap:6px}
+.reports-bar{height:26px;border-radius:7px;color:#fff;font-size:12px;font-weight:700;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center}
+.reports-bar.checkout{background:#4f46e5}
+.reports-bar.whatsapp{background:#16a34a}
+.reports-bar.preorder{background:#f97316}
+
+.reports-table-scroll{overflow:auto}
+.reports-table{width:100%;border-collapse:collapse}
+.reports-table th,.reports-table td{padding:10px;border-bottom:1px solid #f1f1f1;text-align:left;font-size:13px;white-space:nowrap}
+.reports-table th{background:#fff8ef;color:#7c2d12}
+
+@media(max-width:900px){
+  .reports-bar-row{grid-template-columns:1fr;gap:6px}
+}
