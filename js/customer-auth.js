@@ -256,6 +256,13 @@
         if(signUpRes && signUpRes.error) throw signUpRes.error;
 
         let awaitingEmailConfirmation = false;
+        try{
+          const signedUser = signUpRes && signUpRes.data ? signUpRes.data.user : null;
+          const hasSession = !!(signUpRes && signUpRes.data && signUpRes.data.session);
+          // Supabase usually returns no active session when email confirmation is required.
+          if(signedUser && !signedUser.email_confirmed_at) awaitingEmailConfirmation = !hasSession;
+        }catch(e){}
+
         if(window.supa && typeof window.supa.signIn === 'function'){
           try{
             await window.supa.signIn(payload.email, payload.password);
@@ -297,18 +304,23 @@
         }
 
         if(currentUser){
+          if(awaitingEmailConfirmation){
+            setStatus('Cadastro criado! Verifique seu email para confirmar a conta. Depois, faça login.', 'success');
+            setTimeout(()=>closeModal(false), 1400);
+            return;
+          }
           setStatus('Cadastro concluído! Login ativo.', 'success');
           setTimeout(()=>closeModal(true), 350);
           return;
         }
 
         if(awaitingEmailConfirmation){
-          setStatus('Cadastro criado. Confirme seu email para ativar a conta e depois faça login.', 'success');
+          setStatus('Cadastro criado! Verifique seu email para ativar a conta e depois faça login.', 'success');
           setTimeout(()=>closeModal(false), 1200);
           return;
         }
 
-        setStatus('Cadastro concluído. Faça login para continuar.', 'success');
+        setStatus('Cadastro concluído. Se o sistema pedir, verifique seu email antes de fazer login.', 'success');
       }catch(err){
         console.warn('Customer signup failed', err);
         setStatus('Falha no cadastro: ' + (err && err.message ? err.message : String(err)), 'error');
