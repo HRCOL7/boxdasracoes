@@ -10,6 +10,10 @@
     return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
+  function userIconSvg(){
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#ff6a00"></circle><circle cx="12" cy="8.7" r="3.6" fill="#ffffff"></circle><path d="M5.6 18.2c0-2.9 2.9-5.2 6.4-5.2s6.4 2.3 6.4 5.2v0.6H5.6z" fill="#ffffff"></path></svg>';
+  }
+
   function isEmailConfirmationError(err){
     const msg = String((err && (err.message || err.error_description || err.code)) || '').toLowerCase();
     return msg.includes('email not confirmed') || msg.includes('email_not_confirmed') || msg.includes('confirm your email') || msg.includes('confirme seu email');
@@ -579,10 +583,10 @@
     if(!holder) return;
     if(currentUser){
       const name = escapeHtml((currentUser.user_metadata && currentUser.user_metadata.full_name) || 'Minha conta');
-      holder.innerHTML = `<button type="button" id="customer-auth-btn" class="customer-auth-trigger" title="Minha conta"><span class="customer-auth-icon" aria-hidden="true">👤</span><span class="customer-auth-label">${name}</span></button>`;
+      holder.innerHTML = `<button type="button" id="customer-auth-btn" class="customer-auth-trigger" title="Minha conta"><span class="customer-auth-icon" aria-hidden="true">${userIconSvg()}</span><span class="customer-auth-label">${name}</span></button>`;
       holder.querySelector('#customer-auth-btn')?.addEventListener('click', ()=>openAccountModal());
     } else {
-      holder.innerHTML = '<button type="button" id="customer-auth-btn" class="customer-auth-trigger" title="Entrar"><span class="customer-auth-icon" aria-hidden="true">👤</span><span class="customer-auth-label">Entrar</span></button>';
+      holder.innerHTML = `<button type="button" id="customer-auth-btn" class="customer-auth-trigger" title="Entrar"><span class="customer-auth-icon" aria-hidden="true">${userIconSvg()}</span><span class="customer-auth-label">Entrar</span></button>`;
       holder.querySelector('#customer-auth-btn')?.addEventListener('click', ()=>openModal());
     }
   }
