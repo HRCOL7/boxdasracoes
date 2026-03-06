@@ -122,6 +122,34 @@ img.logo-img{height:64px;width:64px}
 .weight-chip.active{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 6px 18px rgba(0,0,0,.06)}
 .weight-chip[aria-checked="true"]{background:var(--orange);color:#fff;border-color:var(--orange)}
 
+/* Product cards: show 3 chips per view and scroll horizontally for more options */
+.carousel .item .weight-chips,
+#product-list .item .weight-chips,
+.customer-fav-card .customer-fav-chips{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.carousel .item .weight-chips::-webkit-scrollbar,
+#product-list .item .weight-chips::-webkit-scrollbar,
+.customer-fav-card .customer-fav-chips::-webkit-scrollbar{display:none}
+
+.carousel .item .weight-chip,
+#product-list .item .weight-chip{
+  flex:0 0 calc((100% - 16px) / 3);
+  min-width:0;
+  text-overflow:ellipsis;
+  overflow:hidden;
+}
+
+.customer-fav-card .customer-fav-chip{
+  flex:0 0 calc((100% - 16px) / 3);
+  min-width:0;
+  text-overflow:ellipsis;
+  overflow:hidden;
+}
+
 /* products page layout */
 .products-page{display:flex;gap:18px;align-items:flex-start}
 .product-filters{min-width:220px;max-width:280px}
@@ -185,7 +213,22 @@ img.logo-img{height:64px;width:64px}
 .btn-green#checkout.active{opacity:1;cursor:pointer;box-shadow:0 12px 36px rgba(43,138,95,0.18);transform:translateY(-2px)}
 .hidden{display:none}
 #customer-auth-holder{display:flex;align-items:center;justify-content:center;min-width:84px}
-#customer-auth-holder .btn{padding:8px 10px;min-height:36px;border-radius:10px;font-size:12px;background:#fff;border:1px solid #eee;color:#333}
+.customer-auth-trigger{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;min-height:36px;border-radius:999px;border:2px solid var(--orange);background:#fff;color:var(--orange);font-size:12px;font-weight:800;line-height:1;cursor:pointer}
+.customer-auth-trigger .customer-auth-icon{font-size:14px;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px}
+.customer-auth-trigger .customer-auth-label{max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.customer-favorites-list{display:flex;flex-direction:column;gap:8px}
+.customer-fav-item{display:block;padding:10px 12px;border:1px solid #eee;border-radius:10px;text-decoration:none;color:#222;background:#fff}
+.customer-fav-item:hover{border-color:var(--orange);color:var(--orange)}
+.customer-fav-empty{padding:10px 12px;border:1px dashed #ddd;border-radius:10px;color:#666;background:#fafafa}
+.customer-favorites-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.customer-fav-card{display:flex;flex-direction:column;background:#fff;border:1px solid #f0f0f0;border-radius:12px;padding:10px;text-decoration:none;color:#222;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.customer-fav-image-wrap{position:relative}
+.customer-fav-image-wrap img{display:block;width:100%;height:150px;object-fit:contain;border-radius:8px;background:#fff;padding:6px}
+.customer-fav-chips{display:flex;gap:8px;margin:8px 0 6px;overflow-x:auto;scrollbar-width:none}
+.customer-fav-chips::-webkit-scrollbar{display:none}
+.customer-fav-chip{appearance:none;border:1px solid #e6e6e6;background:#f6f6f6;color:#222;padding:6px 10px;border-radius:10px;font-size:13px;line-height:1;min-width:48px;text-align:center;font-weight:700;flex:0 0 auto;white-space:nowrap}
+.customer-fav-name{font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25;min-height:42px;margin-top:2px}
+.customer-fav-price{color:var(--orange);font-weight:800;font-size:18px;margin-top:6px}
 
 .customer-auth-modal{z-index:2100;padding:16px;align-items:flex-start;overflow-y:auto}
 .customer-auth-card{width:min(460px,94vw);border-radius:14px;padding:20px;max-height:calc(100vh - 32px);overflow-y:auto;margin:0 auto}
@@ -207,7 +250,9 @@ img.logo-img{height:64px;width:64px}
 
 @media(max-width:700px){
   #customer-auth-holder{min-width:72px}
-  #customer-auth-holder .btn{font-size:11px;padding:7px 8px}
+  .customer-auth-trigger{padding:7px;border-radius:50%;width:34px;height:34px;justify-content:center}
+  .customer-auth-trigger .customer-auth-label{display:none}
+  .customer-auth-trigger .customer-auth-icon{font-size:15px;width:18px;height:18px}
   .customer-auth-modal{padding:10px}
   .customer-auth-card{max-height:calc(100vh - 20px);padding:14px}
   .customer-auth-grid.two-cols{grid-template-columns:1fr}

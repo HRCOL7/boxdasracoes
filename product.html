@@ -165,9 +165,27 @@
 
       // favorite toggle
       const favBtn = document.getElementById('favorite-btn');
+      const FAVORITES_KEY = 'favorite_product_ids';
+      function readFavorites(){
+        try{
+          const raw = localStorage.getItem(FAVORITES_KEY) || '[]';
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed.map(v=>String(v)) : [];
+        }catch(e){ return []; }
+      }
+      function saveFavorites(ids){
+        try{ localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids)); }catch(e){}
+      }
+      const currentFavs = readFavorites();
+      const isFav = currentFavs.includes(String(p.id));
+      if(isFav){ favBtn?.classList.add('active'); if(favBtn) favBtn.textContent = '❤'; }
       favBtn?.addEventListener('click', ()=>{
         const active = favBtn.classList.toggle('active');
         favBtn.textContent = active ? '❤' : '♡';
+        const ids = readFavorites();
+        const pid = String(p.id);
+        const next = active ? Array.from(new Set(ids.concat(pid))) : ids.filter(id=>id!==pid);
+        saveFavorites(next);
       });
 
       const consultStock = document.querySelector('.consult-stock');

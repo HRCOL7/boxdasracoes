@@ -12,15 +12,24 @@
     }
     const hdr = document.createElement('header'); hdr.className='top stacked';
     hdr.innerHTML = `
-      <button id="hamburger" aria-label="menu" class="icon">☰</button>
-      <div class="logo"><img src="/logobox.png" alt="logo" class="logo-img"></div>
-      <button id="cart-btn" class="icon"><img src="/cart-l2.png" alt="carrinho" class="cart-icon"><span id="cart-count" class="cart-count">0</span></button>
-      <div id="search-area" class="search-area"><div style="position:relative"><input id="search" placeholder="O seu pet merece o melhor !"><button id="search-btn" class="search-btn" aria-label="Pesquisar" title="Pesquisar">
+      <div class="top-row">
+        <button id="hamburger" aria-label="menu" class="icon">☰</button>
+        <div class="logo"><a href="/index.html" aria-label="Ir para a página inicial"><img src="/logobox.png" alt="logo" class="logo-img"></a></div>
+        <div id="customer-auth-holder"></div>
+        <button id="cart-btn" class="icon"><img src="/cart-l2.png" alt="carrinho" class="cart-icon"><span id="cart-count" class="cart-count">0</span></button>
+      </div>
+      <div id="search-area" class="search-area">
+        <div style="position:relative">
+          <input id="search" placeholder="O seu pet merece o melhor !">
+          <button id="search-btn" class="search-btn" aria-label="Pesquisar" title="Pesquisar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
               <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/>
             </svg>
-          </button></div><div id="search-results" class="search-results"></div></div>
+          </button>
+        </div>
+        <div id="search-results" class="search-results"></div>
+      </div>
     `;
     const main = document.querySelector('main');
     if(main) document.body.insertBefore(hdr, main);

@@ -1,5 +1,38 @@
 (function(){
-  let isSetup = false;
+  let hydratePromise = null;
+  let productsCacheRaw = null;
+  let productsCacheParsed = [];
+
+  function normalizeText(v){
+    return String(v || '')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function hasSupabaseConfig(){
+    return !!(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey);
+  }
+
+  async function fetchProductsDirect(offset, limit){
+    if(!hasSupabaseConfig()) return [];
+    const cfg = window.SUPABASE_CONFIG;
+    const base = String(cfg.url || '').replace(/\/$/, '');
+    const url = `${base}/rest/v1/products?select=*&order=id.asc&offset=${offset || 0}&limit=${limit || 200}`;
+    const resp = await fetch(url, {
+      method: 'GET',
+      headers: {
+        apikey: cfg.anonKey,
+        Authorization: `Bearer ${cfg.anonKey}`,
+        Accept: 'application/json'
+      },
+      cache: 'no-store'
+    });
+    if(!resp.ok) throw new Error(`Supabase REST ${resp.status}`);
+    const data = await resp.json();
+    return Array.isArray(data) ? data : [];
+  }
 
   function debounce(fn, wait){
     let timer = null;
@@ -12,16 +45,16 @@
   }
 
   function setup(){
-    if(isSetup) return;
     const input = document.getElementById('search');
     const results = document.getElementById('search-results');
     const btn = document.getElementById('search-btn');
     if(!input||!results) return;
-    isSetup = true;
+    const mobileInput = document.getElementById('mobile-search');
+    const desktopAlreadyBound = input.dataset.searchBound === '1';
+    const mobileAlreadyBound = !mobileInput || mobileInput.dataset.searchBound === '1';
+    if(desktopAlreadyBound && mobileAlreadyBound) return;
 
-    let productsCacheRaw = null;
-    let productsCacheParsed = [];
-    function getProducts(){
+    function getProductsSync(){
       try{
         if(window.appUtils && typeof window.appUtils.readJSON === 'function') return window.appUtils.readJSON('products', []);
         const raw = localStorage.getItem('products') || '[]';
@@ -35,67 +68,166 @@
       }
     }
 
-    function performSearch(){
-      const q = input.value.trim().toLowerCase();
+    async function hydrateProductsFromSupabase(){
+      try{
+        const limit = 200;
+        const maxPages = 20;
+        let offset = 0;
+        const merged = [];
+
+        // First try helper client when available.
+        if(window.supa && typeof window.supa.getProducts === 'function'){
+          for(let page = 0; page < maxPages; page++){
+            const res = await window.supa.getProducts({ offset, limit, search: '' });
+            const rows = res && Array.isArray(res.results) ? res.results : [];
+            if(!rows.length) break;
+            merged.push(...rows);
+            if(rows.length < limit) break;
+            offset += rows.length;
+          }
+        }
+
+        // If helper returned nothing, try direct REST as fallback.
+        if(!merged.length){
+          offset = 0;
+          for(let page = 0; page < maxPages; page++){
+            const rows = await fetchProductsDirect(offset, limit);
+            if(!rows.length) break;
+            merged.push(...rows);
+            if(rows.length < limit) break;
+            offset += rows.length;
+          }
+        }
+
+        if(!merged.length) return false;
+        try{ localStorage.setItem('products', JSON.stringify(merged)); }catch(e){}
+        productsCacheRaw = null;
+        productsCacheParsed = [];
+        return true;
+      }catch(e){
+        console.warn('Search hydrate from Supabase failed', e);
+        return false;
+      }
+    }
+
+    async function ensureProductsReady(){
+      const local = getProductsSync();
+      if(Array.isArray(local) && local.length) return local;
+      if(!hydratePromise){
+        hydratePromise = hydrateProductsFromSupabase().finally(()=>{ hydratePromise = null; });
+      }
+      await hydratePromise;
+      return getProductsSync();
+    }
+
+    async function findMatches(q, limit){
+      const products = await ensureProductsReady();
+      let matches = (Array.isArray(products) ? products : []).filter(p=>matchesQuery(p, q));
+      if(matches.length === 0){
+        if(!hydratePromise){
+          hydratePromise = hydrateProductsFromSupabase().finally(()=>{ hydratePromise = null; });
+        }
+        await hydratePromise;
+        const retryProducts = getProductsSync();
+        matches = (Array.isArray(retryProducts) ? retryProducts : []).filter(p=>matchesQuery(p, q));
+      }
+      return matches.slice(0, limit || 8);
+    }
+
+    function matchesQuery(product, q){
+      const needle = normalizeText(q);
+      if(!needle) return false;
+      const hay = [
+        product && product.name,
+        product && product.brand,
+        product && product.group,
+        product && product.subgroup,
+        product && product.description
+      ].map(v=>normalizeText(v));
+      return hay.some(v=>v.includes(needle));
+    }
+
+    function getCardImage(p){
+      if(Array.isArray(p && p.images) && p.images.length) return p.images[0];
+      return (p && p.image) || 'https://via.placeholder.com/80';
+    }
+
+    function getDisplayPrice(p){
+      if(Array.isArray(p && p.variants) && p.variants.length) return Number(p.variants[0].price || 0);
+      return Number((p && p.price) || 0);
+    }
+
+    async function performSearch(){
+      const q = normalizeText(input.value);
       results.innerHTML = '';
       if(!q) return;
-      const matches = getProducts().filter(p=>String((p && p.name) || '').toLowerCase().includes(q)).slice(0,5);
+      const matches = await findMatches(q, 8);
       const frag = document.createDocumentFragment();
       matches.forEach(p=>{
         const r = document.createElement('div');
         r.className = 'search-row';
-        const img = p.image || 'https://via.placeholder.com/80';
+        const img = getCardImage(p);
+        const displayPrice = getDisplayPrice(p);
         const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-        r.innerHTML = `<img class="search-thumb" src="${String(img).replace(/\"/g,'&quot;')}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${Number(p.price).toFixed(2)}</div></div>`;
+        r.innerHTML = `<img class="search-thumb" src="${String(img).replace(/\"/g,'&quot;')}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${displayPrice.toFixed(2)}</div></div>`;
         r.addEventListener('click', ()=>{ window.location.href = 'product.html?id='+encodeURIComponent(p.id); });
         frag.appendChild(r);
       });
       results.appendChild(frag);
     }
 
-    const performSearchDebounced = debounce(performSearch, 140);
+    if(input.dataset.searchBound !== '1'){
+      const performSearchDebounced = debounce(function(){ performSearch(); }, 140);
+      input.addEventListener('input', performSearchDebounced);
 
-    input.addEventListener('input', performSearchDebounced);
-
-    // Enter key in input should trigger search/navigation if appropriate
-    input.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter'){
-        e.preventDefault(); performSearch();
-        const first = results.querySelector('.search-row'); if(first) first.click();
-      }
-    });
-
-    if(btn){
-      btn.addEventListener('click',(e)=>{
-        e.preventDefault(); performSearch();
-        const first = results.querySelector('.search-row'); if(first) first.click();
+      // Enter key in input should trigger search/navigation if appropriate
+      input.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter'){
+          e.preventDefault(); performSearch();
+          const first = results.querySelector('.search-row'); if(first) first.click();
+        }
       });
+
+      if(btn){
+        btn.addEventListener('click',(e)=>{
+          e.preventDefault(); performSearch();
+          const first = results.querySelector('.search-row'); if(first) first.click();
+        });
+      }
+      input.dataset.searchBound = '1';
     }
 
     // Mobile search (separate input/button)
-    const mobileInput = document.getElementById('mobile-search');
     const mobileBtn = document.getElementById('mobile-search-btn');
     const mobileSuggestions = document.getElementById('search-suggestions');
-    if(mobileInput){
+    if(mobileInput && mobileInput.dataset.searchBound !== '1'){
       function performMobileSearch(){
-        const q = mobileInput.value.trim().toLowerCase();
+        const q = normalizeText(mobileInput.value);
         if(!q){ if(mobileSuggestions) mobileSuggestions.innerHTML=''; return; }
-        const matches = getProducts().filter(p=>String((p && p.name) || '').toLowerCase().includes(q)).slice(0,5);
-        if(mobileSuggestions) mobileSuggestions.innerHTML = '';
-        const frag = document.createDocumentFragment();
-        matches.forEach(p=>{
-          const r = document.createElement('div'); r.className='search-row'; const img = p.image || 'https://via.placeholder.com/80'; const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-          r.innerHTML = `<img class="search-thumb" src="${String(img).replace(/\"/g,'&quot;')}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${Number(p.price).toFixed(2)}</div></div>`;
-          r.addEventListener('click', ()=>{ window.location.href='product.html?id='+encodeURIComponent(p.id); });
-          frag.appendChild(r);
+        findMatches(q, 8).then(matches=>{
+          if(mobileSuggestions) mobileSuggestions.innerHTML = '';
+          const frag = document.createDocumentFragment();
+          matches.forEach(p=>{
+            const r = document.createElement('div'); r.className='search-row';
+            const img = getCardImage(p);
+            const displayPrice = getDisplayPrice(p);
+            const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
+            r.innerHTML = `<img class="search-thumb" src="${String(img).replace(/\"/g,'&quot;')}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${displayPrice.toFixed(2)}</div></div>`;
+            r.addEventListener('click', ()=>{ window.location.href='product.html?id='+encodeURIComponent(p.id); });
+            frag.appendChild(r);
+          });
+          if(mobileSuggestions) mobileSuggestions.appendChild(frag);
         });
-        if(mobileSuggestions) mobileSuggestions.appendChild(frag);
       }
       const performMobileSearchDebounced = debounce(performMobileSearch, 140);
       mobileInput.addEventListener('input', performMobileSearchDebounced);
       mobileInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); performMobileSearch(); const f = (mobileSuggestions||document).querySelector('.search-row'); if(f) f.click(); } });
       if(mobileBtn){ mobileBtn.addEventListener('click',(e)=>{ e.preventDefault(); performMobileSearch(); const f = (mobileSuggestions||document).querySelector('.search-row'); if(f) f.click(); }); }
+      mobileInput.dataset.searchBound = '1';
     }
+
+    // background warm-up for global search on any page
+    ensureProductsReady();
   }
 
   document.addEventListener('DOMContentLoaded', setup);
