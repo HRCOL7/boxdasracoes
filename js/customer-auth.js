@@ -1,7 +1,7 @@
 (function(){
   const AUTH_MODAL_ID = 'customer-auth-modal';
   const ACCOUNT_MODAL_ID = 'customer-account-modal';
-  const FAVORITES_KEY = 'favorite_product_ids';
+  const FAVORITES_KEY_PREFIX = 'favorite_product_ids:';
   let currentUser = null;
   let resolver = null;
 
@@ -33,6 +33,31 @@
       }
     }catch(e){ currentUser = null; }
     return currentUser;
+  }
+
+  function emitAuthChanged(){
+    try{ document.dispatchEvent(new CustomEvent('customer-auth:changed', { detail: { user: currentUser || null } })); }catch(e){}
+  }
+
+  function favoriteStorageKeyForUser(user){
+    const uid = String(user && user.id ? user.id : '').trim();
+    if(!uid) return null;
+    return FAVORITES_KEY_PREFIX + uid;
+  }
+
+  function readFavoriteIdsByKey(key){
+    if(!key) return [];
+    try{
+      const raw = localStorage.getItem(key) || '[]';
+      const parsed = JSON.parse(raw);
+      if(!Array.isArray(parsed)) return [];
+      return parsed.map(v=>String(v)).filter(Boolean);
+    }catch(e){ return []; }
+  }
+
+  function writeFavoriteIdsByKey(key, ids){
+    if(!key) return false;
+    try{ localStorage.setItem(key, JSON.stringify(Array.isArray(ids) ? ids : [])); return true; }catch(e){ return false; }
   }
 
   function ensureModal(){
@@ -315,12 +340,29 @@
   }
 
   function getFavoriteIds(){
-    try{
-      const raw = localStorage.getItem(FAVORITES_KEY) || '[]';
-      const parsed = JSON.parse(raw);
-      if(!Array.isArray(parsed)) return [];
-      return parsed.map(v=>String(v)).filter(Boolean);
-    }catch(e){ return []; }
+    return readFavoriteIdsByKey(favoriteStorageKeyForUser(currentUser));
+  }
+
+  function isFavorite(productId){
+    const pid = String(productId || '').trim();
+    if(!pid) return false;
+    return getFavoriteIds().includes(pid);
+  }
+
+  function setFavorite(productId, active){
+    const key = favoriteStorageKeyForUser(currentUser);
+    if(!key) return false;
+    const pid = String(productId || '').trim();
+    if(!pid) return false;
+    const ids = readFavoriteIdsByKey(key);
+    const next = active ? Array.from(new Set(ids.concat(pid))) : ids.filter(id=>id !== pid);
+    return writeFavoriteIdsByKey(key, next);
+  }
+
+  function toggleFavorite(productId){
+    const next = !isFavorite(productId);
+    const ok = setFavorite(productId, next);
+    return ok ? next : null;
   }
 
   function upsertAddressInProfile(client, user, data){
@@ -503,6 +545,7 @@
       modal.querySelector('#customer-account-logout')?.addEventListener('click', async ()=>{
         try{ if(window.supa && typeof window.supa.signOut === 'function') await window.supa.signOut(); }catch(e){}
         currentUser = null;
+        emitAuthChanged();
         modal.classList.remove('visible');
         updateAuthUi();
       });
@@ -593,10 +636,11 @@
 
   document.addEventListener('DOMContentLoaded', async ()=>{
     await getUser();
+    emitAuthChanged();
     updateAuthUi();
     if(window.supa && typeof window.supa.onAuthStateChange === 'function'){
       try{
-        window.supa.onAuthStateChange(async ()=>{ await getUser(); updateAuthUi(); });
+        window.supa.onAuthStateChange(async ()=>{ await getUser(); emitAuthChanged(); updateAuthUi(); });
       }catch(e){ console.warn('Auth state listener failed', e); }
     }
   });
@@ -607,6 +651,10 @@
     ensureAuthenticated,
     getCurrentUser: ()=>currentUser,
     openAuthModal: openModal,
-    openAccountModal
+    openAccountModal,
+    getFavoriteIds,
+    isFavorite,
+    setFavorite,
+    toggleFavorite
   };
 })();

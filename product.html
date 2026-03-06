@@ -165,27 +165,35 @@
 
       // favorite toggle
       const favBtn = document.getElementById('favorite-btn');
-      const FAVORITES_KEY = 'favorite_product_ids';
-      function readFavorites(){
+      function syncFavoriteUi(){
+        const isFav = !!(window.customerAuth && typeof window.customerAuth.isFavorite === 'function' && window.customerAuth.isFavorite(p.id));
+        if(!favBtn) return;
+        favBtn.classList.toggle('active', isFav);
+        favBtn.textContent = isFav ? '❤' : '♡';
+      }
+      syncFavoriteUi();
+      document.addEventListener('customer-auth:changed', ()=>{ syncFavoriteUi(); });
+      favBtn?.addEventListener('click', async ()=>{
         try{
-          const raw = localStorage.getItem(FAVORITES_KEY) || '[]';
-          const parsed = JSON.parse(raw);
-          return Array.isArray(parsed) ? parsed.map(v=>String(v)) : [];
-        }catch(e){ return []; }
-      }
-      function saveFavorites(ids){
-        try{ localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids)); }catch(e){}
-      }
-      const currentFavs = readFavorites();
-      const isFav = currentFavs.includes(String(p.id));
-      if(isFav){ favBtn?.classList.add('active'); if(favBtn) favBtn.textContent = '❤'; }
-      favBtn?.addEventListener('click', ()=>{
-        const active = favBtn.classList.toggle('active');
-        favBtn.textContent = active ? '❤' : '♡';
-        const ids = readFavorites();
-        const pid = String(p.id);
-        const next = active ? Array.from(new Set(ids.concat(pid))) : ids.filter(id=>id!==pid);
-        saveFavorites(next);
+          if(!(window.customerAuth && typeof window.customerAuth.ensureAuthenticated === 'function')){
+            alert('Login indisponível no momento. Recarregue a página.');
+            return;
+          }
+          const ok = await window.customerAuth.ensureAuthenticated();
+          if(!ok){
+            alert('Faça login para favoritar produtos.');
+            return;
+          }
+          if(!(window.customerAuth && typeof window.customerAuth.toggleFavorite === 'function')) return;
+          const next = window.customerAuth.toggleFavorite(p.id);
+          if(next === null){
+            alert('Não foi possível salvar favorito.');
+            return;
+          }
+          syncFavoriteUi();
+        }catch(e){
+          alert('Erro ao favoritar produto.');
+        }
       });
 
       const consultStock = document.querySelector('.consult-stock');
