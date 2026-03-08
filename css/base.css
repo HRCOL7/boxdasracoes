@@ -69,7 +69,7 @@ img.logo-img{height:64px;width:64px}
 
 /* responsive heights */
 @media (min-width:900px){
-  .carousel.banner .item{min-height:430px}
+  .carousel.banner .item{min-height:419px;height:419px;aspect-ratio:1188 / 419}
 }
 @media (max-width:599px){
   #top-carousel{margin-top:2px}

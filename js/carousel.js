@@ -178,7 +178,9 @@
         const isMobile = window.matchMedia('(max-width: 899px)').matches;
         const rootWidth = root.clientWidth || window.innerWidth;
         const gap = isMobile ? 0 : 20;
-        const cardWidth = isMobile ? rootWidth : Math.round(rootWidth * 0.82);
+        const desktopTargetWidth = 1188;
+        const maxDesktopWidth = Math.max(900, rootWidth - 120);
+        const cardWidth = isMobile ? rootWidth : Math.min(desktopTargetWidth, maxDesktopWidth);
         const sidePeek = Math.max(0, Math.round((rootWidth - cardWidth) / 2));
 
         root.style.padding = `0 ${sidePeek}px`;
