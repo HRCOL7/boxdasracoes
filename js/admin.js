@@ -13,6 +13,15 @@
   let currentAdminUser = null;
   function debounce(fn, wait){ let t=null; return function(...a){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a), wait); }; }
   function escapeRegExp(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function normalizeWeightKey(weight){
+    return String(weight || '')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu,'')
+      .toLowerCase()
+      .replace(/\s+/g,'')
+      .replace(/,/g,'.')
+      .trim();
+  }
   function escapeHtml(s){ if(window.appUtils && typeof window.appUtils.escapeHtml === 'function') return window.appUtils.escapeHtml(s); return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function highlight(text, term){ if(!term) return escapeHtml(text); const t = String(term); const parts = String(text||'').split(new RegExp('('+escapeRegExp(t)+')','i')); return parts.map(part=>{ if(part.toLowerCase() === t.toLowerCase()) return '<mark>'+escapeHtml(part)+'</mark>'; return escapeHtml(part); }).join(''); }
   function hasSupabaseConfig(){
@@ -585,7 +594,8 @@
           const parts = String(line || '').split(',');
           const weight = String(parts[0] || '').trim();
           const price = parseFloat(String(parts.slice(1).join(',') || '').replace(',', '.'));
-          if(weight && Number.isFinite(price) && price > 0) map[weight] = price;
+          const normalized = normalizeWeightKey(weight);
+          if(normalized && Number.isFinite(price) && price > 0) map[normalized] = price;
         });
         return Object.keys(map).length ? map : null;
       })();

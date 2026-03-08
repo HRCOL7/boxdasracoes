@@ -7,6 +7,20 @@
   let productsCacheRaw = null;
   let productsCacheParsed = [];
   function slugify(s){ if(!s) return ''; return String(s).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+  function toBoolean(value){
+    if(typeof value === 'boolean') return value;
+    const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'sim';
+  }
+  function normalizeWeightKey(weight){
+    return String(weight || '')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu,'')
+      .toLowerCase()
+      .replace(/\s+/g,'')
+      .replace(/,/g,'.')
+      .trim();
+  }
   function read(){
     try{
       if(window.appUtils && typeof window.appUtils.readJSON === 'function') return window.appUtils.readJSON(KEY, []);
@@ -170,7 +184,7 @@
 
   function getProductLevelPromoPrice(product){
     const candidate = Number(product && product.promo_price);
-    if(product && product.is_promo && Number.isFinite(candidate) && candidate > 0) return candidate;
+    if(product && toBoolean(product.is_promo) && Number.isFinite(candidate) && candidate > 0) return candidate;
     return null;
   }
 
@@ -180,8 +194,13 @@
     const map = {};
     Object.keys(raw).forEach(weight=>{
       const price = Number(raw[weight]);
-      if(String(weight || '').trim() && Number.isFinite(price) && price > 0){
-        map[String(weight).trim()] = price;
+      const exactKey = String(weight || '').trim();
+      const normalizedKey = normalizeWeightKey(weight);
+      if(exactKey && Number.isFinite(price) && price > 0){
+        map[exactKey] = price;
+      }
+      if(normalizedKey && Number.isFinite(price) && price > 0){
+        map[normalizedKey] = price;
       }
     });
     return Object.keys(map).length ? map : null;
@@ -210,7 +229,7 @@
     const selected = product.variants[idx] || product.variants[0];
     const weight = String(selected && selected.weight || '').trim();
     if(!weight) return null;
-    const candidate = Number(promoMap[weight]);
+    const candidate = Number(promoMap[weight] !== undefined ? promoMap[weight] : promoMap[normalizeWeightKey(weight)]);
     return Number.isFinite(candidate) && candidate > 0 ? candidate : null;
   }
 
@@ -256,8 +275,8 @@
       // show subgroup as link to products filtered by group+sub (use URL-safe slugs)
       const subgroupLink = p.subgroup ? `<div class="subgroup"><a class="subgroup-link" href="products.html?group=${encodeURIComponent(slugify(p.group||''))}&sub=${encodeURIComponent(slugify(p.subgroup))}">${esc(p.subgroup||'')}</a></div>` : '';
       const linkUrl = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
-      const unavailableBadge = p.is_unavailable ? '<div class="badge-unavailable">Indisponivel</div>' : '';
-      const btnClass = p.is_unavailable ? 'add-circle disabled' : 'add-circle';
+      const unavailableBadge = toBoolean(p.is_unavailable) ? '<div class="badge-unavailable">Indisponivel</div>' : '';
+      const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
       const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
       it.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${String(img).replace(/\"/g,'&quot;')}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl}">${esc(p.name||'')}</a>${subgroupLink}</div>${promoPriceHtml}`;
       if(hasAnyPromo(p) && promoRoot){ promoRoot.appendChild(it); promoCount += 1; }
@@ -335,8 +354,8 @@
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'));
       const imgAttr = String(img).replace(/\"/g,'&quot;');
       const brandHtml = p.brand ? ('Fabricante: ' + esc(p.brand)) : '';
-      const unavailableBadge = p.is_unavailable ? '<div class="badge-unavailable">Indisponivel</div>' : '';
-      const btnClass = p.is_unavailable ? 'add-circle disabled' : 'add-circle';
+      const unavailableBadge = toBoolean(p.is_unavailable) ? '<div class="badge-unavailable">Indisponivel</div>' : '';
+      const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
       const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
       el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}<div class="brand">${brandHtml}</div></div>${promoPriceHtml}`;
       root.appendChild(el)
@@ -477,7 +496,7 @@
       const products = read();
       const p = products.find(x=>x.id===id);
       if(!p) return;
-      if(p.is_unavailable){
+      if(toBoolean(p.is_unavailable)){
         alert('Produto indisponivel no momento.');
         return;
       }

@@ -5,6 +5,20 @@
   const logError = (message, ...args) => console.error(`${LOG_PREFIX} ${message}`, ...args);
   let cartCacheRaw = null;
   let cartCacheParsed = [];
+  function toBoolean(value){
+    if(typeof value === 'boolean') return value;
+    const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'sim';
+  }
+  function normalizeWeightKey(weight){
+    return String(weight || '')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu,'')
+      .toLowerCase()
+      .replace(/\s+/g,'')
+      .replace(/,/g,'.')
+      .trim();
+  }
   function read(){
     try{
       const raw = localStorage.getItem(KEY)||'[]';
@@ -27,8 +41,13 @@
     const map = {};
     Object.keys(product.promo_variants).forEach(weight=>{
       const price = Number(product.promo_variants[weight]);
-      if(String(weight || '').trim() && Number.isFinite(price) && price > 0){
-        map[String(weight).trim()] = price;
+      const exactKey = String(weight || '').trim();
+      const normalizedKey = normalizeWeightKey(weight);
+      if(exactKey && Number.isFinite(price) && price > 0){
+        map[exactKey] = price;
+      }
+      if(normalizedKey && Number.isFinite(price) && price > 0){
+        map[normalizedKey] = price;
       }
     });
     return Object.keys(map).length ? map : null;
@@ -38,13 +57,13 @@
     const base = Array.isArray(product && product.variants) && product.variants[variantIndex]
       ? Number(product.variants[variantIndex].price || 0)
       : Number(product && product.price || 0);
-    const promoProduct = (product && product.is_promo) ? Number(product.promo_price) : null;
+    const promoProduct = (product && toBoolean(product.is_promo)) ? Number(product.promo_price) : null;
     if(Number.isFinite(promoProduct) && promoProduct > 0) return promoProduct;
 
     const map = getPromoVariantsMap(product);
     if(map && Array.isArray(product && product.variants) && product.variants[variantIndex]){
       const weight = String(product.variants[variantIndex].weight || '').trim();
-      const promoVariant = Number(map[weight]);
+      const promoVariant = Number(map[weight] !== undefined ? map[weight] : map[normalizeWeightKey(weight)]);
       if(Number.isFinite(promoVariant) && promoVariant > 0) return promoVariant;
     }
     return base;
@@ -94,7 +113,7 @@
   function addByDetail(detail){
     const products=JSON.parse(localStorage.getItem('products')||'[]');
     const p=products.find(x=>x.id===detail.id); if(!p) return;
-    if(p.is_unavailable){
+    if(toBoolean(p.is_unavailable)){
       alert('Produto indisponivel no momento.');
       return;
     }

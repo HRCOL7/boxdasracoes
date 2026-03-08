@@ -11,6 +11,90 @@
       .trim();
   }
 
+  function tokenize(v){
+    return normalizeText(v).split(/\s+/).filter(Boolean);
+  }
+
+  function levenshtein(a, b){
+    const sa = String(a || '');
+    const sb = String(b || '');
+    const m = sa.length;
+    const n = sb.length;
+    if(!m) return n;
+    if(!n) return m;
+    const dp = new Array(n + 1);
+    for(let j = 0; j <= n; j++) dp[j] = j;
+    for(let i = 1; i <= m; i++){
+      let prev = dp[0];
+      dp[0] = i;
+      for(let j = 1; j <= n; j++){
+        const temp = dp[j];
+        const cost = sa[i - 1] === sb[j - 1] ? 0 : 1;
+        dp[j] = Math.min(
+          dp[j] + 1,
+          dp[j - 1] + 1,
+          prev + cost
+        );
+        prev = temp;
+      }
+    }
+    return dp[n];
+  }
+
+  function tokenMatches(token, candidateToken){
+    if(!token || !candidateToken) return false;
+    if(candidateToken.includes(token) || token.includes(candidateToken)) return true;
+    if(token.length <= 2 || candidateToken.length <= 2) return false;
+    const dist = levenshtein(token, candidateToken);
+    const maxLen = Math.max(token.length, candidateToken.length);
+    if(maxLen <= 4) return dist <= 1;
+    if(maxLen <= 7) return dist <= 2;
+    return dist <= 3;
+  }
+
+  function buildSearchText(product){
+    return normalizeText([
+      product && product.name,
+      product && product.brand,
+      product && product.group,
+      product && product.subgroup,
+      product && product.description
+    ].filter(Boolean).join(' '));
+  }
+
+  function scoreProduct(product, query){
+    const q = normalizeText(query);
+    if(!q) return 0;
+    const text = buildSearchText(product);
+    if(!text) return 0;
+    if(text.includes(q)) return 1000 + q.length;
+
+    const qTokens = tokenize(q);
+    if(!qTokens.length) return 0;
+    const cTokens = tokenize(text);
+    let matched = 0;
+    let score = 0;
+    qTokens.forEach(token=>{
+      let best = 0;
+      cTokens.forEach(c=>{
+        if(c.includes(token)) best = Math.max(best, 90);
+        else if(tokenMatches(token, c)){
+          const dist = levenshtein(token, c);
+          best = Math.max(best, Math.max(50, 85 - dist * 10));
+        }
+      });
+      if(best > 0){
+        matched += 1;
+        score += best;
+      }
+    });
+
+    // Require at least half of query tokens to match to avoid noisy results.
+    const minimumMatches = Math.max(1, Math.ceil(qTokens.length / 2));
+    if(matched < minimumMatches) return 0;
+    return score + matched * 20;
+  }
+
   function hasSupabaseConfig(){
     return !!(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey);
   }
@@ -122,29 +206,20 @@
 
     async function findMatches(q, limit){
       const products = await ensureProductsReady();
-      let matches = (Array.isArray(products) ? products : []).filter(p=>matchesQuery(p, q));
+      let scored = (Array.isArray(products) ? products : []).map(p=>({ product: p, score: scoreProduct(p, q) })).filter(x=>x.score > 0);
+      scored.sort((a,b)=> b.score - a.score);
+      let matches = scored.map(x=>x.product);
       if(matches.length === 0){
         if(!hydratePromise){
           hydratePromise = hydrateProductsFromSupabase().finally(()=>{ hydratePromise = null; });
         }
         await hydratePromise;
         const retryProducts = getProductsSync();
-        matches = (Array.isArray(retryProducts) ? retryProducts : []).filter(p=>matchesQuery(p, q));
+        scored = (Array.isArray(retryProducts) ? retryProducts : []).map(p=>({ product: p, score: scoreProduct(p, q) })).filter(x=>x.score > 0);
+        scored.sort((a,b)=> b.score - a.score);
+        matches = scored.map(x=>x.product);
       }
       return matches.slice(0, limit || 8);
-    }
-
-    function matchesQuery(product, q){
-      const needle = normalizeText(q);
-      if(!needle) return false;
-      const hay = [
-        product && product.name,
-        product && product.brand,
-        product && product.group,
-        product && product.subgroup,
-        product && product.description
-      ].map(v=>normalizeText(v));
-      return hay.some(v=>v.includes(needle));
     }
 
     function getCardImage(p){
