@@ -50,9 +50,9 @@ img.logo-img{height:64px;width:64px}
 /* Hero banner (Petz-like): centered main slide with side peeks on desktop */
 #top-carousel{position:relative;max-width:1320px;margin:6px auto 0}
 #top-carousel .carousel-track{display:flex;align-items:stretch;will-change:transform}
-#top-carousel .carousel-track .item{position:relative;min-height:360px;overflow:hidden;border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.10);opacity:.72;transform:scale(.96);transition:transform .38s ease,opacity .28s ease,box-shadow .38s ease}
+#top-carousel .carousel-track .item{position:relative;min-height:360px;overflow:hidden;border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.10);opacity:.72;transform:scale(.96);transition:transform .38s ease,opacity .28s ease,box-shadow .38s ease;padding:0;line-height:0}
 #top-carousel .carousel-track .item.active{opacity:1;transform:scale(1);box-shadow:0 16px 34px rgba(0,0,0,.16)}
-#top-carousel .carousel-track .item img{width:100%;height:100%;object-fit:cover;display:block}
+#top-carousel .carousel-track .item img{width:100%;height:100%;object-fit:cover;display:block;padding:0;border-radius:0;background:transparent;flex:none}
 #top-carousel .carousel-nav{position:absolute;top:50%;transform:translateY(-50%);background:#fff;border:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#333;z-index:40;box-shadow:0 8px 20px rgba(0,0,0,.18)}
 #top-carousel .carousel-nav.prev{left:14px}
 #top-carousel .carousel-nav.next{right:14px}
