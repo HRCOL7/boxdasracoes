@@ -133,6 +133,8 @@ img.logo-img{height:64px;width:64px}
 .weight-chip:hover{filter:brightness(.98)}
 .weight-chip:focus{outline:3px solid rgba(255,122,0,0.18);outline-offset:2px}
 .weight-chip.promo-chip{border-color:#ff9f3a;background:#fff6ea;color:#b85d00}
+.weight-chip.promo-chip{position:relative;padding-right:40px}
+.weight-chip.promo-chip::after{content:'PROMO';position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;line-height:1;padding:2px 4px;border-radius:999px;background:#ff9f3a;color:#fff;font-weight:800;letter-spacing:.2px}
 .weight-chip.active{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 6px 18px rgba(0,0,0,.06)}
 .weight-chip[aria-checked="true"]{background:var(--orange);color:#fff;border-color:var(--orange)}
 
