@@ -39,10 +39,14 @@
     let groups = getConfiguredGroups();
     // populate selects
     const groupSelect = qs('#group-select'); const subgroupSelect = qs('#subgroup-select');
-    if(groupSelect){
+    function populateGroupsSelect(selected){
+      if(!groupSelect) return;
+      const current = typeof selected === 'string' ? selected : (groupSelect.value || '');
       groupSelect.innerHTML = '<option value="">(selecionar)</option>';
       groups.forEach(g=>{ const o = document.createElement('option'); o.value = g.title; o.textContent = g.title; groupSelect.appendChild(o); });
+      if(current && Array.from(groupSelect.options).some(o=>o.value===current)) groupSelect.value = current;
     }
+    populateGroupsSelect();
     function getSavedSubgroups(selectedGroup){
       const products = readProducts();
       const set = new Set();
@@ -65,6 +69,17 @@
       saved.forEach(s=>{ if(!added.has(s)){ const o = document.createElement('option'); o.value = s; o.textContent = s; subgroupSelect.appendChild(o); added.add(s); } });
     }
     if(groupSelect){ groupSelect.addEventListener('change',()=>{ populateSubgroups(groupSelect.value); }); }
+
+    document.addEventListener('site-settings-updated', ()=>{
+      const previousGroup = groupSelect ? groupSelect.value : '';
+      const previousSub = subgroupSelect ? subgroupSelect.value : '';
+      groups = getConfiguredGroups();
+      populateGroupsSelect(previousGroup);
+      populateSubgroups(groupSelect ? groupSelect.value : '');
+      if(subgroupSelect && previousSub && Array.from(subgroupSelect.options).some(o=>o.value===previousSub)){
+        subgroupSelect.value = previousSub;
+      }
+    });
 
     function renderImagePreviews(list){
       if(!preview) return;

@@ -62,3 +62,10 @@ create index if not exists idx_products_name_group on public.products using gin 
   - `categories`
   - `whatsappIncludeCustomerData`
 - O site continua com fallback local, mas quando a tabela existe, desktop e celular passam a compartilhar as mesmas configurações do painel admin.
+
+11) Setup unico (settings + relatorios)
+- Se quiser habilitar tudo em uma passada so, rode `supabase-site-settings-and-reports-setup.sql`.
+- Esse arquivo inclui:
+  - `site_settings` (banners, brands, categories)
+  - `site_events` + funcao `admin_reports_timeseries`
+  - `admin_users` para controle de acesso ao relatorio
