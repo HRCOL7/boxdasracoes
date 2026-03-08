@@ -123,6 +123,11 @@
     // brands carousel clickable via event delegation
     const brandsRoot=document.getElementById('brands-carousel');
     if(brandsRoot){
+      const fallbackBrandLogo = (name)=>{
+        const label = String(name || 'Marca').replace(/</g,'').replace(/>/g,'').slice(0, 18);
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="120" viewBox="0 0 220 120"><rect width="220" height="120" rx="14" fill="#ffffff"/><rect x="2" y="2" width="216" height="116" rx="12" fill="none" stroke="#e7e7e7"/><text x="110" y="66" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#ff7a00">${label}</text></svg>`;
+        return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+      };
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
       brandsRoot.innerHTML = '';
       const configuredBrands = (settings && Array.isArray(settings.brands) && settings.brands.length)
@@ -134,8 +139,10 @@
         const it=document.createElement('div');it.className='item';
         const bEsc = esc(b);
         const image = (entry && typeof entry === 'object' && entry.image) ? String(entry.image).trim() : '';
-        const imgUrl = image || ('https://via.placeholder.com/80x40?text=' + encodeURIComponent(b));
+        const imgUrl = image || fallbackBrandLogo(b);
         it.innerHTML=`<img src="${imgUrl}" alt="${bEsc}"><div>${bEsc}</div>`;
+        const imgEl = it.querySelector('img');
+        if(imgEl){ imgEl.onerror = ()=>{ imgEl.src = fallbackBrandLogo(b); }; }
         it.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('filter',{detail:{group:undefined},b: b})));brandsRoot.appendChild(it)
       });
       try{ document.dispatchEvent(new CustomEvent('brands:rendered')); }catch(e){}

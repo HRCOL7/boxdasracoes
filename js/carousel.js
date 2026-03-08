@@ -1,6 +1,14 @@
 (function(){
   document.addEventListener('DOMContentLoaded',()=>{
     let liveSettingsBound = false;
+    const fallbackBanner = (index)=>{
+      const palette = ['#F1F8FF','#FFF5E8','#EEF9F0'];
+      const bg = palette[index % palette.length];
+      const text = encodeURIComponent(`Banner ${index + 1}`);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1188" height="419" viewBox="0 0 1188 419"><rect width="1188" height="419" fill="${bg}"/><circle cx="120" cy="90" r="58" fill="#ffffff" opacity=".55"/><circle cx="1020" cy="320" r="82" fill="#ffffff" opacity=".5"/><text x="594" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="700" fill="#ff7a00">${decodeURIComponent(text)}</text></svg>`;
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    };
+
     const fillBanner = ()=>{
       const el = document.getElementById('top-carousel');
       if(!el) return; el.innerHTML='';
@@ -12,9 +20,18 @@
       const banners = (window.BANNERS && window.BANNERS.length)
         ? window.BANNERS
         : (configured && configured.length ? configured : defaults);
-      banners.forEach((src,idx)=>{
+      const safeBanners = Array.isArray(banners)
+        ? banners.map(v=>String(v || '').trim()).filter(Boolean)
+        : [];
+      const finalBanners = safeBanners.length ? safeBanners : [fallbackBanner(0), fallbackBanner(1), fallbackBanner(2)];
+
+      finalBanners.forEach((src,idx)=>{
         const d = document.createElement('div'); d.className='item';
-        const img = document.createElement('img'); img.src = src; img.alt = `Banner ${idx+1}`; img.loading='lazy';
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = `Banner ${idx+1}`;
+        img.loading='lazy';
+        img.onerror = ()=>{ img.src = fallbackBanner(idx); };
         d.appendChild(img);
         el.appendChild(d);
       });
