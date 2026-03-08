@@ -72,8 +72,9 @@ img.logo-img{height:64px;width:64px}
   .carousel.banner .item{min-height:419px;height:419px;aspect-ratio:1188 / 419}
 }
 @media (max-width:599px){
-  #top-carousel{margin-top:2px}
-  .carousel.banner .item{min-height:200px;border-radius:0;box-shadow:none}
+  #top-carousel{margin-top:2px;max-width:360px}
+  .carousel.banner .item{min-height:314px;height:314px;border-radius:0;box-shadow:none}
+  #top-carousel .carousel-track .item img{object-fit:cover}
   #top-carousel .carousel-track .item{opacity:1;transform:none}
   #top-carousel .carousel-nav{display:none}
 }

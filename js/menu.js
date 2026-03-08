@@ -138,6 +138,7 @@
         it.innerHTML=`<img src="${imgUrl}" alt="${bEsc}"><div>${bEsc}</div>`;
         it.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('filter',{detail:{group:undefined},b: b})));brandsRoot.appendChild(it)
       });
+      try{ document.dispatchEvent(new CustomEvent('brands:rendered')); }catch(e){}
     }
       }catch(err){
         console.error('menu.js init error:', err);

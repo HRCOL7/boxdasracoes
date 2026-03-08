@@ -32,32 +32,51 @@
 
       // wrap root if nav/dots needed
       let wrap = root.parentNode;
+      const wasWrapped = !!(wrap && wrap.classList && wrap.classList.contains('carousel-wrap'));
       if(withNav || dots){
-        wrap = document.createElement('div'); wrap.className = 'carousel-wrap';
-        root.parentNode.insertBefore(wrap, root);
-        wrap.appendChild(root);
+        if(!wasWrapped){
+          wrap = document.createElement('div'); wrap.className = 'carousel-wrap';
+          root.parentNode.insertBefore(wrap, root);
+          wrap.appendChild(root);
+        }
       }
 
       // nav buttons
       let prev, next;
       if(withNav){
-        prev = document.createElement('button'); prev.type='button'; prev.className='carousel-nav prev'; prev.setAttribute('aria-label','Anterior');
-        prev.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        next = document.createElement('button'); next.type='button'; next.className='carousel-nav next'; next.setAttribute('aria-label','Próximo');
-        next.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        wrap.appendChild(prev); wrap.appendChild(next);
-        prev.addEventListener('click', ()=>{ root.scrollBy({left: -root.clientWidth, behavior:'smooth'}); });
-        next.addEventListener('click', ()=>{ root.scrollBy({left: root.clientWidth, behavior:'smooth'}); });
+        prev = wrap.querySelector('.carousel-nav.prev');
+        next = wrap.querySelector('.carousel-nav.next');
+        if(!prev){
+          prev = document.createElement('button'); prev.type='button'; prev.className='carousel-nav prev'; prev.setAttribute('aria-label','Anterior');
+          prev.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          wrap.appendChild(prev);
+        }
+        if(!next){
+          next = document.createElement('button'); next.type='button'; next.className='carousel-nav next'; next.setAttribute('aria-label','Próximo');
+          next.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          wrap.appendChild(next);
+        }
+        if(!prev.dataset.bound){
+          prev.dataset.bound = '1';
+          prev.addEventListener('click', ()=>{ root.scrollBy({left: -root.clientWidth, behavior:'smooth'}); });
+        }
+        if(!next.dataset.bound){
+          next.dataset.bound = '1';
+          next.addEventListener('click', ()=>{ root.scrollBy({left: root.clientWidth, behavior:'smooth'}); });
+        }
       }
 
       // dots
       let dotsWrap = null; let dotButtons = [];
       if(dots){
-        dotsWrap = document.createElement('div'); dotsWrap.className = 'carousel-dots';
-        if(wrap) wrap.appendChild(dotsWrap);
+        dotsWrap = wrap.querySelector('.carousel-dots');
+        if(!dotsWrap){
+          dotsWrap = document.createElement('div'); dotsWrap.className = 'carousel-dots';
+          if(wrap) wrap.appendChild(dotsWrap);
+        }
       }
 
-      const items = Array.from(root.querySelectorAll('.item'));
+      const getItems = ()=> Array.from(root.querySelectorAll('.item'));
       function updateDots(){
         if(!dotsWrap) return;
         const pageWidth = root.clientWidth;
@@ -68,6 +87,7 @@
       function buildDots(){
         if(!dotsWrap) return;
         dotsWrap.innerHTML=''; dotButtons = [];
+        const items = getItems();
         const pages = opts.forceDotsCount || Math.max(1, Math.ceil(items.length / visible));
         for(let i=0;i<pages;i++){
           const b = document.createElement('button'); b.type='button'; b.className='carousel-dot'; b.setAttribute('data-index', i);
@@ -87,6 +107,7 @@
         const interval = opts.interval || 4000;
         if(autoplayTimer) clearInterval(autoplayTimer);
         autoplayTimer = setInterval(()=>{
+          const items = getItems();
           const pages = opts.forceDotsCount || Math.max(1, Math.ceil(items.length / visible));
           const page = Math.round(root.scrollLeft / root.clientWidth) || 0;
           const next = (page + 1) % pages;
@@ -107,6 +128,10 @@
       // update on scroll/resize
       root.addEventListener('scroll', ()=>{ window.requestAnimationFrame(updateDots); });
       window.addEventListener('resize', ()=>{ buildDots(); if(opts.autoplay) startAutoplay(); });
+
+      // Rebuild controls when items are rendered asynchronously (products/brands/settings).
+      const observer = new MutationObserver(()=>{ buildDots(); });
+      observer.observe(root, { childList: true });
     };
 
     fillBanner();
@@ -181,7 +206,8 @@
         const desktopTargetWidth = 1188;
         // Keep only a small safety margin so the banner can approach 1188px on desktop.
         const maxDesktopWidth = Math.max(900, rootWidth - 24);
-        const cardWidth = isMobile ? rootWidth : Math.min(desktopTargetWidth, maxDesktopWidth);
+        const mobileTargetWidth = 360;
+        const cardWidth = isMobile ? Math.min(mobileTargetWidth, rootWidth) : Math.min(desktopTargetWidth, maxDesktopWidth);
         const sidePeek = Math.max(0, Math.round((rootWidth - cardWidth) / 2));
 
         root.style.padding = `0 ${sidePeek}px`;
