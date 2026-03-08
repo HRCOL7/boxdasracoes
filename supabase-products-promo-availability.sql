@@ -4,6 +4,7 @@
 alter table if exists public.products
   add column if not exists is_promo boolean not null default false,
   add column if not exists promo_price numeric(12,2),
+  add column if not exists promo_variants jsonb not null default '{}'::jsonb,
   add column if not exists is_unavailable boolean not null default false;
 
 create index if not exists idx_products_is_promo on public.products(is_promo);

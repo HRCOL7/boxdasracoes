@@ -109,12 +109,13 @@
         return data;
       }catch(err){
         const msg = String(err && (err.message || err.details || err.hint) || '').toLowerCase();
-        const missingPromoCols = msg.includes('is_promo') || msg.includes('promo_price') || msg.includes('is_unavailable');
+        const missingPromoCols = msg.includes('is_promo') || msg.includes('promo_price') || msg.includes('is_unavailable') || msg.includes('promo_variants');
         if(missingPromoCols){
           logWarn('Products table is missing promo/availability columns, retrying upsert without those fields');
           const fallbackPayload = Object.assign({}, p);
           delete fallbackPayload.is_promo;
           delete fallbackPayload.promo_price;
+          delete fallbackPayload.promo_variants;
           delete fallbackPayload.is_unavailable;
           const retry = await supa.from('products').upsert(fallbackPayload, { onConflict: ['id'] }).select();
           if(retry && retry.error) throw retry.error;

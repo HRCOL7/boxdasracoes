@@ -76,6 +76,10 @@
         <label style="display:block;margin-top:6px"><input type="checkbox" name="image_illustrative" id="image-illustrative"> Imagem meramente ilustrativa</label>
         <label style="display:block;margin-top:6px"><input type="checkbox" name="is_promo" id="is-promo"> Produto em promoção</label>
         <label id="promo-price-row" style="display:none">Preço promocional (ex: 99.90): <input name="promo_price" id="promo-price" type="number" step="0.01" min="0"></label>
+        <label id="promo-variants-row" style="display:none">Promoção por KG (uma por linha - KG,preço promocional):
+          <button type="button" class="help-btn" data-help="Exemplo: 15 kg,129.90. Use para aplicar promoção apenas em KGs específicos (chips).">?</button>
+          <textarea name="promo_variants" id="promo-variants" rows="4" placeholder="ex: 15 kg,129.90\n25 kg,239.90"></textarea>
+        </label>
         <label style="display:block;margin-top:6px"><input type="checkbox" name="is_unavailable" id="is-unavailable"> Produto indisponível</label>
         <div style="display:flex;gap:8px;margin-top:8px"><button type="submit" class="btn btn-orange">Salvar</button><button type="reset" class="btn">Cancelar</button></div>
       </form>

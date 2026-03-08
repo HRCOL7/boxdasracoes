@@ -523,8 +523,14 @@
       const imgIll = form.querySelector('[name="image_illustrative"]'); if(imgIll) imgIll.checked = !!p.image_illustrative;
       const promoEl = form.querySelector('[name="is_promo"]'); if(promoEl) promoEl.checked = !!p.is_promo;
       const promoPriceEl = form.querySelector('[name="promo_price"]'); if(promoPriceEl) promoPriceEl.value = (p.promo_price !== null && p.promo_price !== undefined) ? String(p.promo_price) : '';
+      const promoVariantsEl = form.querySelector('[name="promo_variants"]');
+      if(promoVariantsEl){
+        const promoMap = (p && p.promo_variants && typeof p.promo_variants === 'object') ? p.promo_variants : {};
+        promoVariantsEl.value = Object.keys(promoMap).map(weight=>`${weight},${promoMap[weight]}`).join('\n');
+      }
       const unavailableEl = form.querySelector('[name="is_unavailable"]'); if(unavailableEl) unavailableEl.checked = !!p.is_unavailable;
       const promoPriceRow = document.getElementById('promo-price-row'); if(promoPriceRow) promoPriceRow.style.display = (promoEl && promoEl.checked) ? 'block' : 'none';
+      const promoVariantsRow = document.getElementById('promo-variants-row'); if(promoVariantsRow) promoVariantsRow.style.display = (promoEl && promoEl.checked) ? 'block' : 'none';
       try{ const ev = new Event('input', { bubbles: true }); imageUrls?.dispatchEvent(ev); }catch(e){}
     }catch(err){ logError('Failed to populate edit form', err); }
 
@@ -571,6 +577,18 @@
       const promoPriceRaw = String(fd.get('promo_price') || '').trim();
       const promoPriceValue = promoPriceRaw ? parseFloat(promoPriceRaw) : null;
       const promoPrice = (isPromo && Number.isFinite(promoPriceValue) && promoPriceValue > 0) ? promoPriceValue : null;
+      const promoVariantsRaw = String(fd.get('promo_variants') || '').trim();
+      const promoVariants = (function(){
+        if(!isPromo || !promoVariantsRaw) return null;
+        const map = {};
+        String(promoVariantsRaw).split(/\r?\n/).forEach(line=>{
+          const parts = String(line || '').split(',');
+          const weight = String(parts[0] || '').trim();
+          const price = parseFloat(String(parts.slice(1).join(',') || '').replace(',', '.'));
+          if(weight && Number.isFinite(price) && price > 0) map[weight] = price;
+        });
+        return Object.keys(map).length ? map : null;
+      })();
       const isUnavailable = !!fd.get('is_unavailable');
 
       const p={
@@ -596,6 +614,7 @@
         image_illustrative: fd.get('image_illustrative') ? true : false,
         is_promo: isPromo,
         promo_price: promoPrice,
+        promo_variants: promoVariants,
         is_unavailable: isUnavailable,
         video: videoValue,
         internal:fd.get('internal')

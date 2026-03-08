@@ -168,6 +168,73 @@
     });
   }
 
+  function getProductLevelPromoPrice(product){
+    const candidate = Number(product && product.promo_price);
+    if(product && product.is_promo && Number.isFinite(candidate) && candidate > 0) return candidate;
+    return null;
+  }
+
+  function getPromoVariantsMap(product){
+    const raw = product && product.promo_variants;
+    if(!raw || typeof raw !== 'object') return null;
+    const map = {};
+    Object.keys(raw).forEach(weight=>{
+      const price = Number(raw[weight]);
+      if(String(weight || '').trim() && Number.isFinite(price) && price > 0){
+        map[String(weight).trim()] = price;
+      }
+    });
+    return Object.keys(map).length ? map : null;
+  }
+
+  function hasAnyPromo(product){
+    if(getProductLevelPromoPrice(product) !== null) return true;
+    return !!getPromoVariantsMap(product);
+  }
+
+  function getVariantBasePrice(product, variantIndex){
+    if(Array.isArray(product && product.variants) && product.variants.length){
+      const idx = Number.isInteger(variantIndex) ? variantIndex : 0;
+      const selected = product.variants[idx] || product.variants[0];
+      return Number(selected && selected.price || 0);
+    }
+    return Number(product && product.price || 0);
+  }
+
+  function getVariantPromoPrice(product, variantIndex){
+    const productPromo = getProductLevelPromoPrice(product);
+    if(productPromo !== null) return productPromo;
+    const promoMap = getPromoVariantsMap(product);
+    if(!promoMap || !Array.isArray(product && product.variants)) return null;
+    const idx = Number.isInteger(variantIndex) ? variantIndex : 0;
+    const selected = product.variants[idx] || product.variants[0];
+    const weight = String(selected && selected.weight || '').trim();
+    if(!weight) return null;
+    const candidate = Number(promoMap[weight]);
+    return Number.isFinite(candidate) && candidate > 0 ? candidate : null;
+  }
+
+  function buildPriceHtml(basePrice, promoPrice){
+    if(Number.isFinite(promoPrice) && promoPrice > 0 && Number.isFinite(basePrice) && basePrice > 0){
+      return `<div class="price promo-price-wrap"><span class="price-old">R$ ${Number(basePrice).toFixed(2)}</span><span class="price-promo">R$ ${Number(promoPrice).toFixed(2)}</span></div>`;
+    }
+    return `<div class="price">R$ ${Number(basePrice || 0).toFixed(2)}</div>`;
+  }
+
+  function renderItemPrice(itemEl, product, variantIndex){
+    if(!itemEl || !product) return;
+    const currentPriceEl = itemEl.querySelector('.price');
+    if(!currentPriceEl) return;
+    const basePrice = getVariantBasePrice(product, variantIndex);
+    const promoPrice = getVariantPromoPrice(product, variantIndex);
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = buildPriceHtml(basePrice, promoPrice);
+    const nextPriceEl = wrapper.firstElementChild;
+    if(nextPriceEl){
+      currentPriceEl.replaceWith(nextPriceEl);
+    }
+  }
+
   function renderCarousel(){
     const root=qs('#products-carousel'); if(!root) return; root.innerHTML='';
     const promoRoot = qs('#promotions-carousel'); if(promoRoot) promoRoot.innerHTML = '';
@@ -184,19 +251,16 @@
       } else if(p.variant){
         chips = `<div class="weight-chips"><button type="button" class="weight-chip" data-id="${p.id}" data-vi="0">${esc(p.variant||'')}</button></div>`;
       }
-      const basePrice = (Array.isArray(p.variants)&&p.variants.length)? Number(p.variants[0].price||0) : Number(p.price||0);
-      const promoPrice = (p.is_promo && Number.isFinite(Number(p.promo_price)) && Number(p.promo_price) > 0) ? Number(p.promo_price) : null;
-      const displayPrice = promoPrice !== null ? promoPrice : basePrice;
+      const basePrice = getVariantBasePrice(p, 0);
+      const promoPrice = getVariantPromoPrice(p, 0);
       // show subgroup as link to products filtered by group+sub (use URL-safe slugs)
       const subgroupLink = p.subgroup ? `<div class="subgroup"><a class="subgroup-link" href="products.html?group=${encodeURIComponent(slugify(p.group||''))}&sub=${encodeURIComponent(slugify(p.subgroup))}">${esc(p.subgroup||'')}</a></div>` : '';
       const linkUrl = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
       const unavailableBadge = p.is_unavailable ? '<div class="badge-unavailable">Indisponivel</div>' : '';
       const btnClass = p.is_unavailable ? 'add-circle disabled' : 'add-circle';
-      const promoPriceHtml = promoPrice !== null
-        ? `<div class="price promo-price-wrap"><span class="price-old">R$ ${basePrice.toFixed(2)}</span><span class="price-promo">R$ ${promoPrice.toFixed(2)}</span></div>`
-        : `<div class="price">R$ ${Number(displayPrice).toFixed(2)}</div>`;
+      const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
       it.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${String(img).replace(/\"/g,'&quot;')}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl}">${esc(p.name||'')}</a>${subgroupLink}</div>${promoPriceHtml}`;
-      if(p.is_promo && promoRoot){ promoRoot.appendChild(it); promoCount += 1; }
+      if(hasAnyPromo(p) && promoRoot){ promoRoot.appendChild(it); promoCount += 1; }
       else root.appendChild(it);
     });
     if(promoSection) promoSection.style.display = promoCount > 0 ? 'block' : 'none';
@@ -264,9 +328,8 @@
       } else if(p.variant){
         chips = `<div class="weight-chips"><button type="button" class="weight-chip" data-id="${p.id}" data-vi="0">${p.variant}</button></div>`;
       }
-      const basePrice = (Array.isArray(p.variants)&&p.variants.length)? Number(p.variants[0].price||0) : Number(p.price||0);
-      const promoPrice = (p.is_promo && Number.isFinite(Number(p.promo_price)) && Number(p.promo_price) > 0) ? Number(p.promo_price) : null;
-      const displayPrice = promoPrice !== null ? promoPrice : basePrice;
+      const basePrice = getVariantBasePrice(p, 0);
+      const promoPrice = getVariantPromoPrice(p, 0);
       const subgroupLink = p.subgroup ? `<div class="subgroup"><a class="subgroup-link" href="products.html?group=${encodeURIComponent(p.group||'')}&sub=${encodeURIComponent(p.subgroup)}">${p.subgroup}</a></div>` : '';
       const linkUrl2 = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'));
@@ -274,9 +337,7 @@
       const brandHtml = p.brand ? ('Fabricante: ' + esc(p.brand)) : '';
       const unavailableBadge = p.is_unavailable ? '<div class="badge-unavailable">Indisponivel</div>' : '';
       const btnClass = p.is_unavailable ? 'add-circle disabled' : 'add-circle';
-      const promoPriceHtml = promoPrice !== null
-        ? `<div class="price promo-price-wrap"><span class="price-old">R$ ${basePrice.toFixed(2)}</span><span class="price-promo">R$ ${promoPrice.toFixed(2)}</span></div>`
-        : `<div class="price">R$ ${Number(displayPrice).toFixed(2)}</div>`;
+      const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
       el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}<div class="brand">${brandHtml}</div></div>${promoPriceHtml}`;
       root.appendChild(el)
     });
@@ -296,7 +357,14 @@
           <div style="flex:1"><div style="font-weight:700">${esc(product.name||'')}</div></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          ${product.variants.map((v,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #eee;background:#fff"><div>${esc(v.weight||'')}</div><div style="display:flex;gap:10px;align-items:center"><div style="font-weight:700;color:var(--orange,#f08b2a)">R$ ${Number(v.price).toFixed(2)}</div><button class="variant-add" data-id="${product.id}" data-vi="${i}" style="background:var(--orange,#f08b2a);color:#fff;border:none;padding:6px 10px;border-radius:6px">Adicionar à sacola</button></div></div>`).join('')}
+          ${product.variants.map((v,i)=>{
+            const base = getVariantBasePrice(product, i);
+            const promo = getVariantPromoPrice(product, i);
+            const priceHtml = (promo !== null)
+              ? `<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1"><span style="font-size:12px;color:#8a8a8a;text-decoration:line-through">R$ ${base.toFixed(2)}</span><span style="font-weight:700;color:var(--orange,#f08b2a)">R$ ${promo.toFixed(2)}</span></div>`
+              : `<div style="font-weight:700;color:var(--orange,#f08b2a)">R$ ${base.toFixed(2)}</div>`;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #eee;background:#fff"><div>${esc(v.weight||'')}</div><div style="display:flex;gap:10px;align-items:center">${priceHtml}<button class="variant-add" data-id="${product.id}" data-vi="${i}" style="background:var(--orange,#f08b2a);color:#fff;border:none;padding:6px 10px;border-radius:6px">Adicionar à sacola</button></div></div>`;
+          }).join('')}
         </div>
       </div>
     `;
@@ -414,8 +482,15 @@
         return;
       }
       if(Array.isArray(p.variants) && p.variants.length>1){
-        // always ask which variant to add when multiple options exist
-        showVariantSelector(p);
+        // If user already selected a chip, add that KG directly.
+        const card = btn.closest('.item');
+        const activeChip = card ? card.querySelector(`.weight-chip[data-id="${id}"].active`) : null;
+        if(activeChip){
+          const vi = Number(activeChip.dataset.vi);
+          document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id,variantIndex:Number.isFinite(vi) ? vi : 0}}));
+        } else {
+          showVariantSelector(p);
+        }
       } else if(Array.isArray(p.variants) && p.variants.length===1){
         document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id,variantIndex:0}}));
       } else if(p.variant){
@@ -445,17 +520,12 @@
       }
 
       if(item){
-        const priceEl = item.querySelector('.price');
-        if(!p || !priceEl) return;
+        if(!p) return;
         if(!wasActive && Array.isArray(p.variants) && p.variants[vi]){
-          priceEl.textContent = 'R$ ' + Number(p.variants[vi].price).toFixed(2);
+          renderItemPrice(item, p, vi);
           return;
         }
-
-        const fallbackPrice = (Array.isArray(p.variants) && p.variants.length)
-          ? Number(p.variants[0].price || 0)
-          : Number(p.price || 0);
-        priceEl.textContent = 'R$ ' + fallbackPrice.toFixed(2);
+        renderItemPrice(item, p, 0);
       }
     });
 
@@ -478,9 +548,10 @@
         let chips='';
         if(Array.isArray(p.variants)&&p.variants.length){ chips = '<div class="weight-chips">' + p.variants.map((v,vi)=>`<button type="button" class="weight-chip" data-id="${p.id}" data-vi="${vi}" aria-pressed="false">${esc(v.weight||'')}</button>`).join('') + '</div>' }
         else if(p.variant){ chips = `<div class="weight-chips"><button type="button" class="weight-chip" data-id="${p.id}" data-vi="0">${esc(p.variant||'')}</button></div>`; }
-        const displayPrice = (Array.isArray(p.variants)&&p.variants.length)? p.variants[0].price : Number(p.price||0);
+        const basePrice = getVariantBasePrice(p, 0);
+        const promoPrice = getVariantPromoPrice(p, 0);
         const link3 = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
-        it.innerHTML = `<div class="image-wrap"><img src="${String(img).replace(/\"/g,'&quot;')}" alt="${esc(p.name||'')}"><button class="add-circle" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${link3}">${esc(p.name||'')}</a></div><div class="price">R$ ${Number(displayPrice).toFixed(2)}</div>`;
+        it.innerHTML = `<div class="image-wrap"><img src="${String(img).replace(/\"/g,'&quot;')}" alt="${esc(p.name||'')}"><button class="add-circle" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${link3}">${esc(p.name||'')}</a></div>${buildPriceHtml(basePrice, promoPrice)}`;
         root.appendChild(it);
       });
       bindWeightChipsScroll();

@@ -22,6 +22,34 @@
       cartCacheParsed = Array.isArray(v) ? v : [];
     } catch(e){ logError('Failed to save cart to localStorage', e); throw e; }
   }
+  function getPromoVariantsMap(product){
+    if(!product || !product.promo_variants || typeof product.promo_variants !== 'object') return null;
+    const map = {};
+    Object.keys(product.promo_variants).forEach(weight=>{
+      const price = Number(product.promo_variants[weight]);
+      if(String(weight || '').trim() && Number.isFinite(price) && price > 0){
+        map[String(weight).trim()] = price;
+      }
+    });
+    return Object.keys(map).length ? map : null;
+  }
+
+  function getEffectiveUnitPrice(product, variantIndex){
+    const base = Array.isArray(product && product.variants) && product.variants[variantIndex]
+      ? Number(product.variants[variantIndex].price || 0)
+      : Number(product && product.price || 0);
+    const promoProduct = (product && product.is_promo) ? Number(product.promo_price) : null;
+    if(Number.isFinite(promoProduct) && promoProduct > 0) return promoProduct;
+
+    const map = getPromoVariantsMap(product);
+    if(map && Array.isArray(product && product.variants) && product.variants[variantIndex]){
+      const weight = String(product.variants[variantIndex].weight || '').trim();
+      const promoVariant = Number(map[weight]);
+      if(Number.isFinite(promoVariant) && promoVariant > 0) return promoVariant;
+    }
+    return base;
+  }
+
   function updateCount(){const c=document.getElementById('cart-count'); if(!c) return; const count=read().reduce((s,i)=>s+i.qty,0); c.textContent=count}
 
   function renderCart(){
@@ -82,7 +110,9 @@
     let variantLabel = p.variant || '';
     if(Array.isArray(p.variants) && vi!==null){
       const v = p.variants[vi];
-      if(v){ price = Number(v.price); variantLabel = v.weight; }
+      if(v){ price = getEffectiveUnitPrice(p, vi); variantLabel = v.weight; }
+    } else {
+      price = getEffectiveUnitPrice(p, 0);
     }
     const key = `${p.id}::${vi===null?'null':vi}`;
     const cart = read();

@@ -19,13 +19,17 @@
     const videoUrl = qs('#video-url'); const videoPreview = qs('#video-preview'); const videoFile = qs('#video-file');
     const promoChk = qs('#is-promo');
     const promoPriceRow = qs('#promo-price-row');
+    const promoVariantsRow = qs('#promo-variants-row');
     const promoPriceInput = qs('#promo-price');
+    const promoVariantsInput = qs('#promo-variants');
     const unavailableChk = qs('#is-unavailable');
 
     function syncPromoUi(){
       const enabled = !!(promoChk && promoChk.checked);
       if(promoPriceRow) promoPriceRow.style.display = enabled ? 'block' : 'none';
+      if(promoVariantsRow) promoVariantsRow.style.display = enabled ? 'block' : 'none';
       if(!enabled && promoPriceInput) promoPriceInput.value = '';
+      if(!enabled && promoVariantsInput) promoVariantsInput.value = '';
     }
     promoChk?.addEventListener('change', syncPromoUi);
     syncPromoUi();
