@@ -66,6 +66,10 @@
   function addByDetail(detail){
     const products=JSON.parse(localStorage.getItem('products')||'[]');
     const p=products.find(x=>x.id===detail.id); if(!p) return;
+    if(p.is_unavailable){
+      alert('Produto indisponivel no momento.');
+      return;
+    }
     // coerce variantIndex to number if provided (accept strings from DOM dataset)
     let vi = null;
     if(detail && detail.variantIndex !== undefined && detail.variantIndex !== null){

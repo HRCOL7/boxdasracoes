@@ -107,7 +107,22 @@
         // prefer first item from data array when present
         if(Array.isArray(data)) return data[0];
         return data;
-      }catch(err){ logError('Supabase upsert failed', err); throw err; }
+      }catch(err){
+        const msg = String(err && (err.message || err.details || err.hint) || '').toLowerCase();
+        const missingPromoCols = msg.includes('is_promo') || msg.includes('promo_price') || msg.includes('is_unavailable');
+        if(missingPromoCols){
+          logWarn('Products table is missing promo/availability columns, retrying upsert without those fields');
+          const fallbackPayload = Object.assign({}, p);
+          delete fallbackPayload.is_promo;
+          delete fallbackPayload.promo_price;
+          delete fallbackPayload.is_unavailable;
+          const retry = await supa.from('products').upsert(fallbackPayload, { onConflict: ['id'] }).select();
+          if(retry && retry.error) throw retry.error;
+          return Array.isArray(retry && retry.data) ? retry.data[0] : (retry && retry.data ? retry.data : fallbackPayload);
+        }
+        logError('Supabase upsert failed', err);
+        throw err;
+      }
     }
     // fallback to idb/localStorage
     if(window.idbProducts && typeof window.idbProducts.put === 'function'){ await window.idbProducts.put(p); return p; }

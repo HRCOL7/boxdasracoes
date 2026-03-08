@@ -17,6 +17,18 @@
     const MAX_VIDEO_DATAURL_LENGTH = 5000000;
     const imageUrls = qs('#image-urls'); const imagesHidden = qs('#images-hidden'); const preview = qs('#image-preview'); const fileInput = qs('#image-file'); const illustrativeChk = qs('#image-illustrative');
     const videoUrl = qs('#video-url'); const videoPreview = qs('#video-preview'); const videoFile = qs('#video-file');
+    const promoChk = qs('#is-promo');
+    const promoPriceRow = qs('#promo-price-row');
+    const promoPriceInput = qs('#promo-price');
+    const unavailableChk = qs('#is-unavailable');
+
+    function syncPromoUi(){
+      const enabled = !!(promoChk && promoChk.checked);
+      if(promoPriceRow) promoPriceRow.style.display = enabled ? 'block' : 'none';
+      if(!enabled && promoPriceInput) promoPriceInput.value = '';
+    }
+    promoChk?.addEventListener('change', syncPromoUi);
+    syncPromoUi();
     let imagesFromFiles = [];
     function getConfiguredGroups(){
       const defaults = [
@@ -284,6 +296,10 @@
             if(videoPreview){ videoPreview.src = p.video || ''; videoPreview.style.display = p.video ? 'block' : 'none'; }
             // set illustrative checkbox
             if(illustrativeChk) illustrativeChk.checked = !!p.image_illustrative;
+            if(promoChk) promoChk.checked = !!p.is_promo;
+            if(promoPriceInput) promoPriceInput.value = (p.promo_price !== null && p.promo_price !== undefined) ? String(p.promo_price) : '';
+            if(unavailableChk) unavailableChk.checked = !!p.is_unavailable;
+            syncPromoUi();
             form.internal.value = p.internal||'';
             // populate new fields
             if(form.description) form.description.value = p.description || '';

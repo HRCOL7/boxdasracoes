@@ -521,6 +521,10 @@
       if(imageUrls){ imageUrls.value = (p.images||[]).filter(u=> typeof u === 'string' && /^https?:\/\//.test(u)).join('\n'); }
       const videoEl = form.querySelector('[name="video"]'); if(videoEl) videoEl.value = p.video || '';
       const imgIll = form.querySelector('[name="image_illustrative"]'); if(imgIll) imgIll.checked = !!p.image_illustrative;
+      const promoEl = form.querySelector('[name="is_promo"]'); if(promoEl) promoEl.checked = !!p.is_promo;
+      const promoPriceEl = form.querySelector('[name="promo_price"]'); if(promoPriceEl) promoPriceEl.value = (p.promo_price !== null && p.promo_price !== undefined) ? String(p.promo_price) : '';
+      const unavailableEl = form.querySelector('[name="is_unavailable"]'); if(unavailableEl) unavailableEl.checked = !!p.is_unavailable;
+      const promoPriceRow = document.getElementById('promo-price-row'); if(promoPriceRow) promoPriceRow.style.display = (promoEl && promoEl.checked) ? 'block' : 'none';
       try{ const ev = new Event('input', { bubbles: true }); imageUrls?.dispatchEvent(ev); }catch(e){}
     }catch(err){ logError('Failed to populate edit form', err); }
 
@@ -563,6 +567,12 @@
         return s ? s : null;
       })();
 
+      const isPromo = !!fd.get('is_promo');
+      const promoPriceRaw = String(fd.get('promo_price') || '').trim();
+      const promoPriceValue = promoPriceRaw ? parseFloat(promoPriceRaw) : null;
+      const promoPrice = (isPromo && Number.isFinite(promoPriceValue) && promoPriceValue > 0) ? promoPriceValue : null;
+      const isUnavailable = !!fd.get('is_unavailable');
+
       const p={
         id: editId || Date.now(),
         name:fd.get('name'),
@@ -584,6 +594,9 @@
         // backward compatibility: single image
         image: fd.get('image') || (function(){ try{ const v = fd.get('images')||''; const parsed = JSON.parse(v||'[]'); return (Array.isArray(parsed) && parsed.length)? parsed[0] : undefined } catch(e){ return undefined } })(),
         image_illustrative: fd.get('image_illustrative') ? true : false,
+        is_promo: isPromo,
+        promo_price: promoPrice,
+        is_unavailable: isUnavailable,
         video: videoValue,
         internal:fd.get('internal')
       };
