@@ -52,6 +52,46 @@
     try{ const arr = JSON.parse(localStorage.getItem('products')||'[]'); return { results: arr.slice(offset, offset+limit), total: arr.length }; }catch(e){ return { results:[], total:0 }; }
   }
 
+  async function getSiteSettings(){
+    const supa = init();
+    if(!supa) return null;
+    try{
+      const { data, error } = await supa
+        .from('site_settings')
+        .select('id,payload,updated_at')
+        .eq('id', 1)
+        .maybeSingle();
+      if(error) throw error;
+      if(!data || !data.payload || typeof data.payload !== 'object') return null;
+      return data.payload;
+    }catch(err){
+      logWarn('supa.getSiteSettings failed', err);
+      return null;
+    }
+  }
+
+  async function saveSiteSettings(settings){
+    const supa = init();
+    if(!supa) throw new Error('Supabase not configured');
+    const payload = settings && typeof settings === 'object' ? settings : {};
+    try{
+      const { data, error } = await supa
+        .from('site_settings')
+        .upsert({
+          id: 1,
+          payload,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' })
+        .select('id,payload,updated_at')
+        .maybeSingle();
+      if(error) throw error;
+      return data || { id: 1, payload };
+    }catch(err){
+      logWarn('supa.saveSiteSettings failed', err);
+      throw err;
+    }
+  }
+
   async function upsertProduct(p){
     const supa = init();
     if(supa){
@@ -214,5 +254,5 @@
     return () => { try{ if(sub && typeof sub.unsubscribe === 'function') sub.unsubscribe(); }catch(e){} };
   }
 
-  window.supa = { init, getProducts, upsertProduct, deleteProduct, uploadFile, subscribeProducts, unsubscribeProducts, signIn, signOut, getUser, onAuthStateChange, resendConfirmation };
+  window.supa = { init, getProducts, upsertProduct, deleteProduct, uploadFile, subscribeProducts, unsubscribeProducts, signIn, signOut, getUser, onAuthStateChange, resendConfirmation, getSiteSettings, saveSiteSettings };
 })();

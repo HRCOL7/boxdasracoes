@@ -80,15 +80,53 @@
     const normalized = normalizeSettings(settings);
     const ok = safeSaveJSON(SITE_SETTINGS_KEY, normalized);
     if(ok){
+      // keep cross-device copy in Supabase when available (non-blocking)
+      try{
+        if(window.supa && typeof window.supa.saveSiteSettings === 'function'){
+          Promise.resolve(window.supa.saveSiteSettings(normalized)).catch(e=>{
+            console.warn('saveSiteSettings Supabase sync failed', e);
+          });
+        }
+      }catch(e){ console.warn('saveSiteSettings Supabase sync setup failed', e); }
       try{ document.dispatchEvent(new CustomEvent('site-settings-updated', { detail: normalized })); }catch(e){}
     }
     return ok;
+  }
+
+  async function syncSiteSettingsFromSupabase(){
+    try{
+      if(!window.supa || typeof window.supa.getSiteSettings !== 'function') return false;
+      const remote = await window.supa.getSiteSettings();
+      if(!remote || typeof remote !== 'object') return false;
+      const normalized = normalizeSettings(remote);
+      const current = normalizeSettings(safeReadJSON(SITE_SETTINGS_KEY, {}));
+      const remoteStr = JSON.stringify(normalized);
+      const currentStr = JSON.stringify(current);
+      if(remoteStr === currentStr) return true;
+      const ok = safeSaveJSON(SITE_SETTINGS_KEY, normalized);
+      if(ok){
+        try{ document.dispatchEvent(new CustomEvent('site-settings-updated', { detail: normalized })); }catch(e){}
+      }
+      return ok;
+    }catch(e){
+      console.warn('syncSiteSettingsFromSupabase failed', e);
+      return false;
+    }
   }
 
   window.appUtils.SITE_SETTINGS_KEY = window.appUtils.SITE_SETTINGS_KEY || SITE_SETTINGS_KEY;
   window.appUtils.DEFAULT_SITE_SETTINGS = window.appUtils.DEFAULT_SITE_SETTINGS || DEFAULT_SITE_SETTINGS;
   window.appUtils.getSiteSettings = window.appUtils.getSiteSettings || getSiteSettings;
   window.appUtils.saveSiteSettings = window.appUtils.saveSiteSettings || saveSiteSettings;
+  window.appUtils.syncSiteSettingsFromSupabase = window.appUtils.syncSiteSettingsFromSupabase || syncSiteSettingsFromSupabase;
+
+  // Attempt one background sync after initial scripts load.
+  function scheduleSettingsSync(){
+    setTimeout(()=>{ syncSiteSettingsFromSupabase(); }, 800);
+    setTimeout(()=>{ syncSiteSettingsFromSupabase(); }, 2500);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleSettingsSync);
+  else scheduleSettingsSync();
   // parser for garantia (nutritional table) shared by admin and product pages
   function buildGarantiaHtml(raw){
     let s = String(raw||'').trim();

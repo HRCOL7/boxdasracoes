@@ -53,3 +53,12 @@ create index if not exists idx_products_name_group on public.products using gin 
 9) Projeto já existente com schema diferente
 - Se sua tabela `products` já existe com `id` em UUID ou sem colunas como `brand/group/subgroup`, rode a migração pronta em `supabase-migration-align-products.sql` no SQL Editor.
 - Essa migração preserva UUID antigo em `legacy_uuid`, converte o PK para `bigint` (compatível com o admin atual), adiciona colunas faltantes e ajusta RLS/publication.
+
+10) Sincronizar banners/marcas entre dispositivos
+- Rode o script `supabase-site-settings-setup.sql` no SQL Editor.
+- Esse script cria a tabela `public.site_settings` (linha única `id=1`) com payload JSON para:
+  - `banners`
+  - `brands`
+  - `categories`
+  - `whatsappIncludeCustomerData`
+- O site continua com fallback local, mas quando a tabela existe, desktop e celular passam a compartilhar as mesmas configurações do painel admin.
