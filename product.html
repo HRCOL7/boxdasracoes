@@ -77,7 +77,49 @@
     } else {
       const primaryImg = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || '');
       const img = primaryImg ? `<img src="${primaryImg}" style="width:260px;height:260px;object-fit:contain;padding:6px;background:#fff;border-radius:8px">` : '';
-      const price = (Array.isArray(p.variants) && p.variants.length)? Number(p.variants[0].price).toFixed(2) : Number(p.price||0).toFixed(2);
+      function toBoolean(value){
+        if(typeof value === 'boolean') return value;
+        const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
+        return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'sim';
+      }
+      function normalizeWeightKey(weight){
+        return String(weight || '')
+          .normalize('NFD')
+          .replace(/\p{Diacritic}/gu,'')
+          .toLowerCase()
+          .replace(/\s+/g,'')
+          .replace(/,/g,'.')
+          .trim();
+      }
+      function getPromoVariantsMap(product){
+        const raw = product && product.promo_variants;
+        if(!raw || typeof raw !== 'object') return null;
+        const map = {};
+        Object.keys(raw).forEach(weight=>{
+          const price = Number(raw[weight]);
+          const exactKey = String(weight || '').trim();
+          const normalizedKey = normalizeWeightKey(weight);
+          if(exactKey && Number.isFinite(price) && price > 0) map[exactKey] = price;
+          if(normalizedKey && Number.isFinite(price) && price > 0) map[normalizedKey] = price;
+        });
+        return Object.keys(map).length ? map : null;
+      }
+      function getVariantBasePrice(product, variantsList, idx){
+        const v = variantsList[idx] || variantsList[0] || null;
+        if(v) return Number(v.price || 0);
+        return Number(product && product.price || 0);
+      }
+      function getVariantPromoPrice(product, variantsList, idx){
+        const promoProduct = toBoolean(product && product.is_promo) ? Number(product.promo_price) : null;
+        if(Number.isFinite(promoProduct) && promoProduct > 0) return promoProduct;
+        const map = getPromoVariantsMap(product);
+        if(!map || !variantsList.length) return null;
+        const v = variantsList[idx] || variantsList[0] || null;
+        const weight = String(v && v.weight || '').trim();
+        if(!weight) return null;
+        const promo = Number(map[weight] !== undefined ? map[weight] : map[normalizeWeightKey(weight)]);
+        return Number.isFinite(promo) && promo > 0 ? promo : null;
+      }
       const desc = p.description || '';
       // prefer pre-generated HTML table (`garantia`) created by admin; else use centralized parser
       const garantiaHtml = p.garantia ? p.garantia : ( (window.appUtils && typeof window.appUtils.buildGarantiaHtml === 'function') ? window.appUtils.buildGarantiaHtml(p.garantia_raw || '') : (typeof window.buildGarantiaHtml === 'function' ? window.buildGarantiaHtml(p.garantia_raw || '') : '') );
@@ -85,7 +127,21 @@
       // prepare variants list for selector
       const variants = (Array.isArray(p.variants) && p.variants.length) ? p.variants : (p.variant ? [{weight: p.variant, price: p.price||0}] : []);
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-      const variantOptions = variants.map((v,i)=>`<option value="${i}">${esc(v.weight||'')}${v.weight? ' — ' : ''}R$ ${Number(v.price||0).toFixed(2)}</option>`).join('');
+      const variantOptions = variants.map((v,i)=>{
+        const base = getVariantBasePrice(p, variants, i);
+        const promo = getVariantPromoPrice(p, variants, i);
+        const labelPrice = (promo !== null) ? `R$ ${promo.toFixed(2)} (de R$ ${base.toFixed(2)})` : `R$ ${base.toFixed(2)}`;
+        return `<option value="${i}">${esc(v.weight||'')}${v.weight? ' — ' : ''}${labelPrice}</option>`;
+      }).join('');
+
+      function buildPriceHtml(basePrice, promoPrice){
+        if(Number.isFinite(promoPrice) && promoPrice > 0){
+          return `<div class="price promo-price-wrap"><span class="price-old">R$ ${basePrice.toFixed(2)}</span><span class="price-promo">R$ ${promoPrice.toFixed(2)}</span></div>`;
+        }
+        return `<div class="price">R$ ${basePrice.toFixed(2)}</div>`;
+      }
+      const initialBasePrice = getVariantBasePrice(p, variants, 0);
+      const initialPromoPrice = getVariantPromoPrice(p, variants, 0);
 
       const displayName = p.name || nameParam || 'Produto';
       document.title = displayName + ' — Box Das Rações';
@@ -104,7 +160,7 @@
               ${ p.image_illustrative ? '<div class="illustrative">* imagens meramente ilustrativas</div>' : '' }
             </div>
             <div class="price-row">
-              <div id="product-price" class="price">R$ ${price}</div>
+              <div id="product-price-wrap">${buildPriceHtml(initialBasePrice, initialPromoPrice)}</div>
               <button id="favorite-btn" class="favorite" title="Favoritar">♡</button>
             </div>
             <div class="variants">${ variants.length>0 ? `<label>Selecione o tamanho:</label><div class="ptz-selector-wrapper"><select id="variant-select">${variantOptions}</select></div>` : '' }</div>
@@ -132,11 +188,11 @@
 
       // wire variant selector to update price
       const variantSelect = document.getElementById('variant-select');
-      const priceEl = document.getElementById('product-price');
+      const priceWrapEl = document.getElementById('product-price-wrap');
       function updatePriceForVariant(idx){
-        const v = variants[idx] || {};
-        const pval = Number(v.price||p.price||0).toFixed(2);
-        if(priceEl) priceEl.textContent = 'R$ ' + pval;
+        const basePrice = getVariantBasePrice(p, variants, idx);
+        const promoPrice = getVariantPromoPrice(p, variants, idx);
+        if(priceWrapEl) priceWrapEl.innerHTML = buildPriceHtml(basePrice, promoPrice);
       }
       if(variantSelect){
         variantSelect.addEventListener('change', (e)=>{ updatePriceForVariant(Number(variantSelect.value)); });

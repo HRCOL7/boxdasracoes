@@ -303,12 +303,11 @@
       const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
       const isPromoProduct = hasAnyPromo(p) && promoRoot;
       const promoVariantIndexes = isPromoProduct ? getPromoVariantIndexes(p) : [];
-      const allVariantIndexes = Array.isArray(p && p.variants) ? p.variants.map((_, idx) => idx) : [];
       const defaultVariantIndex = (isPromoProduct && promoVariantIndexes.length)
         ? promoVariantIndexes[0]
         : 0;
       const chips = isPromoProduct
-        ? buildChipsHtml(p, esc, { variantIndexes: allVariantIndexes, highlightedIndexes: promoVariantIndexes, activeIndex: defaultVariantIndex })
+        ? buildChipsHtml(p, esc, { variantIndexes: promoVariantIndexes, highlightedIndexes: promoVariantIndexes, activeIndex: defaultVariantIndex })
         : buildChipsHtml(p, esc, { activeIndex: null });
       const basePrice = getVariantBasePrice(p, defaultVariantIndex);
       const promoPrice = getVariantPromoPrice(p, defaultVariantIndex);
