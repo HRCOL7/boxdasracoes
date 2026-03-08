@@ -109,14 +109,18 @@
         return data;
       }catch(err){
         const msg = String(err && (err.message || err.details || err.hint) || '').toLowerCase();
-        const missingPromoCols = msg.includes('is_promo') || msg.includes('promo_price') || msg.includes('is_unavailable') || msg.includes('promo_variants');
-        if(missingPromoCols){
-          logWarn('Products table is missing promo/availability columns, retrying upsert without those fields');
+        const missingIsPromo = msg.includes('is_promo');
+        const missingPromoPrice = msg.includes('promo_price');
+        const missingPromoVariants = msg.includes('promo_variants');
+        const missingUnavailable = msg.includes('is_unavailable');
+        const hasMissingPromoCols = missingIsPromo || missingPromoPrice || missingPromoVariants || missingUnavailable;
+        if(hasMissingPromoCols){
+          logWarn('Products table is missing one or more promo/availability columns, retrying upsert with selective fallback');
           const fallbackPayload = Object.assign({}, p);
-          delete fallbackPayload.is_promo;
-          delete fallbackPayload.promo_price;
-          delete fallbackPayload.promo_variants;
-          delete fallbackPayload.is_unavailable;
+          if(missingIsPromo) delete fallbackPayload.is_promo;
+          if(missingPromoPrice) delete fallbackPayload.promo_price;
+          if(missingPromoVariants) delete fallbackPayload.promo_variants;
+          if(missingUnavailable) delete fallbackPayload.is_unavailable;
           const retry = await supa.from('products').upsert(fallbackPayload, { onConflict: ['id'] }).select();
           if(retry && retry.error) throw retry.error;
           return Array.isArray(retry && retry.data) ? retry.data[0] : (retry && retry.data ? retry.data : fallbackPayload);

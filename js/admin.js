@@ -13,6 +13,11 @@
   let currentAdminUser = null;
   function debounce(fn, wait){ let t=null; return function(...a){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a), wait); }; }
   function escapeRegExp(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function toBoolean(value){
+    if(typeof value === 'boolean') return value;
+    const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'sim';
+  }
   function normalizeWeightKey(weight){
     return String(weight || '')
       .normalize('NFD')
@@ -530,14 +535,14 @@
       if(imageUrls){ imageUrls.value = (p.images||[]).filter(u=> typeof u === 'string' && /^https?:\/\//.test(u)).join('\n'); }
       const videoEl = form.querySelector('[name="video"]'); if(videoEl) videoEl.value = p.video || '';
       const imgIll = form.querySelector('[name="image_illustrative"]'); if(imgIll) imgIll.checked = !!p.image_illustrative;
-      const promoEl = form.querySelector('[name="is_promo"]'); if(promoEl) promoEl.checked = !!p.is_promo;
+      const promoEl = form.querySelector('[name="is_promo"]'); if(promoEl) promoEl.checked = toBoolean(p.is_promo);
       const promoPriceEl = form.querySelector('[name="promo_price"]'); if(promoPriceEl) promoPriceEl.value = (p.promo_price !== null && p.promo_price !== undefined) ? String(p.promo_price) : '';
       const promoVariantsEl = form.querySelector('[name="promo_variants"]');
       if(promoVariantsEl){
         const promoMap = (p && p.promo_variants && typeof p.promo_variants === 'object') ? p.promo_variants : {};
         promoVariantsEl.value = Object.keys(promoMap).map(weight=>`${weight},${promoMap[weight]}`).join('\n');
       }
-      const unavailableEl = form.querySelector('[name="is_unavailable"]'); if(unavailableEl) unavailableEl.checked = !!p.is_unavailable;
+      const unavailableEl = form.querySelector('[name="is_unavailable"]'); if(unavailableEl) unavailableEl.checked = toBoolean(p.is_unavailable);
       const promoPriceRow = document.getElementById('promo-price-row'); if(promoPriceRow) promoPriceRow.style.display = (promoEl && promoEl.checked) ? 'block' : 'none';
       const promoVariantsRow = document.getElementById('promo-variants-row'); if(promoVariantsRow) promoVariantsRow.style.display = (promoEl && promoEl.checked) ? 'block' : 'none';
       try{ const ev = new Event('input', { bubbles: true }); imageUrls?.dispatchEvent(ev); }catch(e){}
