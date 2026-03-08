@@ -47,31 +47,35 @@ img.logo-img{height:64px;width:64px}
 .carousel-dot{width:10px;height:10px;border-radius:10px;border:0;background:rgba(0,0,0,0.12);cursor:pointer}
 .carousel-dot.active{background:var(--orange)}
 
-/* Banner-specific minimal visual styles for track/nav/dots (keeps layout intact) */
-#top-carousel{position:relative}
-#top-carousel .carousel-track{display:flex;transition:transform .52s ease}
-#top-carousel .carousel-track .item{flex:0 0 100%;max-width:100%;}
-#top-carousel .carousel-nav{position:absolute;top:50%;transform:translateY(-50%);background:#fff;border:2px solid transparent;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--orange);z-index:30}
-#top-carousel .carousel-nav.prev{left:12px}
-#top-carousel .carousel-nav.next{right:12px}
-#top-carousel .carousel-dots{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;display:flex;gap:8px;z-index:30}
-#top-carousel .carousel-dot{width:10px;height:10px;border-radius:50%;background:rgba(0,0,0,0.12);border:0}
-#top-carousel .carousel-dot.active{background:var(--orange)}
+/* Hero banner (Petz-like): centered main slide with side peeks on desktop */
+#top-carousel{position:relative;max-width:1320px;margin:6px auto 0}
+#top-carousel .carousel-track{display:flex;align-items:stretch;will-change:transform}
+#top-carousel .carousel-track .item{position:relative;min-height:360px;overflow:hidden;border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.10);opacity:.72;transform:scale(.96);transition:transform .38s ease,opacity .28s ease,box-shadow .38s ease}
+#top-carousel .carousel-track .item.active{opacity:1;transform:scale(1);box-shadow:0 16px 34px rgba(0,0,0,.16)}
+#top-carousel .carousel-track .item img{width:100%;height:100%;object-fit:cover;display:block}
+#top-carousel .carousel-nav{position:absolute;top:50%;transform:translateY(-50%);background:#fff;border:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#333;z-index:40;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+#top-carousel .carousel-nav.prev{left:14px}
+#top-carousel .carousel-nav.next{right:14px}
+#top-carousel .carousel-nav:hover{color:var(--orange)}
+#top-carousel .carousel-dots{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;display:flex;gap:8px;z-index:40}
+#top-carousel .carousel-dot{width:9px;height:9px;border-radius:999px;background:rgba(255,255,255,.75);border:0}
+#top-carousel .carousel-dot.active{width:22px;background:var(--orange)}
 
-/* Banner specific: show 3 items on desktop */
-.carousel.banner{display:flex;overflow:auto;gap:0;padding:0;scroll-snap-type:x mandatory;width:100%;max-width:100%;margin:0}
-.carousel.banner .item{flex:0 0 100%;scroll-snap-align:center;background:transparent;border-radius:0;overflow:hidden;min-height:360px;display:block}
-.carousel.banner .item img{width:100%;height:100%;object-fit:cover;display:block}
+/* base container styles */
+.carousel.banner{display:flex;overflow:hidden;gap:0;padding:0;width:100%;max-width:100%;margin:0}
 
-/* ensure the banner container itself has no background/rounding so it looks like a clean hero carousel */
-#top-carousel, .carousel.banner, .carousel-wrap{background:transparent;border-radius:0;padding:0}
+/* ensure the hero area stays clean and full-width */
+#top-carousel, .carousel.banner{background:transparent;border-radius:0}
 
 /* responsive heights */
 @media (min-width:900px){
-  .carousel.banner .item{min-height:480px}
+  .carousel.banner .item{min-height:430px}
 }
 @media (max-width:599px){
-  .carousel.banner .item{min-height:220px}
+  #top-carousel{margin-top:2px}
+  .carousel.banner .item{min-height:200px;border-radius:0;box-shadow:none}
+  #top-carousel .carousel-track .item{opacity:1;transform:none}
+  #top-carousel .carousel-nav{display:none}
 }
 
 /* Brands list: multiple small items; try to fit many on wide screens (6 per row) */

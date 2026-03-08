@@ -110,8 +110,8 @@
     };
 
     fillBanner();
-    // Initialize banner as a simple controlled carousel: one slide per view, translateX transitions,
-    // side arrows and 3 dots. Keep HTML structure (root id/class) intact; create controls if absent.
+    // Initialize banner as a centered hero carousel (Petz-like): dominant center slide,
+    // side peeks on desktop, arrows and dots based on real slide count.
     const initBannerSimple = (selector)=>{
       const root = document.querySelector(selector); if(!root) return;
       const items = Array.from(root.querySelectorAll('.item'));
@@ -127,9 +127,10 @@
         root.appendChild(track);
       }
 
-      // ensure item sizing (100% width per slide relative to dotsCount)
-      const dotsCount = 3; // fixed 3 dots as requested
+      // use real number of slides to avoid mismatch when admin config changes
+      const dotsCount = items.length;
       let index = 0;
+      let autoplayTimer = null;
 
       // create nav buttons if missing
       if(!root.querySelector('.carousel-nav.prev')){
@@ -163,19 +164,83 @@
         index = i;
         // clamp
         if(index < 0) index = 0; if(index >= dotsCount) index = dotsCount-1;
-        const pct = index * 100;
-        track.style.transform = `translateX(-${pct}%)`;
+        const cardWidth = Number(root.dataset.bannerCardWidth || 0);
+        const gap = Number(root.dataset.bannerGap || 0);
+        const offset = index * (cardWidth + gap);
+        track.style.transform = `translateX(-${offset}px)`;
         dotButtons.forEach((b,idx)=> b.classList.toggle('active', idx===index));
+        Array.from(track.children).forEach((child, idx)=>{
+          child.classList.toggle('active', idx === index);
+        });
       }
 
-      // set initial layout styles (only visual, via JS to avoid changing HTML file)
-      root.style.overflow = 'hidden'; root.style.position = 'relative';
-      track.style.display = 'flex'; track.style.width = `${dotsCount * 100}%`; track.style.transition = 'transform .52s ease';
-      // ensure each slide is 100%/dotsCount of the track width so translateX works
-      Array.from(track.children).forEach((child,ci)=>{ child.style.flex = `0 0 ${100 / dotsCount}%`; child.style.maxWidth = `${100 / dotsCount}%`; });
+      function applyResponsiveLayout(){
+        const isMobile = window.matchMedia('(max-width: 899px)').matches;
+        const rootWidth = root.clientWidth || window.innerWidth;
+        const gap = isMobile ? 0 : 20;
+        const cardWidth = isMobile ? rootWidth : Math.round(rootWidth * 0.82);
+        const sidePeek = Math.max(0, Math.round((rootWidth - cardWidth) / 2));
+
+        root.style.padding = `0 ${sidePeek}px`;
+        root.dataset.bannerCardWidth = String(cardWidth);
+        root.dataset.bannerGap = String(gap);
+
+        track.style.gap = `${gap}px`;
+        Array.from(track.children).forEach((child)=>{
+          child.style.flex = `0 0 ${cardWidth}px`;
+          child.style.maxWidth = `${cardWidth}px`;
+        });
+      }
+
+      function startAutoplay(){
+        stopAutoplay();
+        if(dotsCount <= 1) return;
+        autoplayTimer = setInterval(()=>{
+          index = (index + 1) % dotsCount;
+          goTo(index);
+        }, 4500);
+      }
+
+      function stopAutoplay(){
+        if(autoplayTimer){
+          clearInterval(autoplayTimer);
+          autoplayTimer = null;
+        }
+      }
+
+      // set initial layout styles
+      root.style.overflow = 'hidden';
+      root.style.position = 'relative';
+      track.style.display = 'flex';
+      track.style.width = 'max-content';
+      track.style.transition = 'transform .56s cubic-bezier(.22,.61,.36,1)';
+
+      applyResponsiveLayout();
 
       // initialize
       goTo(0);
+
+      root.addEventListener('mouseenter', stopAutoplay);
+      root.addEventListener('mouseleave', startAutoplay);
+      root.addEventListener('focusin', stopAutoplay);
+      root.addEventListener('focusout', startAutoplay);
+
+      let touchStartX = 0;
+      root.addEventListener('touchstart', (ev)=>{ touchStartX = ev.changedTouches[0].clientX; }, { passive: true });
+      root.addEventListener('touchend', (ev)=>{
+        const dx = ev.changedTouches[0].clientX - touchStartX;
+        if(Math.abs(dx) < 40) return;
+        if(dx < 0) index = (index + 1) % dotsCount;
+        else index = (index - 1 + dotsCount) % dotsCount;
+        goTo(index);
+      }, { passive: true });
+
+      window.addEventListener('resize', ()=>{
+        applyResponsiveLayout();
+        goTo(index);
+      });
+
+      startAutoplay();
     };
 
     initBannerSimple('#top-carousel');
