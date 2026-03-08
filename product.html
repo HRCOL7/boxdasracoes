@@ -127,11 +127,12 @@
       // prepare variants list for selector
       const variants = (Array.isArray(p.variants) && p.variants.length) ? p.variants : (p.variant ? [{weight: p.variant, price: p.price||0}] : []);
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-      const variantOptions = variants.map((v,i)=>{
+      const variantChipsHtml = variants.map((v,i)=>{
         const base = getVariantBasePrice(p, variants, i);
         const promo = getVariantPromoPrice(p, variants, i);
-        const labelPrice = (promo !== null) ? `R$ ${promo.toFixed(2)} (de R$ ${base.toFixed(2)})` : `R$ ${base.toFixed(2)}`;
-        return `<option value="${i}">${esc(v.weight||'')}${v.weight? ' — ' : ''}${labelPrice}</option>`;
+        const current = (promo !== null) ? promo : base;
+        const oldPrice = (promo !== null) ? `<span class="variant-chip-old">R$ ${base.toFixed(2)}</span>` : '';
+        return `<button type="button" class="variant-chip${i===0?' active':''}${promo !== null ? ' promo' : ''}" data-vi="${i}" aria-pressed="${i===0?'true':'false'}"><span class="variant-chip-weight">${esc(v.weight||'Tamanho')}</span><span class="variant-chip-price-row">${oldPrice}<span class="variant-chip-price">R$ ${current.toFixed(2)}</span></span></button>`;
       }).join('');
 
       function buildPriceHtml(basePrice, promoPrice){
@@ -163,7 +164,7 @@
               <div id="product-price-wrap">${buildPriceHtml(initialBasePrice, initialPromoPrice)}</div>
               <button id="favorite-btn" class="favorite" title="Favoritar">♡</button>
             </div>
-            <div class="variants">${ variants.length>0 ? `<label>Selecione o tamanho:</label><div class="ptz-selector-wrapper"><select id="variant-select">${variantOptions}</select></div>` : '' }</div>
+            <div class="variants">${ variants.length>0 ? `<label>Selecione o tamanho:</label><div class="ptz-selector-wrapper"><div id="variant-chips" class="variant-chips">${variantChipsHtml}</div></div>` : '' }</div>
 
             <div class="buy-actions">
               <div class="qty">
@@ -187,16 +188,36 @@
       `;
 
       // wire variant selector to update price
-      const variantSelect = document.getElementById('variant-select');
+      const variantChipsRoot = document.getElementById('variant-chips');
       const priceWrapEl = document.getElementById('product-price-wrap');
+      let selectedVariantIndex = 0;
       function updatePriceForVariant(idx){
         const basePrice = getVariantBasePrice(p, variants, idx);
         const promoPrice = getVariantPromoPrice(p, variants, idx);
         if(priceWrapEl) priceWrapEl.innerHTML = buildPriceHtml(basePrice, promoPrice);
       }
-      if(variantSelect){
-        variantSelect.addEventListener('change', (e)=>{ updatePriceForVariant(Number(variantSelect.value)); });
-        updatePriceForVariant(Number(variantSelect.value||0));
+
+      function setActiveVariant(idx){
+        const n = Number(idx);
+        const safeIdx = (Number.isFinite(n) && n >= 0 && n < variants.length) ? n : 0;
+        selectedVariantIndex = safeIdx;
+        updatePriceForVariant(safeIdx);
+        if(variantChipsRoot){
+          variantChipsRoot.querySelectorAll('.variant-chip').forEach(btn=>{
+            const isActive = Number(btn.dataset.vi) === safeIdx;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          });
+        }
+      }
+
+      if(variantChipsRoot){
+        variantChipsRoot.addEventListener('click', (ev)=>{
+          const btn = ev.target.closest('.variant-chip');
+          if(!btn) return;
+          setActiveVariant(Number(btn.dataset.vi));
+        });
+        setActiveVariant(0);
       }
 
       // quantity controls (allow typing in the number input)
@@ -215,7 +236,7 @@
 
       // add to cart
       document.getElementById('add-to-cart')?.addEventListener('click',()=>{
-        const variantIndex = variantSelect ? Number(variantSelect.value||0) : 0;
+        const variantIndex = variants.length ? selectedVariantIndex : 0;
         document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id: p.id, variantIndex: variantIndex, qty: qty}}));
         alert('Adicionado à sacola');
       });

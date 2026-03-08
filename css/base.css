@@ -347,8 +347,17 @@ input, button, select, textarea{font-family:inherit;font-weight:600}
 .illustrative{font-size:12px;color:var(--orange);margin-top:10px;font-weight:700}
 
 .variants label{font-weight:700;margin-bottom:6px;display:inline-block}
-.variants select{font-weight:700;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.12);background:#fff}
-.variants select:focus{outline:none;box-shadow:0 8px 24px rgba(0,0,0,0.06)}
+.variant-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;max-width:560px}
+.variant-chip{appearance:none;border:1px solid #e7e7e7;background:#fff;border-radius:12px;padding:10px 10px 9px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;cursor:pointer;transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease}
+.variant-chip:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.06)}
+.variant-chip:focus{outline:3px solid rgba(255,122,0,0.2);outline-offset:2px}
+.variant-chip-weight{font-weight:800;color:#1f1f1f;line-height:1.1}
+.variant-chip-price-row{display:flex;gap:6px;align-items:baseline;line-height:1}
+.variant-chip-old{font-size:12px;color:#9a9a9a;text-decoration:line-through}
+.variant-chip-price{font-size:14px;font-weight:800;color:#2c2c2c}
+.variant-chip.promo{background:linear-gradient(180deg,#fff9f0 0%,#fff3e1 100%);border-color:#ffbc7a}
+.variant-chip.promo .variant-chip-price{color:#cc5e00}
+.variant-chip.active{border-color:var(--orange);background:linear-gradient(180deg,#fff2e4 0%,#ffe9cf 100%);box-shadow:0 10px 24px rgba(240,139,42,.23)}
 
 /* prominent orange add-to-cart button for product detail */
 .btn-orange { background:var(--orange); color:#fff; border:0; padding:10px 16px; border-radius:12px; font-weight:800; box-shadow:0 6px 18px rgba(255,122,0,0.12); cursor:pointer }
