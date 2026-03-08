@@ -48,7 +48,7 @@ img.logo-img{height:64px;width:64px}
 .carousel-dot.active{background:var(--orange)}
 
 /* Hero banner (Petz-like): centered main slide with side peeks on desktop */
-#top-carousel{position:relative;max-width:1320px;margin:6px auto 18px;height:419px;min-height:419px}
+#top-carousel{position:relative;display:block;max-width:1320px;margin:6px auto 18px;height:419px;min-height:419px;overflow:hidden;z-index:0}
 #top-carousel .carousel-track{display:flex;align-items:stretch;will-change:transform;height:100%}
 #top-carousel .carousel-track .item{position:relative;min-height:360px;overflow:hidden;border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.10);opacity:.72;transform:scale(.96);transition:transform .38s ease,opacity .28s ease,box-shadow .38s ease;padding:0;line-height:0}
 #top-carousel .carousel-track .item.active{opacity:1;transform:scale(1);box-shadow:0 16px 34px rgba(0,0,0,.16)}
@@ -79,7 +79,8 @@ img.logo-img{height:64px;width:64px}
   #top-carousel .carousel-nav{display:none}
 }
 
-.catalog{position:relative;z-index:1;margin-top:10px}
+.catalog{position:relative;z-index:1;margin-top:0;clear:both}
+#top-carousel + .catalog{margin-top:18px}
 
 /* Brands list: multiple small items; try to fit many on wide screens (6 per row) */
 .brands-list{display:flex;overflow:auto;gap:12px;padding:12px 0;scroll-snap-type:x mandatory}
