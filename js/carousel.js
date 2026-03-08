@@ -179,7 +179,8 @@
         const rootWidth = root.clientWidth || window.innerWidth;
         const gap = isMobile ? 0 : 20;
         const desktopTargetWidth = 1188;
-        const maxDesktopWidth = Math.max(900, rootWidth - 120);
+        // Keep only a small safety margin so the banner can approach 1188px on desktop.
+        const maxDesktopWidth = Math.max(900, rootWidth - 24);
         const cardWidth = isMobile ? rootWidth : Math.min(desktopTargetWidth, maxDesktopWidth);
         const sidePeek = Math.max(0, Math.round((rootWidth - cardWidth) / 2));
 
