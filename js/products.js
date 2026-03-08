@@ -250,11 +250,13 @@
       ? opts.variantIndexes
       : (Array.isArray(product && product.variants) ? product.variants.map((_, idx) => idx) : []);
     const activeIndex = Number.isInteger(opts.activeIndex) ? opts.activeIndex : null;
+    const highlightedIndexes = new Set(Array.isArray(opts.highlightedIndexes) ? opts.highlightedIndexes : []);
     if(Array.isArray(product && product.variants) && product.variants.length && variantIndexes.length){
       return '<div class="weight-chips">' + variantIndexes.map((vi)=>{
         const v = product.variants[vi] || {};
         const isActive = activeIndex === vi;
-        return `<button type="button" class="weight-chip${isActive ? ' active' : ''}" data-id="${product.id}" data-vi="${vi}" aria-pressed="${isActive ? 'true' : 'false'}">${esc(v.weight||'')}</button>`;
+        const isPromoChip = highlightedIndexes.has(vi);
+        return `<button type="button" class="weight-chip${isActive ? ' active' : ''}${isPromoChip ? ' promo-chip' : ''}" data-id="${product.id}" data-vi="${vi}" aria-pressed="${isActive ? 'true' : 'false'}"${isPromoChip ? ' data-promo-chip="1" title="KG em promoção"' : ''}>${esc(v.weight||'')}</button>`;
       }).join('') + '</div>';
     }
     if(product && product.variant){
@@ -301,11 +303,12 @@
       const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
       const isPromoProduct = hasAnyPromo(p) && promoRoot;
       const promoVariantIndexes = isPromoProduct ? getPromoVariantIndexes(p) : [];
+      const allVariantIndexes = Array.isArray(p && p.variants) ? p.variants.map((_, idx) => idx) : [];
       const defaultVariantIndex = (isPromoProduct && promoVariantIndexes.length)
         ? promoVariantIndexes[0]
         : 0;
       const chips = isPromoProduct
-        ? buildChipsHtml(p, esc, { variantIndexes: promoVariantIndexes, activeIndex: defaultVariantIndex })
+        ? buildChipsHtml(p, esc, { variantIndexes: allVariantIndexes, highlightedIndexes: promoVariantIndexes, activeIndex: defaultVariantIndex })
         : buildChipsHtml(p, esc, { activeIndex: null });
       const basePrice = getVariantBasePrice(p, defaultVariantIndex);
       const promoPrice = getVariantPromoPrice(p, defaultVariantIndex);
