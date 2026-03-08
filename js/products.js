@@ -207,6 +207,7 @@
   }
 
   function hasAnyPromo(product){
+    if(!toBoolean(product && product.is_promo)) return false;
     if(getProductLevelPromoPrice(product) !== null) return true;
     return !!getPromoVariantsMap(product);
   }
@@ -221,6 +222,7 @@
   }
 
   function getVariantPromoPrice(product, variantIndex){
+    if(!toBoolean(product && product.is_promo)) return null;
     const productPromo = getProductLevelPromoPrice(product);
     if(productPromo !== null) return productPromo;
     const promoMap = getPromoVariantsMap(product);

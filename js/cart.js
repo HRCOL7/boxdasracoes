@@ -57,6 +57,7 @@
     const base = Array.isArray(product && product.variants) && product.variants[variantIndex]
       ? Number(product.variants[variantIndex].price || 0)
       : Number(product && product.price || 0);
+    if(!(product && toBoolean(product.is_promo))) return base;
     const promoProduct = (product && toBoolean(product.is_promo)) ? Number(product.promo_price) : null;
     if(Number.isFinite(promoProduct) && promoProduct > 0) return promoProduct;
 

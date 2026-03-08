@@ -593,7 +593,8 @@
       const promoPrice = (isPromo && Number.isFinite(promoPriceValue) && promoPriceValue > 0) ? promoPriceValue : null;
       const promoVariantsRaw = String(fd.get('promo_variants') || '').trim();
       const promoVariants = (function(){
-        if(!isPromo || !promoVariantsRaw) return null;
+        if(!isPromo) return {};
+        if(!promoVariantsRaw) return {};
         const map = {};
         String(promoVariantsRaw).split(/\r?\n/).forEach(line=>{
           const parts = String(line || '').split(',');
@@ -602,7 +603,7 @@
           const normalized = normalizeWeightKey(weight);
           if(normalized && Number.isFinite(price) && price > 0) map[normalized] = price;
         });
-        return Object.keys(map).length ? map : null;
+        return Object.keys(map).length ? map : {};
       })();
       const isUnavailable = !!fd.get('is_unavailable');
 
