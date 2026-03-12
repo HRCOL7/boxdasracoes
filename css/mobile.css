@@ -70,6 +70,10 @@ banner{height:140px;background:linear-gradient(90deg,var(--orange),#ffb86b);bord
 	#product-list.product-list .weight-chips{margin:8px 0 6px;gap:8px;padding-left:2px}
 	#product-list.product-list .product-name{max-width:none;height:auto;min-height:44px;margin-top:6px}
 	#product-list.product-list .price{margin-top:6px}
+	#product-list.product-list-carousel{display:flex;gap:12px;padding:8px 0;overflow-x:auto;overflow-y:visible}
+	#product-list.product-list-carousel .item{min-width:220px;max-width:240px;flex:0 0 220px}
+	#product-list.product-list-grouped{padding:4px 0}
+	#product-list .product-carousel-group-title{font-size:18px;margin-left:2px}
 }
 
 @media (max-width:420px){

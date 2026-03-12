@@ -6,7 +6,7 @@
   function normalizeText(v){
     return String(v || '')
       .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .trim();
   }
@@ -56,6 +56,7 @@
     return normalizeText([
       product && product.name,
       product && product.brand,
+      product && product.manufacturer,
       product && product.group,
       product && product.subgroup,
       product && product.description

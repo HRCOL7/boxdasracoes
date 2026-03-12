@@ -74,7 +74,7 @@
         } else {
           // no subs: clicking header navigates to products for that group
           header.appendChild(document.createElement('span'));
-          header.addEventListener('click',()=>{ window.location.href = 'products.html?group=' + encodeURIComponent(item.title); });
+          header.addEventListener('click',()=>{ window.location.href = 'products.html?group=' + encodeURIComponent(slugify(item.title)); });
           row.appendChild(header);
         }
         ul.appendChild(row);

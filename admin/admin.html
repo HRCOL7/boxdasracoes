@@ -30,17 +30,18 @@
             <option value="">(selecionar)</option>
           </select>
         </label>
-        <label>Fabricante: <input name="brand"></label>
+        <label>Marca: <input name="brand"></label>
+        <label>Fabricante: <input name="manufacturer"></label>
         <label>Tipo/Subgrupo: 
           <select name="subgroup" id="subgroup-select">
             <option value="">(selecionar)</option>
             <option value="Antiparasitários">Antiparasitários</option>
           </select>
         </label>
-        <label>Código interno (aparecerá apenas no WhatsApp): <input name="internal"></label>
-        <label>Variantes (uma por linha — peso,preço):
-          <button type="button" class="help-btn" data-help="Exemplo: 1kg,25.90 em cada linha. Quando houver mais de uma variante, o cliente escolhe o KG antes de adicionar ao carrinho.">?</button>
-          <textarea name="variants" placeholder="ex: 1 kg,25.99\n7 kg,109.99" rows="6"></textarea>
+        <label>Código interno (chave para ERP): <input name="internal" required placeholder="Ex: SKU-12345"></label>
+        <label>Variantes (uma por linha — peso,preço,código interno opcional):
+          <button type="button" class="help-btn" data-help="Exemplo: 15kg,129.90,RACAO15. Use o 3º campo para vincular cada KG/tamanho ao código interno do ERP.">?</button>
+          <textarea name="variants" placeholder="ex: 1 kg,25.99,RACAO1\n7 kg,109.99,RACAO7\nP,59.90,CAMAP" rows="6"></textarea>
         </label>
         <label>Descrição do produto:
           <textarea name="description" rows="8" placeholder="Descrição detalhada, ingredientes, modo de uso..."></textarea>
@@ -146,6 +147,17 @@
         <div class="site-settings-actions-row">
           <button type="button" id="admin-settings-save" class="btn btn-orange">Salvar configurações</button>
         </div>
+      </section>
+      <section id="erp-price-alerts" class="site-settings-card">
+        <div class="admin-section-head">
+          <h3>Alertas de preço ERP</h3>
+          <button type="button" class="help-btn" data-help="Mostra produtos com preço diferente entre ERP e site. Use para ajustar manualmente no painel.">?</button>
+        </div>
+        <div class="site-settings-actions-row" style="justify-content:flex-start">
+          <button type="button" id="erp-alerts-refresh" class="btn">Atualizar alertas</button>
+        </div>
+        <div id="erp-alerts-status" class="meta-small" style="margin-top:8px"></div>
+        <div id="erp-alerts-list" class="admin-products" style="margin-top:10px"></div>
       </section>
       <div id="admin-products" class="admin-products"></div>
     </section>

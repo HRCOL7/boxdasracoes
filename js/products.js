@@ -182,6 +182,22 @@
     });
   }
 
+  function bindProductListCarouselScroll(target){
+    const root = target || document.getElementById('product-list');
+    if(!root) return;
+    if(!root.classList.contains('product-list-carousel')) return;
+    if(root.dataset.wheelBound === '1') return;
+    root.dataset.wheelBound = '1';
+    root.addEventListener('wheel', (e)=>{
+      const canScrollX = root.scrollWidth > root.clientWidth;
+      if(!canScrollX) return;
+      if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+        root.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
   function getProductLevelPromoPrice(product){
     const candidate = Number(product && product.promo_price);
     if(product && toBoolean(product.is_promo) && Number.isFinite(candidate) && candidate > 0) return candidate;
@@ -329,76 +345,259 @@
     const root=document.getElementById('product-list'); if(!root) return; root.innerHTML='';
     const products = read();
     const params = new URLSearchParams(location.search);
-    const wantGroup = params.get('group'); // these are slugs now
-    const wantSub = params.get('sub');
-    const wantBrandParam = params.get('brand');
-    const wantBrands = wantBrandParam ? wantBrandParam.split(',').map(s=>s.trim()).filter(Boolean) : [];
+    const parseList = (key)=>{
+      const raw = params.get(key);
+      if(!raw) return [];
+      return raw.split(',').map(s=>decodeURIComponent(String(s||'').trim())).filter(Boolean);
+    };
+    const setListParam = (nextParams, key, values)=>{
+      const clean = (values || []).map(v=>String(v||'').trim()).filter(Boolean);
+      if(!clean.length){ nextParams.delete(key); return; }
+      nextParams.set(key, clean.map(v=>encodeURIComponent(v)).join(','));
+    };
+    const applyFilterParams = (patch)=>{
+      const next = new URLSearchParams(location.search);
+      if(Object.prototype.hasOwnProperty.call(patch, 'sort')){
+        const value = String(patch.sort || '').trim();
+        if(value) next.set('sort', value); else next.delete('sort');
+      }
+      if(Object.prototype.hasOwnProperty.call(patch, 'animals')) setListParam(next, 'animal', patch.animals);
+      if(Object.prototype.hasOwnProperty.call(patch, 'groups')){ setListParam(next, 'groups', patch.groups); next.delete('group'); }
+      if(Object.prototype.hasOwnProperty.call(patch, 'subs')){ setListParam(next, 'subs', patch.subs); next.delete('sub'); }
+      if(Object.prototype.hasOwnProperty.call(patch, 'brands')) setListParam(next, 'brand', patch.brands);
+      if(Object.prototype.hasOwnProperty.call(patch, 'manufacturers')) setListParam(next, 'manufacturer', patch.manufacturers);
+      const query = next.toString();
+      history.replaceState(null, '', query ? `products.html?${query}` : 'products.html');
+      renderList();
+    };
 
-    // build filter UI (brands) in sidebar
+    const wantGroups = new Set([...parseList('groups'), ...(params.get('group') ? [params.get('group')] : [])]);
+    const wantSubs = new Set([...parseList('subs'), ...(params.get('sub') ? [params.get('sub')] : [])]);
+    const wantBrands = new Set(parseList('brand'));
+    const wantManufacturers = new Set(parseList('manufacturer'));
+    const wantAnimals = new Set(parseList('animal'));
+    const sortMode = String(params.get('sort') || '').trim();
+
+    const classifyAnimal = (p)=>{
+      const text = String(`${p && p.group || ''} ${p && p.subgroup || ''}`)
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu,'')
+        .toLowerCase();
+      if(text.includes('medic')) return 'medicamentos';
+      if(text.includes('gato')) return 'gatos';
+      if(text.includes('cao') || text.includes('caes') || text.includes('cachorr')) return 'caes';
+      return '';
+    };
+    const getSortPrice = (p)=>{
+      const base = getVariantBasePrice(p, 0);
+      const promo = getVariantPromoPrice(p, 0);
+      return Number.isFinite(promo) && promo > 0 ? promo : base;
+    };
+    const matchesBase = (p)=>{
+      const gSlug = slugify(p.group);
+      const sSlug = slugify(p.subgroup);
+      if(wantGroups.size && !wantGroups.has(gSlug)) return false;
+      if(wantSubs.size && !wantSubs.has(sSlug)) return false;
+      if(wantBrands.size && !wantBrands.has(String(p.brand || '').trim())) return false;
+      if(wantManufacturers.size && !wantManufacturers.has(String(p.manufacturer || '').trim())) return false;
+      const animal = classifyAnimal(p);
+      if(wantAnimals.size && !wantAnimals.has(animal)) return false;
+      return true;
+    };
+
+    const filtered = products.filter(matchesBase);
+    if(sortMode === 'price_asc') filtered.sort((a,b)=>getSortPrice(a)-getSortPrice(b));
+    else if(sortMode === 'price_desc') filtered.sort((a,b)=>getSortPrice(b)-getSortPrice(a));
+
+    const selectedBrandFilter = wantBrands.size > 0;
+    const selectedManufacturerFilter = wantManufacturers.size > 0;
+    const hasBrandOrManufacturerFilter = selectedBrandFilter || selectedManufacturerFilter;
+    const uniqueBrands = new Set(filtered.map(p=>String(p && p.brand || '').trim()).filter(Boolean));
+    const uniqueManufacturers = new Set(filtered.map(p=>String(p && p.manufacturer || '').trim()).filter(Boolean));
+    const sameBrand = uniqueBrands.size <= 1;
+    const sameManufacturer = uniqueManufacturers.size <= 1;
+    const useCarouselMode = filtered.length > 1 && hasBrandOrManufacturerFilter && (sameBrand || sameManufacturer);
+
+    const getGroupLabel = (product)=>{
+      if(wantBrands.size){
+        const label = String(product && product.brand || '').trim();
+        return label || 'Sem marca';
+      }
+      if(wantManufacturers.size){
+        const label = String(product && product.manufacturer || '').trim();
+        return label || 'Sem fabricante';
+      }
+      return '';
+    };
+    const uniqueGroupLabels = new Set(filtered.map(getGroupLabel).filter(Boolean));
+    const splitIntoMultipleCarousels = hasBrandOrManufacturerFilter && uniqueGroupLabels.size > 1;
+
+    root.className = splitIntoMultipleCarousels
+      ? 'product-list-grouped'
+      : (useCarouselMode ? 'carousel products product-list-carousel' : 'product-list');
+    delete root.dataset.wheelBound;
+
+    const groupMap = new Map();
+    const subMap = new Map();
+    const brandSet = new Set();
+    const manufacturerSet = new Set();
+    products.forEach(p=>{
+      const gSlug = slugify(p.group);
+      const sSlug = slugify(p.subgroup);
+      if(gSlug && !groupMap.has(gSlug)) groupMap.set(gSlug, String(p.group||'').trim());
+      if(sSlug && !subMap.has(sSlug)) subMap.set(sSlug, String(p.subgroup||'').trim());
+      const b = String(p.brand || '').trim(); if(b) brandSet.add(b);
+      const m = String(p.manufacturer || '').trim(); if(m) manufacturerSet.add(m);
+    });
+
+    const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
+
+    // build filter UI
     const filtersRoot = document.getElementById('product-filters');
     if(filtersRoot){
       filtersRoot.innerHTML = '';
       const header = document.createElement('h3'); header.textContent = 'Filtros'; filtersRoot.appendChild(header);
-      // collect brands from products matching group/sub
-      const matching = products.filter(p=>{
-          if(wantGroup && slugify(p.group) !== wantGroup) return false;
-          if(wantSub && slugify(p.subgroup) !== wantSub) return false;
-          return true;
+
+      const sortWrap = document.createElement('div'); sortWrap.className = 'filter-section';
+      sortWrap.innerHTML = `<div class="filter-title">Ordenar por preço</div>`;
+      const sortSel = document.createElement('select');
+      sortSel.innerHTML = '<option value="">Padrão</option><option value="price_asc">Menor preço</option><option value="price_desc">Maior preço</option>';
+      sortSel.value = sortMode;
+      sortSel.addEventListener('change', ()=>applyFilterParams({ sort: sortSel.value }));
+      sortWrap.appendChild(sortSel);
+      filtersRoot.appendChild(sortWrap);
+
+      const animalOptions = [
+        { value: 'caes', label: 'Cães' },
+        { value: 'gatos', label: 'Gatos' },
+        { value: 'medicamentos', label: 'Medicamentos' }
+      ];
+      const animalWrap = document.createElement('div'); animalWrap.className = 'filter-section';
+      animalWrap.innerHTML = `<div class="filter-title">Tipo</div>`;
+      animalOptions.forEach(opt=>{
+        const row = document.createElement('div'); row.className = 'filter-row';
+        const checked = wantAnimals.has(opt.value) ? 'checked' : '';
+        row.innerHTML = `<label><input type="checkbox" data-animal="${opt.value}" ${checked}> ${opt.label}</label>`;
+        row.querySelector('input').addEventListener('change', ()=>{
+          const values = Array.from(animalWrap.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.dataset.animal);
+          applyFilterParams({ animals: values });
         });
-      const brands = Array.from(new Set(matching.map(p=>p.brand).filter(Boolean))).sort();
-      if(brands.length){
-        const bwrap = document.createElement('div'); bwrap.className='filter-section';
-        const btitle = document.createElement('div'); btitle.className='filter-title'; btitle.textContent='Fabricante'; bwrap.appendChild(btitle);
-        brands.forEach(b=>{
-          const id = 'brand_' + b.replace(/\W+/g,'_');
-            const row = document.createElement('div'); row.className='filter-row';
-            const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-            const bEsc = esc(b);
-            row.innerHTML = `<label><input type="checkbox" data-brand="${bEsc}" id="${id}" ${wantBrands.includes(b)?'checked':''}> ${bEsc}</label>`;
-          row.querySelector('input').addEventListener('change', ()=>{
-            // rebuild brand list from checked boxes and update URL
-            const checked = Array.from(bwrap.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.dataset.brand);
-            const np = new URLSearchParams(location.search);
-            if(checked.length) np.set('brand', checked.join(',')); else np.delete('brand');
-            // keep group/sub in URL
-            location.search = np.toString();
-          });
-          bwrap.appendChild(row);
+        animalWrap.appendChild(row);
+      });
+      filtersRoot.appendChild(animalWrap);
+
+      const groupWrap = document.createElement('div'); groupWrap.className = 'filter-section';
+      groupWrap.innerHTML = `<div class="filter-title">Grupos</div>`;
+      Array.from(groupMap.entries()).sort((a,b)=>String(a[1]).localeCompare(String(b[1]))).forEach(([slug, label])=>{
+        const row = document.createElement('div'); row.className = 'filter-row';
+        row.innerHTML = `<label><input type="checkbox" data-group="${slug}" ${wantGroups.has(slug) ? 'checked' : ''}> ${esc(label)}</label>`;
+        row.querySelector('input').addEventListener('change', ()=>{
+          const values = Array.from(groupWrap.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.dataset.group);
+          applyFilterParams({ groups: values });
         });
-        filtersRoot.appendChild(bwrap);
-      } else {
-        const none = document.createElement('div'); none.textContent='Nenhum fabricante encontrado.'; filtersRoot.appendChild(none);
-      }
+        groupWrap.appendChild(row);
+      });
+      filtersRoot.appendChild(groupWrap);
+
+      const subWrap = document.createElement('div'); subWrap.className = 'filter-section';
+      subWrap.innerHTML = `<div class="filter-title">Subgrupos</div>`;
+      Array.from(subMap.entries()).sort((a,b)=>String(a[1]).localeCompare(String(b[1]))).forEach(([slug, label])=>{
+        const row = document.createElement('div'); row.className = 'filter-row';
+        row.innerHTML = `<label><input type="checkbox" data-sub="${slug}" ${wantSubs.has(slug) ? 'checked' : ''}> ${esc(label)}</label>`;
+        row.querySelector('input').addEventListener('change', ()=>{
+          const values = Array.from(subWrap.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.dataset.sub);
+          applyFilterParams({ subs: values });
+        });
+        subWrap.appendChild(row);
+      });
+      filtersRoot.appendChild(subWrap);
+
+      const brandWrap = document.createElement('div'); brandWrap.className = 'filter-section';
+      brandWrap.innerHTML = `<div class="filter-title">Marca</div>`;
+      Array.from(brandSet).sort((a,b)=>a.localeCompare(b)).forEach(brand=>{
+        const row = document.createElement('div'); row.className = 'filter-row';
+        row.innerHTML = `<label><input type="checkbox" data-brand="${esc(brand)}" ${wantBrands.has(brand) ? 'checked' : ''}> ${esc(brand)}</label>`;
+        row.querySelector('input').addEventListener('change', ()=>{
+          const values = Array.from(brandWrap.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.dataset.brand);
+          applyFilterParams({ brands: values });
+        });
+        brandWrap.appendChild(row);
+      });
+      filtersRoot.appendChild(brandWrap);
+
+      const manufacturerWrap = document.createElement('div'); manufacturerWrap.className = 'filter-section';
+      manufacturerWrap.innerHTML = `<div class="filter-title">Fabricante</div>`;
+      Array.from(manufacturerSet).sort((a,b)=>a.localeCompare(b)).forEach(manufacturer=>{
+        const row = document.createElement('div'); row.className = 'filter-row';
+        row.innerHTML = `<label><input type="checkbox" data-manufacturer="${esc(manufacturer)}" ${wantManufacturers.has(manufacturer) ? 'checked' : ''}> ${esc(manufacturer)}</label>`;
+        row.querySelector('input').addEventListener('change', ()=>{
+          const values = Array.from(manufacturerWrap.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.dataset.manufacturer);
+          applyFilterParams({ manufacturers: values });
+        });
+        manufacturerWrap.appendChild(row);
+      });
+      filtersRoot.appendChild(manufacturerWrap);
     }
 
-    // render product cards applying filters (compare by slug for group/sub)
-    products.filter(p=>{
-      if(wantGroup && slugify(p.group) !== wantGroup) return false;
-      if(wantSub && slugify(p.subgroup) !== wantSub) return false;
-      if(wantBrands.length && (!p.brand || !wantBrands.includes(p.brand))) return false;
-      return true;
-    }).forEach(p=>{
+    function buildProductCard(p){
       const el=document.createElement('div');el.className='item';el.id = 'p' + p.id;
-        const img = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || 'https://via.placeholder.com/200');
+      const img = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || 'https://via.placeholder.com/200');
       let chips = '';
       if(Array.isArray(p.variants) && p.variants.length){
-        chips = '<div class="weight-chips">' + p.variants.map((v,vi)=>`<button type="button" class="weight-chip" data-id="${p.id}" data-vi="${vi}" aria-pressed="false">${v.weight}</button>`).join('') + '</div>';
+        chips = '<div class="weight-chips">' + p.variants.map((v,vi)=>`<button type="button" class="weight-chip" data-id="${p.id}" data-vi="${vi}" aria-pressed="false">${esc(v.weight||'')}</button>`).join('') + '</div>';
       } else if(p.variant){
-        chips = `<div class="weight-chips"><button type="button" class="weight-chip" data-id="${p.id}" data-vi="0">${p.variant}</button></div>`;
+        chips = `<div class="weight-chips"><button type="button" class="weight-chip" data-id="${p.id}" data-vi="0">${esc(p.variant||'')}</button></div>`;
       }
       const basePrice = getVariantBasePrice(p, 0);
       const promoPrice = getVariantPromoPrice(p, 0);
-      const subgroupLink = p.subgroup ? `<div class="subgroup"><a class="subgroup-link" href="products.html?group=${encodeURIComponent(p.group||'')}&sub=${encodeURIComponent(p.subgroup)}">${p.subgroup}</a></div>` : '';
+      const subgroupLink = p.subgroup ? `<div class="subgroup"><a class="subgroup-link" href="products.html?group=${encodeURIComponent(slugify(p.group||''))}&sub=${encodeURIComponent(slugify(p.subgroup||''))}">${esc(p.subgroup||'')}</a></div>` : '';
       const linkUrl2 = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
-      const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'));
       const imgAttr = String(img).replace(/\"/g,'&quot;');
-      const brandHtml = p.brand ? ('Fabricante: ' + esc(p.brand)) : '';
+      const brandHtml = p.brand ? ('Marca: ' + esc(p.brand)) : '';
+      const manufacturerHtml = p.manufacturer ? ('Fabricante: ' + esc(p.manufacturer)) : '';
+      const brandBlock = [brandHtml, manufacturerHtml].filter(Boolean).map(x=>`<div class="brand">${x}</div>`).join('');
       const unavailableBadge = toBoolean(p.is_unavailable) ? '<div class="badge-unavailable">Indisponivel</div>' : '';
       const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
       const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
-      el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}<div class="brand">${brandHtml}</div></div>${promoPriceHtml}`;
-      root.appendChild(el)
-    });
+      el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}${brandBlock}</div>${promoPriceHtml}`;
+      return el;
+    }
+
+    // render product cards applying filters
+    if(!filtered.length){
+      const empty = document.createElement('div');
+      empty.className = 'meta-small';
+      empty.textContent = 'Nenhum produto encontrado para os filtros selecionados.';
+      root.appendChild(empty);
+    }
+
+    if(splitIntoMultipleCarousels && filtered.length){
+      const grouped = new Map();
+      filtered.forEach(p=>{
+        const label = getGroupLabel(p) || 'Outros';
+        if(!grouped.has(label)) grouped.set(label, []);
+        grouped.get(label).push(p);
+      });
+
+      grouped.forEach((items, label)=>{
+        const section = document.createElement('section');
+        section.className = 'product-carousel-group';
+        const title = document.createElement('h3');
+        title.className = 'product-carousel-group-title';
+        title.textContent = label;
+        const track = document.createElement('div');
+        track.className = 'carousel products product-list-carousel';
+        items.forEach(p=> track.appendChild(buildProductCard(p)));
+        section.appendChild(title);
+        section.appendChild(track);
+        root.appendChild(section);
+        bindProductListCarouselScroll(track);
+      });
+    } else {
+      filtered.forEach(p=> root.appendChild(buildProductCard(p)));
+      bindProductListCarouselScroll(root);
+    }
+
     bindWeightChipsScroll();
   }
 

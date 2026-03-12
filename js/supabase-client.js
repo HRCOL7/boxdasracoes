@@ -113,14 +113,16 @@
         const missingPromoPrice = msg.includes('promo_price');
         const missingPromoVariants = msg.includes('promo_variants');
         const missingUnavailable = msg.includes('is_unavailable');
-        const hasMissingPromoCols = missingIsPromo || missingPromoPrice || missingPromoVariants || missingUnavailable;
-        if(hasMissingPromoCols){
-          logWarn('Products table is missing one or more promo/availability columns, retrying upsert with selective fallback');
+        const missingManufacturer = msg.includes('manufacturer');
+        const hasMissingCols = missingIsPromo || missingPromoPrice || missingPromoVariants || missingUnavailable || missingManufacturer;
+        if(hasMissingCols){
+          logWarn('Products table is missing one or more columns, retrying upsert with selective fallback');
           const fallbackPayload = Object.assign({}, p);
           if(missingIsPromo) delete fallbackPayload.is_promo;
           if(missingPromoPrice) delete fallbackPayload.promo_price;
           if(missingPromoVariants) delete fallbackPayload.promo_variants;
           if(missingUnavailable) delete fallbackPayload.is_unavailable;
+          if(missingManufacturer) delete fallbackPayload.manufacturer;
           const retry = await supa.from('products').upsert(fallbackPayload, { onConflict: ['id'] }).select();
           if(retry && retry.error) throw retry.error;
           return Array.isArray(retry && retry.data) ? retry.data[0] : (retry && retry.data ? retry.data : fallbackPayload);
@@ -254,6 +256,53 @@
     try{ if(supa.auth && typeof supa.auth.signOut === 'function') return await supa.auth.signOut(); }catch(err){ logWarn('supa.signOut failed', err); throw err; }
   }
 
+  async function getErpPriceAlerts({ status = 'open', limit = 50 } = {}){
+    const supa = init();
+    if(!supa) return [];
+    try{
+      const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50));
+      let query = supa
+        .from('erp_price_alerts')
+        .select('id,product_id,product_name,product_key,erp_price,site_price,diff_amount,detected_at,last_seen_at,occurrences,status,resolved_at,resolution_note')
+        .order('last_seen_at', { ascending: false })
+        .limit(safeLimit);
+
+      if(status && typeof status === 'string'){
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+      if(error) throw error;
+      return Array.isArray(data) ? data : [];
+    }catch(err){
+      logWarn('supa.getErpPriceAlerts failed', err);
+      return [];
+    }
+  }
+
+  async function resolveErpPriceAlert(id, note){
+    const supa = init();
+    if(!supa) throw new Error('Supabase not configured');
+    const alertId = Number(id);
+    if(!Number.isFinite(alertId) || alertId <= 0) throw new Error('Invalid alert id');
+
+    const payload = {
+      status: 'resolved_manual',
+      resolved_at: new Date().toISOString(),
+      resolution_note: String(note || '').trim() || null
+    };
+
+    const { data, error } = await supa
+      .from('erp_price_alerts')
+      .update(payload)
+      .eq('id', alertId)
+      .select('id,status,resolved_at,resolution_note')
+      .maybeSingle();
+
+    if(error) throw error;
+    return data || payload;
+  }
+
   async function getUser(){
     const supa = init(); if(!supa) return null;
     try{
@@ -274,5 +323,22 @@
     return () => { try{ if(sub && typeof sub.unsubscribe === 'function') sub.unsubscribe(); }catch(e){} };
   }
 
-  window.supa = { init, getProducts, upsertProduct, deleteProduct, uploadFile, subscribeProducts, unsubscribeProducts, signIn, signOut, getUser, onAuthStateChange, resendConfirmation, getSiteSettings, saveSiteSettings };
+  window.supa = {
+    init,
+    getProducts,
+    upsertProduct,
+    deleteProduct,
+    uploadFile,
+    subscribeProducts,
+    unsubscribeProducts,
+    signIn,
+    signOut,
+    getUser,
+    onAuthStateChange,
+    resendConfirmation,
+    getSiteSettings,
+    saveSiteSettings,
+    getErpPriceAlerts,
+    resolveErpPriceAlert
+  };
 })();

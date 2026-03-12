@@ -69,3 +69,8 @@ create index if not exists idx_products_name_group on public.products using gin 
   - `site_settings` (banners, brands, categories)
   - `site_events` + funcao `admin_reports_timeseries`
   - `admin_users` para controle de acesso ao relatorio
+
+12) Alertas de divergencia de preco ERP x Site
+- Rode `supabase-erp-price-alerts-setup.sql` para criar a tabela `erp_price_alerts`.
+- Essa tabela recebe alertas do watcher local do ERP (`erp_connector/price_watch.py`).
+- O painel admin mostra esses alertas e permite marcar como resolvido manualmente.

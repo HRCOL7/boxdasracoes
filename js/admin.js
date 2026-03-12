@@ -27,6 +27,11 @@
       .replace(/,/g,'.')
       .trim();
   }
+  function formatBrl(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return 'R$ 0,00';
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
   function escapeHtml(s){ if(window.appUtils && typeof window.appUtils.escapeHtml === 'function') return window.appUtils.escapeHtml(s); return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function highlight(text, term){ if(!term) return escapeHtml(text); const t = String(term); const parts = String(text||'').split(new RegExp('('+escapeRegExp(t)+')','i')); return parts.map(part=>{ if(part.toLowerCase() === t.toLowerCase()) return '<mark>'+escapeHtml(part)+'</mark>'; return escapeHtml(part); }).join(''); }
   function hasSupabaseConfig(){
@@ -454,6 +459,49 @@
     sizeSel.addEventListener('change', (ev)=>{ pageSize = Number(ev.target.value)||50; currentPage = 1; renderAdmin(currentPage); });
   }
 
+  async function loadErpPriceAlerts(){
+    const listEl = document.getElementById('erp-alerts-list');
+    const statusEl = document.getElementById('erp-alerts-status');
+    if(!listEl || !statusEl) return;
+
+    if(!(window.supa && typeof window.supa.getErpPriceAlerts === 'function')){
+      statusEl.textContent = 'Supabase não configurado para alertas ERP.';
+      listEl.innerHTML = '';
+      return;
+    }
+
+    statusEl.textContent = 'Carregando alertas...';
+    listEl.innerHTML = '';
+    try{
+      const rows = await window.supa.getErpPriceAlerts({ status: 'open', limit: 100 });
+      if(!rows.length){
+        statusEl.textContent = 'Sem divergências de preço abertas no momento.';
+        return;
+      }
+
+      statusEl.textContent = `Divergências abertas: ${rows.length}`;
+      rows.forEach(item=>{
+        const row = document.createElement('div');
+        row.className = 'admin-row';
+        row.innerHTML = `
+          <div class="meta">
+            <div class="info">
+              <div class="title">${escapeHtml(item.product_name || 'Produto sem nome')} (${escapeHtml(item.product_key || '-')})</div>
+              <div class="meta-small">Site: ${formatBrl(item.site_price)} | ERP: ${formatBrl(item.erp_price)} | Diferença: ${formatBrl(item.diff_amount)}</div>
+              <div class="meta-small">Última detecção: ${escapeHtml(String(item.last_seen_at || item.detected_at || '-'))} | Ocorrências: ${Number(item.occurrences || 1)}</div>
+            </div>
+          </div>
+          <div class="row-actions"><button class="btn btn-orange erp-alert-resolve" data-id="${Number(item.id)}">Marcar resolvido</button></div>
+        `;
+        listEl.appendChild(row);
+      });
+    }catch(err){
+      logWarn('loadErpPriceAlerts failed', err);
+      statusEl.textContent = 'Falha ao carregar alertas ERP.';
+      listEl.innerHTML = '';
+    }
+  }
+
   function setAdminAuthState(user){
     const allowedUser = (user && isAllowedAdminUser(user)) ? user : null;
     currentAdminUser = allowedUser;
@@ -523,12 +571,21 @@
       set('price', p.price || 0);
       set('group', p.group || '');
       set('brand', p.brand || '');
+      set('manufacturer', p.manufacturer || '');
       set('subgroup', p.subgroup || '');
       set('internal', p.internal || '');
       set('description', p.description || '');
       set('garantia', p.garantia_raw || '');
       const variantsEl = form.querySelector('[name="variants"]');
-      if(variantsEl){ variantsEl.value = Array.isArray(p.variants)? p.variants.map(v=> (v.weight||'')+','+(v.price||'')).join('\n') : ''; }
+      if(variantsEl){
+        variantsEl.value = Array.isArray(p.variants)
+          ? p.variants.map(v=>{
+              const base = (v.weight||'')+','+(v.price||'');
+              const code = String(v && v.code || '').trim();
+              return code ? (base + ',' + code) : base;
+            }).join('\n')
+          : '';
+      }
       const imagesHidden = form.querySelector('[name="images"]');
       if(imagesHidden){ imagesHidden.value = p.images ? JSON.stringify(p.images) : (p.image ? JSON.stringify([p.image]) : ''); }
       const imageUrls = form.querySelector('[name="image_urls"]');
@@ -574,7 +631,12 @@
       if(variantsRaw && String(variantsRaw).trim()){
         variants = String(variantsRaw).split(/\r?\n/).map(line=>{
           const parts = line.split(',').map(s=>s.trim());
-          return { weight: parts[0]||'', price: parseFloat(parts[1]||0) };
+          const weight = parts[0] || '';
+          const price = parseFloat(parts[1] || 0);
+          const code = String(parts.slice(2).join(',') || '').trim();
+          const out = { weight, price };
+          if(code) out.code = code;
+          return out;
         }).filter(v=>v.weight);
       }
       // process garantia (nutritional table) - accept CSV or HTML table
@@ -614,6 +676,7 @@
         group:fd.get('group'),
         subgroup:fd.get('subgroup'),
         brand:fd.get('brand'),
+        manufacturer:String(fd.get('manufacturer') || '').trim(),
         garantia_raw: garantiaRaw,
         garantia: buildGarantiaHtml(garantiaRaw),
         variants: variants && variants.length? variants : undefined,
@@ -633,8 +696,38 @@
         promo_variants: promoVariants,
         is_unavailable: isUnavailable,
         video: videoValue,
-        internal:fd.get('internal')
+        internal:String(fd.get('internal') || '').trim()
       };
+      if(!p.internal){
+        alert('Informe o codigo interno do produto. Ele e obrigatorio para comparar preco com o ERP.');
+        return;
+      }
+      const collectCodes = (product)=>{
+        const out = [];
+        const baseCode = String(product && product.internal || '').trim().toLowerCase();
+        if(baseCode) out.push(baseCode);
+        if(Array.isArray(product && product.variants)){
+          product.variants.forEach(v=>{
+            const code = String(v && v.code || '').trim().toLowerCase();
+            if(code) out.push(code);
+          });
+        }
+        return out;
+      };
+      try{
+        const existing = await readAll();
+        const currentCodes = new Set(collectCodes(p));
+        const duplicatedCode = (existing || []).find(item=>{
+          if(!item) return false;
+          if(editId && Number(item.id) === Number(editId)) return false;
+          const otherCodes = collectCodes(item);
+          return otherCodes.some(code=>currentCodes.has(code));
+        });
+        if(duplicatedCode){
+          alert('Ja existe produto com codigo interno igual. Ajuste os codigos para evitar conflito com o ERP.');
+          return;
+        }
+      }catch(e){ logWarn('Duplicate code validation failed', e); }
       // Sanitize images: drop extremely large data: URLs to avoid localStorage quota exceeded
       try{
         const MAX_IMAGE_DATAURL_LENGTH = 5000000; // 5,000,000 chars (~4.77MB) for data: URLs
@@ -798,6 +891,7 @@
                   return;
                 }
                 setAdminAuthState(user);
+                try{ await loadErpPriceAlerts(); }catch(e){ logWarn('Failed to load ERP alerts after login', e); }
                 alert('Login efetuado com sucesso.');
                 return;
               }catch(authErr){
@@ -869,7 +963,35 @@
         logWarn('Sign out failed', err);
       }
       setAdminAuthState(null);
+      try{
+        const statusEl = document.getElementById('erp-alerts-status');
+        const listEl = document.getElementById('erp-alerts-list');
+        if(statusEl) statusEl.textContent = 'Faça login para ver alertas ERP.';
+        if(listEl) listEl.innerHTML = '';
+      }catch(e){}
       alert('Sessão encerrada. Faça login novamente para continuar.');
+    });
+
+    document.getElementById('erp-alerts-refresh')?.addEventListener('click', async ()=>{
+      if(!(await ensureAdminAuthenticated(true))) return;
+      await loadErpPriceAlerts();
+    });
+
+    document.getElementById('erp-alerts-list')?.addEventListener('click', async (ev)=>{
+      const btn = ev.target && ev.target.closest ? ev.target.closest('.erp-alert-resolve') : null;
+      if(!btn) return;
+      if(!(await ensureAdminAuthenticated(true))) return;
+      const id = Number(btn.dataset.id || 0);
+      if(!Number.isFinite(id) || id <= 0) return;
+      if(!(window.supa && typeof window.supa.resolveErpPriceAlert === 'function')) return;
+      const note = prompt('Observação (opcional):', 'Preço ajustado manualmente no painel');
+      try{
+        await window.supa.resolveErpPriceAlert(id, note || '');
+        await loadErpPriceAlerts();
+      }catch(err){
+        logWarn('resolveErpPriceAlert failed', err);
+        alert('Falha ao marcar alerta como resolvido.');
+      }
     });
 
     // Clear only local cache (IDB/localStorage) - does not delete from Supabase
@@ -895,5 +1017,15 @@
         await renderAdmin(1);
       }catch(err){ logError('Clear local cache failed', err); alert('Falha ao limpar cache local: '+String(err)); }
     });
+
+    (async ()=>{
+      const authenticated = await ensureAdminAuthenticated(false);
+      if(authenticated){
+        await loadErpPriceAlerts();
+      } else {
+        const statusEl = document.getElementById('erp-alerts-status');
+        if(statusEl) statusEl.textContent = 'Faça login para ver alertas ERP.';
+      }
+    })();
   });
 })();

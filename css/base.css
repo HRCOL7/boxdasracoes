@@ -196,6 +196,11 @@ img.logo-img{height:64px;width:64px}
 .modal.visible{opacity:1;pointer-events:auto}
 .modal-body{background:#fff;padding:18px;border-radius:8px;width:320px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
 .product-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:12px}
+.product-list-carousel{padding:12px 6px 14px;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.product-list-carousel .item{flex:0 0 220px;scroll-snap-align:start}
+.product-list-grouped{display:flex;flex-direction:column;gap:16px;padding:8px 0}
+.product-carousel-group{display:block}
+.product-carousel-group-title{margin:0 0 6px 6px;font-size:20px;font-weight:800;color:#111}
 .cart-panel{position:fixed;right:0;top:0;height:100vh;width:360px;background:#fff;border-left:1px solid #eee;box-shadow:-6px 0 20px rgba(0,0,0,.06);display:flex;flex-direction:column;z-index:1300}
 .cart-header{display:flex;justify-content:space-between;align-items:center;padding:18px;border-bottom:1px solid #f0f0f0}
 .cart-header h3{color:var(--orange);margin:0}

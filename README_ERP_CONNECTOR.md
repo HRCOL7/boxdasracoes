@@ -8,10 +8,12 @@ Consumir a fila `customer_erp_queue` no Supabase e cadastrar clientes no banco d
 Arquivos
 --------
 - `erp_connector/connector.py`
+- `erp_connector/price_watch.py`
 - `erp_connector/discover_schema.py`
 - `erp_connector/requirements.txt`
 - `erp_connector/.env.example`
 - `erp_connector/run_connector.ps1`
+- `erp_connector/run_price_watch.ps1`
 - `erp_connector/install_connector_task.ps1`
 
 Pré-requisitos
@@ -94,3 +96,27 @@ Observações importantes
 - O conector deve rodar dentro da rede da empresa (ou VPN) para alcançar o banco ERP.
 - Não use `service_role` no front-end do site.
 - Depois de validar, rode o conector como serviço/tarefa agendada do Windows.
+
+Monitor de divergência de preço (ERP x Site)
+--------------------------------------------
+Você também pode monitorar preços para detectar quando o ERP mudou e o site ainda não foi ajustado manualmente.
+
+1) Rode o SQL no Supabase:
+- `supabase-erp-price-alerts-setup.sql`
+
+2) Configure no `erp_connector/.env`:
+- `ERP_PRICE_WATCH_ENABLED=true`
+- `ERP_PRICE_QUERY=SELECT CODIGO_INTERNO, PRECO_VENDA FROM PRODUTOS`
+- `ERP_PRICE_KEY_FIELD=internal`
+- `ERP_PRICE_WATCH_POLL_SECONDS=60`
+- `ERP_PRICE_DIFF_THRESHOLD=0.01`
+
+3) Execute localmente na maquina que acessa o ERP:
+- `powershell -ExecutionPolicy Bypass -File erp_connector/run_price_watch.ps1`
+
+Como funciona:
+- O watcher consulta o ERP pela query configurada.
+- Compara com a tabela `products` do Supabase usando a chave `internal`.
+- Se houver diferença acima do threshold, grava/atualiza alerta em `erp_price_alerts`.
+- Se o preço voltar a bater, o alerta aberto é marcado como `resolved_auto`.
+- O painel admin exibe alertas abertos e permite marcar como resolvido manualmente.
