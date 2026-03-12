@@ -61,6 +61,9 @@
         <button id="clear-cart" class="btn btn-orange btn-left"><span class="btn-line">Limpar<br>carrinho</span></button>
         <button id="checkout" class="btn btn-green btn-right" disabled><span class="btn-line">Finalizar via<br>WhatsApp</span></button>
       </div>
+      <div class="cart-controls cart-controls-site">
+        <button id="checkout-site" class="btn btn-blue btn-right" disabled><span class="btn-line">Finalizar<br>no site</span></button>
+      </div>
       <div class="cart-actions">
         <label style="display:block;margin-top:8px;font-weight:700">Pagamento:</label>
         <div class="payment-row" style="display:flex;gap:8px;align-items:center;margin-top:6px">
@@ -79,6 +82,29 @@
           <label>Precisa de troco? <select id="need-change"><option value="no">Não</option><option value="yes">Sim</option></select></label>
           <div id="cash-amount-row" class="hidden" style="margin-top:8px">Valor que irá pagar: <input id="cash-amount" type="text" placeholder="ex: 200.00" style="padding:8px;border-radius:6px;border:1px solid #ddd;width:100%"></div>
         </div>
+        <div class="checkout-delivery">
+          <label class="checkout-section-title">Confirmar endereço de entrega:</label>
+          <div class="checkout-grid two-cols">
+            <input id="checkout-street" type="text" placeholder="Rua" autocomplete="address-line1">
+            <input id="checkout-number" type="text" placeholder="Número" autocomplete="address-line2">
+            <input id="checkout-neighborhood" type="text" placeholder="Bairro" autocomplete="address-level2">
+            <input id="checkout-zip" type="text" placeholder="CEP" autocomplete="postal-code">
+          </div>
+          <input id="checkout-reference" type="text" placeholder="Referência (opcional)">
+        </div>
+        <div class="checkout-schedule">
+          <label class="checkout-section-title">Agendamento da entrega:</label>
+          <div class="checkout-grid two-cols">
+            <input id="delivery-date" type="date">
+            <select id="delivery-window">
+              <option value="">Selecione o horário</option>
+              <option value="09:00-11:00">09:00 às 11:00</option>
+              <option value="13:00-15:00">13:00 às 15:00</option>
+              <option value="15:00-18:00">15:00 às 18:00</option>
+            </select>
+          </div>
+        </div>
+        <p id="checkout-site-hint" class="checkout-site-hint">Checkout no site pronto para integração com gateway PIX/cartão.</p>
       </div>
     </div>
   </aside>
@@ -102,6 +128,7 @@
   <script src="js/products.js" defer></script>
   <script src="js/search.js" defer></script>
   <script src="js/cart.js" defer></script>
+  <script src="js/site-checkout.js" defer></script>
   <script src="js/whatsapp.js" defer></script>
 </body>
 </html>

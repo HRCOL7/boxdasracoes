@@ -173,6 +173,8 @@
 
   function setupBindings(){
     updateCount(); renderCart();
+    try{ ensureDeliveryDateMin(); prefillCheckoutFromProfile(); }catch(e){}
+    try{ applySiteCheckoutVisibility(); }catch(e){}
     // if a previous add requested the cart to open, open it now
     try{ if(localStorage.getItem('cart_open_request')){ const panel=document.getElementById('cart-panel'); if(panel) panel.classList.remove('hidden'); localStorage.removeItem('cart_open_request'); } }catch(e){}
     // ensure add-to-cart handler (may be dispatched from other scripts)
@@ -197,6 +199,9 @@
     const cashAmountEl = document.getElementById('cash-amount'); if(cashAmountEl){ cashAmountEl.removeEventListener('input', cashAmountInputHandler); cashAmountEl.addEventListener('input', cashAmountInputHandler); }
     const checkoutBtn = document.getElementById('checkout');
     if(checkoutBtn){ checkoutBtn.removeEventListener('click', checkoutHandler); checkoutBtn.addEventListener('click', checkoutHandler); }
+    const checkoutSiteBtn = document.getElementById('checkout-site');
+    if(checkoutSiteBtn){ checkoutSiteBtn.removeEventListener('click', checkoutSiteHandler); checkoutSiteBtn.addEventListener('click', checkoutSiteHandler); }
+    bindCheckoutDataInputs();
     // ensure checkout button enabled only when payment selected
     try{
       // ensure checkout button reflects both payment selection and cart contents
@@ -208,14 +213,130 @@
 
   function updateCheckoutState(){
     const checkoutBtn = document.getElementById('checkout');
+    const checkoutSiteBtn = document.getElementById('checkout-site');
     const payment = document.getElementById('payment');
-    if(!checkoutBtn) return;
     const cartItems = read();
     const hasItems = Array.isArray(cartItems) && cartItems.length>0;
     const payVal = payment ? payment.value : '';
-    const enabled = hasItems && !!payVal;
-    checkoutBtn.disabled = !enabled;
-    if(enabled) checkoutBtn.classList.add('active'); else checkoutBtn.classList.remove('active');
+    const enabledWhatsapp = hasItems && !!payVal;
+    if(checkoutBtn){
+      checkoutBtn.disabled = !enabledWhatsapp;
+      if(enabledWhatsapp) checkoutBtn.classList.add('active'); else checkoutBtn.classList.remove('active');
+    }
+
+    const siteEnabled = isSiteCheckoutEnabled();
+    const requiresForSite = collectDeliveryData(false);
+    const allowedOnline = isOnlinePaymentMethod(payVal);
+    const enabledSite = siteEnabled && hasItems && !!payVal && allowedOnline && !!(requiresForSite && requiresForSite.isComplete);
+    if(checkoutSiteBtn){
+      checkoutSiteBtn.disabled = !enabledSite;
+      if(enabledSite) checkoutSiteBtn.classList.add('active'); else checkoutSiteBtn.classList.remove('active');
+    }
+  }
+
+  function isSiteCheckoutEnabled(){
+    try{
+      if(window.appUtils && typeof window.appUtils.getSiteSettings === 'function'){
+        const settings = window.appUtils.getSiteSettings() || {};
+        return settings.siteCheckoutEnabled === true;
+      }
+    }catch(e){}
+    return false;
+  }
+
+  function applySiteCheckoutVisibility(){
+    const siteEnabled = isSiteCheckoutEnabled();
+    const btn = document.getElementById('checkout-site');
+    const controls = btn ? btn.closest('.cart-controls-site') : null;
+    const delivery = document.querySelector('.checkout-delivery');
+    const schedule = document.querySelector('.checkout-schedule');
+    const hint = document.getElementById('checkout-site-hint');
+
+    if(controls) controls.classList.toggle('hidden', !siteEnabled);
+    if(delivery) delivery.classList.toggle('hidden', !siteEnabled);
+    if(schedule) schedule.classList.toggle('hidden', !siteEnabled);
+    if(hint){
+      hint.classList.remove('hidden');
+      hint.textContent = siteEnabled
+        ? 'Checkout no site pronto para integração com gateway PIX/cartão.'
+        : 'Checkout no site está desativado no momento.';
+    }
+  }
+
+  function ensureDeliveryDateMin(){
+    const deliveryDate = document.getElementById('delivery-date');
+    if(!deliveryDate) return;
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    const today = `${y}-${m}-${d}`;
+    deliveryDate.min = today;
+    if(!deliveryDate.value) deliveryDate.value = today;
+  }
+
+  function bindCheckoutDataInputs(){
+    const ids = [
+      'checkout-street','checkout-number','checkout-neighborhood','checkout-zip','checkout-reference',
+      'delivery-date','delivery-window'
+    ];
+    ids.forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.removeEventListener('input', checkoutDataInputHandler);
+      el.removeEventListener('change', checkoutDataInputHandler);
+      el.addEventListener('input', checkoutDataInputHandler);
+      el.addEventListener('change', checkoutDataInputHandler);
+    });
+  }
+
+  function checkoutDataInputHandler(){ updateCheckoutState(); }
+
+  function prefillCheckoutFromProfile(){
+    const authUser = (window.customerAuth && typeof window.customerAuth.getCurrentUser === 'function')
+      ? window.customerAuth.getCurrentUser()
+      : null;
+    const md = authUser && authUser.user_metadata ? authUser.user_metadata : {};
+
+    const street = document.getElementById('checkout-street');
+    const number = document.getElementById('checkout-number');
+    const neighborhood = document.getElementById('checkout-neighborhood');
+    const zip = document.getElementById('checkout-zip');
+
+    if(street && !String(street.value || '').trim() && md.street) street.value = String(md.street);
+    if(number && !String(number.value || '').trim() && md.number) number.value = String(md.number);
+    if(neighborhood && !String(neighborhood.value || '').trim() && md.neighborhood) neighborhood.value = String(md.neighborhood);
+    if(zip && !String(zip.value || '').trim() && md.zip) zip.value = String(md.zip);
+
+    updateCheckoutState();
+  }
+
+  function collectDeliveryData(strict){
+    const street = String(document.getElementById('checkout-street')?.value || '').trim();
+    const number = String(document.getElementById('checkout-number')?.value || '').trim();
+    const neighborhood = String(document.getElementById('checkout-neighborhood')?.value || '').trim();
+    const zip = String(document.getElementById('checkout-zip')?.value || '').trim();
+    const reference = String(document.getElementById('checkout-reference')?.value || '').trim();
+    const date = String(document.getElementById('delivery-date')?.value || '').trim();
+    const windowSlot = String(document.getElementById('delivery-window')?.value || '').trim();
+
+    const isComplete = !!(street && number && neighborhood && date && windowSlot);
+    if(strict && !isComplete) return null;
+
+    return {
+      street,
+      number,
+      neighborhood,
+      zip,
+      reference,
+      date,
+      window: windowSlot,
+      isComplete
+    };
+  }
+
+  function isOnlinePaymentMethod(code){
+    return ['PIX','CREDITO','DEBITO','BANESE_CREDITO','BANESE_DEBITO','LINK'].includes(String(code || '').trim());
   }
 
   // handlers defined as named functions so they can be removed/rebound
@@ -265,7 +386,16 @@
     }
 
     const total = cart.reduce((s,i)=>s + i.qty * i.price, 0);
-    const order = { items: cart, payment: pay, needChange: needChange, cashPaid: (typeof cashPaid !== 'undefined' ? cashPaid : null), total };
+    const delivery = collectDeliveryData(false);
+    const order = {
+      items: cart,
+      payment: pay,
+      needChange: needChange,
+      cashPaid: (typeof cashPaid !== 'undefined' ? cashPaid : null),
+      total,
+      checkoutChannel: 'whatsapp',
+      delivery
+    };
 
     // update displayed total
     const totalEl=document.getElementById('cart-total'); if(totalEl) totalEl.textContent = 'R$ ' + total.toFixed(2);
@@ -283,9 +413,48 @@
     // This prevents duplicate windows when both handlers are present.
   }
 
+  async function checkoutSiteHandler(){
+    if(!isSiteCheckoutEnabled()){
+      alert('Checkout no site está desativado no momento.');
+      return;
+    }
+    const payment=document.getElementById('payment'); const pay=payment?.value;
+    if(!pay){ alert('Escolha a forma de pagamento'); return; }
+    if(!isOnlinePaymentMethod(pay)){
+      alert('Para finalizar no site, selecione PIX, débito ou crédito.');
+      return;
+    }
+    if(window.customerAuth && typeof window.customerAuth.ensureAuthenticated === 'function'){
+      const ok = await window.customerAuth.ensureAuthenticated();
+      if(!ok){ alert('Faça login para finalizar a compra.'); return; }
+    }
+
+    const cart=read();
+    if(cart.length===0){ alert('Carrinho vazio'); return; }
+
+    const delivery = collectDeliveryData(true);
+    if(!delivery){
+      alert('Confirme rua, número, bairro, data e horário da entrega para finalizar no site.');
+      return;
+    }
+
+    const total = cart.reduce((s,i)=>s + i.qty * i.price, 0);
+    const order = {
+      items: cart,
+      payment: pay,
+      total,
+      checkoutChannel: 'site',
+      paymentStatus: 'pending',
+      delivery
+    };
+
+    document.dispatchEvent(new CustomEvent('checkout-site-ready',{detail:order}));
+  }
+
   // run setup on DOMContentLoaded and when header include finishes loading
   document.addEventListener('DOMContentLoaded', setupBindings);
   document.addEventListener('header:loaded', setupBindings);
+  document.addEventListener('customer-auth:changed', ()=>{ try{ prefillCheckoutFromProfile(); }catch(e){} });
   if(document.readyState !== 'loading'){ setupBindings(); }
   // watch for header/cart being injected later — ensure bindings attach
   try{

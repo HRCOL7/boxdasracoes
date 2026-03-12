@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-03-12T12:43:47.361806",
+  "products_total": 8611,
+  "freight_total": 115,
+  "files": {
+    "products_csv_ts": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\produtos_backup_2026-03-12_12-43-46.csv",
+    "products_txt_ts": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\produtos_backup_texto_2026-03-12_12-43-46.txt",
+    "freight_csv_ts": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\frete_por_bairro_2026-03-12_12-43-46.csv",
+    "freight_txt_ts": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\frete_por_bairro_2026-03-12_12-43-46.txt",
+    "products_csv_latest": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\produtos_backup_latest.csv",
+    "products_txt_latest": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\produtos_backup_latest.txt",
+    "freight_csv_latest": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\frete_por_bairro_latest.csv",
+    "freight_txt_latest": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\frete_por_bairro_latest.txt",
+    "manifest": "C:\\Users\\Derla\\Desktop\\BOXDASRACOES\\erp_connector\\backups\\backup_manifest_latest.json"
+  }
+}

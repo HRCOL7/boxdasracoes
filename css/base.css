@@ -228,9 +228,14 @@ img.logo-img{height:64px;width:64px}
 .cart-controls .btn-green{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:transform .12s ease,box-shadow .12s ease,background-color .12s}
 .cart-controls .btn-green:hover{transform:translateY(-1px);box-shadow:0 10px 30px var(--green-shadow)}
 .cart-controls .btn-green:active{transform:translateY(0);box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.cart-controls .btn-blue{background:#1d6fd8;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:transform .12s ease,box-shadow .12s ease,background-color .12s}
+.cart-controls .btn-blue:hover{transform:translateY(-1px);box-shadow:0 10px 30px rgba(29,111,216,0.2)}
+.cart-controls .btn-blue:active{transform:translateY(0);box-shadow:0 2px 8px rgba(0,0,0,0.06)}
 .cart-controls .btn .btn-line{font-size:14px;line-height:1}
 .btn-green#checkout{opacity:0.6;cursor:not-allowed}
 .btn-green#checkout.active{opacity:1;cursor:pointer;box-shadow:0 12px 36px rgba(43,138,95,0.18);transform:translateY(-2px)}
+.btn-blue#checkout-site{opacity:0.6;cursor:not-allowed}
+.btn-blue#checkout-site.active{opacity:1;cursor:pointer;box-shadow:0 12px 36px rgba(29,111,216,0.18);transform:translateY(-2px)}
 .hidden{display:none}
 #customer-auth-holder{display:flex;align-items:center;justify-content:center;min-width:84px}
 .customer-auth-trigger{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;min-height:36px;border-radius:999px;border:2px solid var(--orange);background:#fff;color:var(--orange);font-size:12px;font-weight:800;line-height:1;cursor:pointer}
@@ -324,10 +329,19 @@ input, button, select, textarea{font-family:inherit;font-weight:600}
 .buy-actions .btn{min-height:48px}
 #payment:focus{outline:none;box-shadow:0 0 0 4px rgba(43,138,95,0.06)}
 
+.cart-controls-site{margin-top:8px}
+.checkout-delivery,.checkout-schedule{margin-top:10px}
+.checkout-section-title{display:block;margin:0 0 6px;font-weight:700}
+.checkout-grid{display:grid;gap:8px}
+.checkout-grid.two-cols{grid-template-columns:1fr 1fr}
+.checkout-delivery input,.checkout-schedule input,.checkout-schedule select{width:100%;padding:8px;border-radius:8px;border:1px solid #ddd}
+.checkout-site-hint{margin:8px 0 0;font-size:12px;color:#4b4b4b}
+
 /* responsive tweaks: keep buttons readable on small screens */
 @media (max-width:480px){
   .cart-controls .btn .btn-line{font-size:13px}
   .cart-controls .btn{min-height:44px;padding:10px}
+  .checkout-grid.two-cols{grid-template-columns:1fr}
 }
 
 /* Product detail grid/layout */

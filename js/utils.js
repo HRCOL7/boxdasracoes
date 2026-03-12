@@ -37,7 +37,8 @@
       { title:'MEDICAMENTOS', subs:['Antibióticos','Antifúngicos','Anti-inflamatórios','Analgésicos','Suplementos e Vitaminas','Dermatológicos','Antiparasitários']},
       { title:'PROMOÇÕES', subs:[]}
     ],
-    whatsappIncludeCustomerData: true
+    whatsappIncludeCustomerData: true,
+    siteCheckoutEnabled: false
   };
 
   function normalizeSettings(input){
@@ -67,7 +68,8 @@
       banners: banners.length ? banners : DEFAULT_SITE_SETTINGS.banners.slice(),
       brands: brands.length ? brands : DEFAULT_SITE_SETTINGS.brands.slice(),
       categories: categories.length ? categories : DEFAULT_SITE_SETTINGS.categories.slice(),
-      whatsappIncludeCustomerData: raw.whatsappIncludeCustomerData !== false
+      whatsappIncludeCustomerData: raw.whatsappIncludeCustomerData !== false,
+      siteCheckoutEnabled: raw.siteCheckoutEnabled === true
     };
   }
 
