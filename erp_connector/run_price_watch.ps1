@@ -1,7 +1,12 @@
 param(
-  [string]$ProjectRoot = "D:\Hicaro\BOXDASRACOES",
+  [string]$ProjectRoot = "",
   [string]$PythonPath = ""
 )
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if(-not $ProjectRoot){
+  $ProjectRoot = Split-Path -Parent $scriptDir
+}
 
 $connectorDir = Join-Path $ProjectRoot "erp_connector"
 if(-not (Test-Path $connectorDir)){
@@ -12,7 +17,7 @@ if(-not (Test-Path $connectorDir)){
 Set-Location $connectorDir
 
 if(-not $PythonPath){
-  $venvPython = Join-Path $connectorDir ".venv\Scripts\python.exe"
+  $venvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
   if(Test-Path $venvPython){
     $PythonPath = $venvPython
   } else {
