@@ -136,6 +136,7 @@ img.logo-img{height:64px;width:64px}
 .weight-chip.promo-chip.active{box-shadow:0 6px 18px rgba(0,0,0,.06)}
 .weight-chip.active{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 6px 18px rgba(0,0,0,.06)}
 .weight-chip[aria-checked="true"]{background:var(--orange);color:#fff;border-color:var(--orange)}
+.weight-chip.disabled,.weight-chip:disabled{opacity:.55;cursor:not-allowed;filter:grayscale(.25)}
 
 /* Product cards: show 3 chips per view and scroll horizontally for more options */
 .carousel .item .weight-chips,
@@ -377,6 +378,7 @@ input, button, select, textarea{font-family:inherit;font-weight:600}
 .variant-chip.promo{background:linear-gradient(180deg,#fff9f0 0%,#fff3e1 100%);border-color:#ffbc7a}
 .variant-chip.promo .variant-chip-price{color:#cc5e00}
 .variant-chip.active{border-color:var(--orange);background:linear-gradient(180deg,#fff2e4 0%,#ffe9cf 100%);box-shadow:0 10px 24px rgba(240,139,42,.23)}
+.variant-chip.disabled,.variant-chip:disabled{opacity:.58;cursor:not-allowed;filter:grayscale(.2);box-shadow:none;transform:none}
 
 /* prominent orange add-to-cart button for product detail */
 .btn-orange { background:var(--orange); color:#fff; border:0; padding:10px 16px; border-radius:12px; font-weight:800; box-shadow:0 6px 18px rgba(255,122,0,0.12); cursor:pointer }

@@ -10,6 +10,9 @@
     const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
     return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'sim';
   }
+  function isVariantUnavailable(variant){
+    return toBoolean(variant && variant.is_unavailable);
+  }
   function normalizeWeightKey(weight){
     return String(weight || '')
       .normalize('NFD')
@@ -124,12 +127,21 @@
       const n = Number(detail.variantIndex);
       vi = isNaN(n) ? null : n;
     } else {
-      vi = (Array.isArray(p.variants) && p.variants.length) ? 0 : null;
+      if(Array.isArray(p.variants) && p.variants.length){
+        const firstAvailable = p.variants.findIndex(v=>!isVariantUnavailable(v));
+        vi = firstAvailable > -1 ? firstAvailable : 0;
+      } else {
+        vi = null;
+      }
     }
     let price = Number(p.price||0);
     let variantLabel = p.variant || '';
     if(Array.isArray(p.variants) && vi!==null){
       const v = p.variants[vi];
+      if(v && isVariantUnavailable(v)){
+        alert('Esta variante esta indisponivel no momento.');
+        return;
+      }
       if(v){ price = getEffectiveUnitPrice(p, vi); variantLabel = v.weight; }
     } else {
       price = getEffectiveUnitPrice(p, 0);

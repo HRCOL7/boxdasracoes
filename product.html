@@ -82,6 +82,9 @@
         const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
         return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'sim';
       }
+      function isVariantUnavailable(variant){
+        return toBoolean(variant && variant.is_unavailable);
+      }
       function normalizeWeightKey(weight){
         return String(weight || '')
           .normalize('NFD')
@@ -133,7 +136,8 @@
         const promo = getVariantPromoPrice(p, variants, i);
         const current = (promo !== null) ? promo : base;
         const oldPrice = (promo !== null) ? `<span class="variant-chip-old">R$ ${base.toFixed(2)}</span>` : '';
-        return `<button type="button" class="variant-chip${i===0?' active':''}${promo !== null ? ' promo' : ''}" data-vi="${i}" aria-pressed="${i===0?'true':'false'}"><span class="variant-chip-weight">${esc(v.weight||'Tamanho')}</span><span class="variant-chip-price-row">${oldPrice}<span class="variant-chip-price">R$ ${current.toFixed(2)}</span></span></button>`;
+        const unavailable = isVariantUnavailable(v);
+        return `<button type="button" class="variant-chip${i===0?' active':''}${promo !== null ? ' promo' : ''}${unavailable ? ' disabled' : ''}" data-vi="${i}" aria-pressed="${i===0?'true':'false'}"${unavailable ? ' disabled aria-disabled="true" title="Variante indisponível"' : ''}><span class="variant-chip-weight">${esc(v.weight||'Tamanho')}</span><span class="variant-chip-price-row">${oldPrice}<span class="variant-chip-price">R$ ${current.toFixed(2)}</span></span>${unavailable ? '<span class="variant-chip-old">Indisponível</span>' : ''}</button>`;
       }).join('');
 
       function buildPriceHtml(basePrice, promoPrice){
@@ -191,11 +195,20 @@
       // wire variant selector to update price
       const variantChipsRoot = document.getElementById('variant-chips');
       const priceWrapEl = document.getElementById('product-price-wrap');
+      const addToCartBtn = document.getElementById('add-to-cart');
       let selectedVariantIndex = 0;
+      const firstAvailableVariantIndex = variants.findIndex(v=>!isVariantUnavailable(v));
       function updatePriceForVariant(idx){
         const basePrice = getVariantBasePrice(p, variants, idx);
         const promoPrice = getVariantPromoPrice(p, variants, idx);
         if(priceWrapEl) priceWrapEl.innerHTML = buildPriceHtml(basePrice, promoPrice);
+        const selectedVariant = variants[idx] || null;
+        const unavailable = isVariantUnavailable(selectedVariant);
+        if(addToCartBtn){
+          addToCartBtn.disabled = !!unavailable;
+          addToCartBtn.classList.toggle('disabled', !!unavailable);
+          addToCartBtn.textContent = unavailable ? 'Variante indisponível' : 'Adicionar ao carrinho';
+        }
       }
 
       function setActiveVariant(idx){
@@ -216,9 +229,10 @@
         variantChipsRoot.addEventListener('click', (ev)=>{
           const btn = ev.target.closest('.variant-chip');
           if(!btn) return;
+          if(btn.classList.contains('disabled') || btn.disabled) return;
           setActiveVariant(Number(btn.dataset.vi));
         });
-        setActiveVariant(0);
+        setActiveVariant(firstAvailableVariantIndex > -1 ? firstAvailableVariantIndex : 0);
       }
 
       // quantity controls (allow typing in the number input)
@@ -238,6 +252,10 @@
       // add to cart
       document.getElementById('add-to-cart')?.addEventListener('click',()=>{
         const variantIndex = variants.length ? selectedVariantIndex : 0;
+        if(variants.length && isVariantUnavailable(variants[variantIndex])){
+          alert('Esta variante esta indisponivel no momento.');
+          return;
+        }
         document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id: p.id, variantIndex: variantIndex, qty: qty}}));
         alert('Adicionado à sacola');
       });
@@ -357,8 +375,8 @@
   })();
   </script>
 
-  <script src="js/cart.js" defer></script>
-  <script src="js/site-checkout.js" defer></script>
+  <script src="js/cart.js?v=20260312" defer></script>
+  <script src="js/site-checkout.js?v=20260312" defer></script>
   <script src="js/whatsapp.js" defer></script>
 </body>
 </html>

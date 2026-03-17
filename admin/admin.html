@@ -39,9 +39,9 @@
           </select>
         </label>
         <label>Código interno (chave para ERP): <input name="internal" placeholder="Ex: SKU-12345 (opcional se usar variantes com código)"></label>
-        <label>Variantes (uma por linha — peso,preço,código interno opcional):
-          <button type="button" class="help-btn" data-help="Exemplo: 15kg,129.90,RACAO15. Use o 3º campo para vincular cada KG/tamanho ao código interno do ERP.">?</button>
-          <textarea name="variants" placeholder="ex: 1 kg,25.99,RACAO1\n7 kg,109.99,RACAO7\nP,59.90,CAMAP" rows="6"></textarea>
+        <label>Variantes (uma por linha — peso,preço,código interno opcional,status opcional):
+          <button type="button" class="help-btn" data-help="Exemplo: 15kg,129.90,RACAO15; 25kg,179.90,RACAO25,off. Use 'off' no 4º campo para marcar somente essa variante como indisponível.">?</button>
+          <textarea name="variants" placeholder="ex: 1 kg,25.99,RACAO1\n7 kg,109.99,RACAO7\n25 kg,170.00,RACAO25,off" rows="6"></textarea>
         </label>
         <label>Descrição do produto:
           <textarea name="description" rows="8" placeholder="Descrição detalhada, ingredientes, modo de uso..."></textarea>

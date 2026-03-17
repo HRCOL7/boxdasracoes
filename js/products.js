@@ -12,6 +12,9 @@
     const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
     return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'sim';
   }
+  function isVariantUnavailable(variant){
+    return toBoolean(variant && variant.is_unavailable);
+  }
   function normalizeWeightKey(weight){
     return String(weight || '')
       .normalize('NFD')
@@ -255,11 +258,28 @@
     if(!Array.isArray(product && product.variants) || !product.variants.length) return [];
     // Product-level promo applies to all KGs.
     if(getProductLevelPromoPrice(product) !== null){
-      return product.variants.map((_, idx) => idx);
+      return product.variants
+        .map((_, idx) => idx)
+        .filter(idx => !isVariantUnavailable(product.variants[idx]));
     }
     return product.variants
       .map((_, idx) => idx)
+      .filter(idx => !isVariantUnavailable(product.variants[idx]))
       .filter(idx => getVariantPromoPrice(product, idx) !== null);
+  }
+
+  function getFirstAvailableVariantIndex(product, preferredIndexes){
+    const variants = Array.isArray(product && product.variants) ? product.variants : [];
+    if(!variants.length) return 0;
+    const list = Array.isArray(preferredIndexes) && preferredIndexes.length
+      ? preferredIndexes
+      : variants.map((_, idx) => idx);
+    for(const idx of list){
+      const vi = Number(idx);
+      if(Number.isInteger(vi) && vi >= 0 && vi < variants.length && !isVariantUnavailable(variants[vi])) return vi;
+    }
+    const fallback = variants.findIndex(v=>!isVariantUnavailable(v));
+    return fallback > -1 ? fallback : 0;
   }
 
   function buildChipsHtml(product, esc, options){
@@ -274,7 +294,9 @@
         const v = product.variants[vi] || {};
         const isActive = activeIndex === vi;
         const isPromoChip = highlightedIndexes.has(vi);
-        return `<button type="button" class="weight-chip${isActive ? ' active' : ''}${isPromoChip ? ' promo-chip' : ''}" data-id="${product.id}" data-vi="${vi}" aria-pressed="${isActive ? 'true' : 'false'}"${isPromoChip ? ' data-promo-chip="1" title="KG em promoção"' : ''}>${esc(v.weight||'')}</button>`;
+        const isUnavailableVariant = isVariantUnavailable(v);
+        const unavailableAttrs = isUnavailableVariant ? ' disabled aria-disabled="true" title="Variante indisponível"' : '';
+        return `<button type="button" class="weight-chip${isActive ? ' active' : ''}${isPromoChip ? ' promo-chip' : ''}${isUnavailableVariant ? ' disabled' : ''}" data-id="${product.id}" data-vi="${vi}" aria-pressed="${isActive ? 'true' : 'false'}"${isPromoChip ? ' data-promo-chip="1" title="KG em promoção"' : ''}${unavailableAttrs}>${esc(v.weight||'')}</button>`;
       }).join('') + '</div>';
     }
     if(product && product.variant){
@@ -322,8 +344,8 @@
       const isPromoProduct = hasAnyPromo(p) && promoRoot;
       const promoVariantIndexes = isPromoProduct ? getPromoVariantIndexes(p) : [];
       const defaultVariantIndex = (isPromoProduct && promoVariantIndexes.length)
-        ? promoVariantIndexes[0]
-        : 0;
+        ? getFirstAvailableVariantIndex(p, promoVariantIndexes)
+        : getFirstAvailableVariantIndex(p);
       const chips = isPromoProduct
         ? buildChipsHtml(p, esc, { variantIndexes: promoVariantIndexes, highlightedIndexes: promoVariantIndexes, activeIndex: defaultVariantIndex })
         : buildChipsHtml(p, esc, { activeIndex: null });
@@ -455,8 +477,30 @@
     // build filter UI
     const filtersRoot = document.getElementById('product-filters');
     if(filtersRoot){
+      const isMobileViewport = window.matchMedia('(max-width: 899px)').matches;
+      let mobileFiltersExpanded = true;
+      if(isMobileViewport){
+        try{
+          mobileFiltersExpanded = sessionStorage.getItem('products_filters_mobile_expanded') === '1';
+        }catch(e){ mobileFiltersExpanded = false; }
+      }
+
       filtersRoot.innerHTML = '';
+      filtersRoot.classList.add('product-filters-panel');
+      filtersRoot.classList.toggle('mobile-collapsed', isMobileViewport && !mobileFiltersExpanded);
+
       const header = document.createElement('h3'); header.textContent = 'Filtros'; filtersRoot.appendChild(header);
+      const mobileToggle = document.createElement('button');
+      mobileToggle.type = 'button';
+      mobileToggle.className = 'filters-mobile-toggle btn';
+      mobileToggle.textContent = (isMobileViewport && !mobileFiltersExpanded) ? 'Mostrar filtros' : 'Ocultar filtros';
+      if(!isMobileViewport) mobileToggle.style.display = 'none';
+      mobileToggle.addEventListener('click', ()=>{
+        const collapsed = filtersRoot.classList.toggle('mobile-collapsed');
+        mobileToggle.textContent = collapsed ? 'Mostrar filtros' : 'Ocultar filtros';
+        try{ sessionStorage.setItem('products_filters_mobile_expanded', collapsed ? '0' : '1'); }catch(e){}
+      });
+      filtersRoot.appendChild(mobileToggle);
 
       const sortWrap = document.createElement('div'); sortWrap.className = 'filter-section';
       sortWrap.innerHTML = `<div class="filter-title">Ordenar por preço</div>`;
@@ -542,14 +586,10 @@
     function buildProductCard(p){
       const el=document.createElement('div');el.className='item';el.id = 'p' + p.id;
       const img = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || 'https://via.placeholder.com/200');
-      let chips = '';
-      if(Array.isArray(p.variants) && p.variants.length){
-        chips = '<div class="weight-chips">' + p.variants.map((v,vi)=>`<button type="button" class="weight-chip" data-id="${p.id}" data-vi="${vi}" aria-pressed="false">${esc(v.weight||'')}</button>`).join('') + '</div>';
-      } else if(p.variant){
-        chips = `<div class="weight-chips"><button type="button" class="weight-chip" data-id="${p.id}" data-vi="0">${esc(p.variant||'')}</button></div>`;
-      }
-      const basePrice = getVariantBasePrice(p, 0);
-      const promoPrice = getVariantPromoPrice(p, 0);
+      const defaultVariantIndex = getFirstAvailableVariantIndex(p);
+      const chips = buildChipsHtml(p, esc, { activeIndex: defaultVariantIndex });
+      const basePrice = getVariantBasePrice(p, defaultVariantIndex);
+      const promoPrice = getVariantPromoPrice(p, defaultVariantIndex);
       const subgroupLink = p.subgroup ? `<div class="subgroup"><a class="subgroup-link" href="products.html?group=${encodeURIComponent(slugify(p.group||''))}&sub=${encodeURIComponent(slugify(p.subgroup||''))}">${esc(p.subgroup||'')}</a></div>` : '';
       const linkUrl2 = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
       const imgAttr = String(img).replace(/\"/g,'&quot;');
@@ -560,6 +600,7 @@
       const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
       const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
       el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}${brandBlock}</div>${promoPriceHtml}`;
+      el.dataset.defaultVi = String(defaultVariantIndex);
       return el;
     }
 
@@ -617,10 +658,16 @@
           ${product.variants.map((v,i)=>{
             const base = getVariantBasePrice(product, i);
             const promo = getVariantPromoPrice(product, i);
+            const unavailable = isVariantUnavailable(v);
             const priceHtml = (promo !== null)
               ? `<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1"><span style="font-size:12px;color:#8a8a8a;text-decoration:line-through">R$ ${base.toFixed(2)}</span><span style="font-weight:700;color:var(--orange,#f08b2a)">R$ ${promo.toFixed(2)}</span></div>`
               : `<div style="font-weight:700;color:var(--orange,#f08b2a)">R$ ${base.toFixed(2)}</div>`;
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #eee;background:#fff"><div>${esc(v.weight||'')}</div><div style="display:flex;gap:10px;align-items:center">${priceHtml}<button class="variant-add" data-id="${product.id}" data-vi="${i}" style="background:var(--orange,#f08b2a);color:#fff;border:none;padding:6px 10px;border-radius:6px">Adicionar à sacola</button></div></div>`;
+            const buttonStyle = unavailable
+              ? 'background:#bdbdbd;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:not-allowed;opacity:.9'
+              : 'background:var(--orange,#f08b2a);color:#fff;border:none;padding:6px 10px;border-radius:6px';
+            const buttonLabel = unavailable ? 'Indisponível' : 'Adicionar à sacola';
+            const buttonAttrs = unavailable ? ' disabled aria-disabled="true"' : '';
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #eee;background:#fff"><div>${esc(v.weight||'')}${unavailable ? '<div style="font-size:12px;color:#9a9a9a">Indisponível</div>' : ''}</div><div style="display:flex;gap:10px;align-items:center">${priceHtml}<button class="variant-add" data-id="${product.id}" data-vi="${i}" style="${buttonStyle}"${buttonAttrs}>${buttonLabel}</button></div></div>`;
           }).join('')}
         </div>
       </div>
@@ -743,12 +790,20 @@
         const card = btn.closest('.item');
         const activeChip = card ? card.querySelector(`.weight-chip[data-id="${id}"].active`) : null;
         if(activeChip){
+          if(activeChip.classList.contains('disabled')){
+            alert('Esta variante esta indisponivel no momento.');
+            return;
+          }
           const vi = Number(activeChip.dataset.vi);
           document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id,variantIndex:Number.isFinite(vi) ? vi : 0}}));
         } else {
           showVariantSelector(p);
         }
       } else if(Array.isArray(p.variants) && p.variants.length===1){
+        if(isVariantUnavailable(p.variants[0])){
+          alert('Esta variante esta indisponivel no momento.');
+          return;
+        }
         document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id,variantIndex:0}}));
       } else if(p.variant){
         document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id,variantIndex:0}}));
@@ -761,6 +816,10 @@
     document.addEventListener('click', e => {
       const chip = e.target.closest && e.target.closest('.weight-chip');
       if(!chip) return;
+      if(chip.classList.contains('disabled') || chip.disabled){
+        e.preventDefault();
+        return;
+      }
       const id = Number(chip.dataset.id);
       const vi = Number(chip.dataset.vi);
       const wasActive = chip.classList.contains('active');
@@ -803,13 +862,14 @@
         const it=document.createElement('div');it.className='item';
         const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'));
         const img = p.image || 'https://via.placeholder.com/200';
-        let chips='';
-        if(Array.isArray(p.variants)&&p.variants.length){ chips = '<div class="weight-chips">' + p.variants.map((v,vi)=>`<button type="button" class="weight-chip" data-id="${p.id}" data-vi="${vi}" aria-pressed="false">${esc(v.weight||'')}</button>`).join('') + '</div>' }
-        else if(p.variant){ chips = `<div class="weight-chips"><button type="button" class="weight-chip" data-id="${p.id}" data-vi="0">${esc(p.variant||'')}</button></div>`; }
-        const basePrice = getVariantBasePrice(p, 0);
-        const promoPrice = getVariantPromoPrice(p, 0);
+        const defaultVariantIndex = getFirstAvailableVariantIndex(p);
+        const chips = buildChipsHtml(p, esc, { activeIndex: defaultVariantIndex });
+        const basePrice = getVariantBasePrice(p, defaultVariantIndex);
+        const promoPrice = getVariantPromoPrice(p, defaultVariantIndex);
         const link3 = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
-        it.innerHTML = `<div class="image-wrap"><img src="${String(img).replace(/\"/g,'&quot;')}" alt="${esc(p.name||'')}"><button class="add-circle" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${link3}">${esc(p.name||'')}</a></div>${buildPriceHtml(basePrice, promoPrice)}`;
+        const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
+        it.innerHTML = `<div class="image-wrap"><img src="${String(img).replace(/\"/g,'&quot;')}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${link3}">${esc(p.name||'')}</a></div>${buildPriceHtml(basePrice, promoPrice)}`;
+        it.dataset.defaultVi = String(defaultVariantIndex);
         root.appendChild(it);
       });
       bindWeightChipsScroll();

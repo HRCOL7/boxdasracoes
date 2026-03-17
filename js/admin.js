@@ -18,6 +18,13 @@
     const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
     return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'sim';
   }
+  function isVariantUnavailableFlag(value){
+    const normalized = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
+    if(!normalized) return false;
+    if(['off','indisponivel','indisponível','unavailable','nao','não','n','0','false'].includes(normalized)) return true;
+    if(['on','disponivel','disponível','available','sim','s','1','true','yes'].includes(normalized)) return false;
+    return false;
+  }
   function normalizeWeightKey(weight){
     return String(weight || '')
       .normalize('NFD')
@@ -582,7 +589,10 @@
           ? p.variants.map(v=>{
               const base = (v.weight||'')+','+(v.price||'');
               const code = String(v && v.code || '').trim();
-              return code ? (base + ',' + code) : base;
+              const isUnavailableVariant = toBoolean(v && v.is_unavailable);
+              if(code && isUnavailableVariant) return base + ',' + code + ',off';
+              if(code) return base + ',' + code;
+              return isUnavailableVariant ? (base + ',off') : base;
             }).join('\n')
           : '';
       }
@@ -633,9 +643,19 @@
           const parts = line.split(',').map(s=>s.trim());
           const weight = parts[0] || '';
           const price = parseFloat(parts[1] || 0);
-          const code = String(parts.slice(2).join(',') || '').trim();
+          const rawThird = String(parts[2] || '').trim();
+          const rawFourth = String(parts[3] || '').trim();
+          let code = rawThird;
+          let isUnavailableVariant = false;
+          if(parts.length >= 4){
+            isUnavailableVariant = isVariantUnavailableFlag(rawFourth);
+          } else if(isVariantUnavailableFlag(rawThird)){
+            code = '';
+            isUnavailableVariant = true;
+          }
           const out = { weight, price };
           if(code) out.code = code;
+          if(isUnavailableVariant) out.is_unavailable = true;
           return out;
         }).filter(v=>v.weight);
       }
@@ -698,8 +718,9 @@
         video: videoValue,
         internal:String(fd.get('internal') || '').trim()
       };
-      if(!p.internal){
-        alert('Informe o codigo interno do produto. Ele e obrigatorio para comparar preco com o ERP.');
+      const hasVariantCode = Array.isArray(p.variants) && p.variants.some(v=>String(v && v.code || '').trim());
+      if(!p.internal && !hasVariantCode){
+        alert('Informe o codigo interno do produto ou ao menos um codigo interno nas variantes para comparar preco com o ERP.');
         return;
       }
       const collectCodes = (product)=>{
