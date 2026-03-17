@@ -145,7 +145,8 @@
       try{
         if(typeof imgToStore === 'string' && imgToStore.indexOf('data:') === 0 && imgToStore.length > 2000){ imgToStore = ''; }
       }catch(e){ imgToStore = ''; }
-        cart.push({key, productId: p.id, variantIndex: vi, name: p.name + (variantLabel? (' • ' + variantLabel) : ''), price: price, qty:1, image: imgToStore, internal: p.internal || ''});
+        const variantCode = (Array.isArray(p.variants) && vi !== null && p.variants[vi] && p.variants[vi].code) ? p.variants[vi].code : (p.internal || '');
+        cart.push({key, productId: p.id, variantIndex: vi, name: p.name + (variantLabel? (' • ' + variantLabel) : ''), price: price, qty:1, image: imgToStore, internal: variantCode});
     }
     // save with quota handling: if quota exceeded, try removing images from cart and save again
     try{ save(cart); }
@@ -235,6 +236,8 @@
   }
 
   function isSiteCheckoutEnabled(){
+    const host = String(window.location && window.location.hostname || '').toLowerCase();
+    if(host === 'localhost' || host === '127.0.0.1') return true;
     try{
       if(window.appUtils && typeof window.appUtils.getSiteSettings === 'function'){
         const settings = window.appUtils.getSiteSettings() || {};
@@ -336,7 +339,11 @@
   }
 
   function isOnlinePaymentMethod(code){
-    return ['PIX','CREDITO','DEBITO','BANESE_CREDITO','BANESE_DEBITO','LINK'].includes(String(code || '').trim());
+    return [
+      'CAIXA_PIX','GETNET_CREDITO','GETNET_DEBITO',
+      'PIX','CREDITO','DEBITO',
+      'BANESE_CREDITO','BANESE_DEBITO','LINK'
+    ].includes(String(code || '').trim());
   }
 
   // handlers defined as named functions so they can be removed/rebound
@@ -421,7 +428,7 @@
     const payment=document.getElementById('payment'); const pay=payment?.value;
     if(!pay){ alert('Escolha a forma de pagamento'); return; }
     if(!isOnlinePaymentMethod(pay)){
-      alert('Para finalizar no site, selecione PIX, débito ou crédito.');
+      alert('Para finalizar no site, selecione Caixa PIX, Banese débito/crédito ou Getnet débito/crédito.');
       return;
     }
     if(window.customerAuth && typeof window.customerAuth.ensureAuthenticated === 'function'){
