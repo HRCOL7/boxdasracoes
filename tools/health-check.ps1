@@ -1,4 +1,4 @@
-param(
+﻿param(
   [int]$Port = 8125
 )
 
@@ -94,16 +94,6 @@ if(-not $pythonCandidates -or $pythonCandidates.Count -eq 0){
       try{ Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
     }
   }
-}
-
-Write-Section "Legacy note"
-$legacyExists = (Test-Path "_root.html") -and (Test-Path "_root127.html")
-if($legacyExists){
-  Add-Check "legacy-root-files" $true "_root.html e _root127.html presentes (legado)"
-  Write-Host "Info: arquivos legados detectados (_root.html, _root127.html)"
-} else {
-  Add-Check "legacy-root-files" $true "Arquivos legados não encontrados"
-  Write-Host "Info: arquivos legados não encontrados"
 }
 
 Write-Section "Summary"

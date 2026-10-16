@@ -8,9 +8,12 @@
   <link rel="stylesheet" href="../css/mobile.css">
   <link rel="stylesheet" href="../css/desktop.css" media="(min-width:900px)">
   <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../css/a11y.css">
+  <script src="../js/a11y.js"></script>
 </head>
 <body>
-  <main class="admin-layout reports-layout">
+  <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
+  <main id="main-content" tabindex="-1" class="admin-layout reports-layout">
     <section class="admin-list reports-panel">
       <div class="admin-head">
         <img src="../img/logobox.png" alt="Box Das Racoes" class="admin-head-logo">
@@ -109,16 +112,8 @@
     </div>
   </div>
 
-  <script>
-    (function(){
-      var s = document.createElement('script');
-      s.src = '/config.js';
-      s.onload = function(){};
-      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
-      (document.head || document.documentElement).appendChild(s);
-    })();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="/js/config-loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="../js/supabase-client.js" defer></script>
   <script src="../js/admin-reports.js" defer></script>
 </body>

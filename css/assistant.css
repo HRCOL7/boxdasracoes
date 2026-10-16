@@ -1,0 +1,36 @@
+/* Assistente de acessibilidade — widget flutuante */
+.as-launcher{position:fixed;left:12px;bottom:16px;z-index:1500;display:flex;align-items:center;gap:8px;min-height:48px;padding:10px 16px;border:2px solid #fff;border-radius:999px;background:#0b3d91;color:#fff;font:700 15px/1.2 inherit;font-family:inherit;box-shadow:0 8px 24px rgba(0,0,0,.3);cursor:pointer}
+.as-launcher:hover{background:#082d6b}
+.as-launcher svg{width:22px;height:22px;flex:0 0 22px}
+@media (max-width:899px){.as-launcher{bottom:88px}}
+
+.as-panel{position:fixed;left:12px;bottom:16px;z-index:1600;width:min(420px,calc(100vw - 24px));max-height:min(640px,calc(100vh - 32px));display:none;flex-direction:column;background:#fff;color:#1b1b1b;border:2px solid #0b3d91;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden}
+.as-panel.open{display:flex}
+@media (max-width:899px){.as-panel{left:8px;right:8px;bottom:8px;width:auto;max-height:calc(100vh - 16px)}}
+
+.as-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#0b3d91;color:#fff}
+.as-head h2{margin:0;font-size:1.05rem;color:#fff}
+.as-btn{min-height:44px;min-width:44px;padding:8px 12px;border:2px solid #0b3d91;border-radius:10px;background:#fff;color:#0b3d91;font:700 14px/1.2 inherit;font-family:inherit;cursor:pointer}
+.as-btn:hover{background:#eaf1ff}
+.as-btn[aria-pressed="true"]{background:#0b3d91;color:#fff}
+.as-head .as-btn{border-color:#fff}
+
+.as-body{overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.as-prefs summary{cursor:pointer;font-weight:800;min-height:32px;display:flex;align-items:center}
+.as-prefs-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+.as-pref{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.as-pref-label{flex:1 1 100%;font-weight:700;font-size:.9rem}
+.as-note{font-size:.85rem;color:#444;margin:0}
+
+.as-log{display:flex;flex-direction:column;gap:8px;min-height:120px;max-height:280px;overflow:auto;padding:4px}
+.as-msg{max-width:92%;padding:10px 12px;border-radius:12px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+.as-msg.user{align-self:flex-end;background:#0b3d91;color:#fff}
+.as-msg.bot{align-self:flex-start;background:#f1f3f6;color:#1b1b1b;border:1px solid #d0d5dd}
+.as-msg a{color:#0b3d91;font-weight:700}
+.as-msg.user a{color:#fff}
+
+.as-form{display:flex;gap:8px;align-items:flex-end}
+.as-form textarea{flex:1;min-height:48px;max-height:120px;padding:10px;border:2px solid #555;border-radius:10px;font:inherit;resize:vertical}
+.as-suggest{display:flex;flex-wrap:wrap;gap:6px}
+
+@media (forced-colors:active){.as-launcher,.as-panel,.as-btn{border:2px solid CanvasText}}

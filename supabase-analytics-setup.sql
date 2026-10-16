@@ -5,12 +5,9 @@ create table if not exists public.admin_users (
   created_at timestamptz not null default now()
 );
 
-insert into public.admin_users(email)
-values
-  ('hicarodev@outlook.com'),
-  ('boxdasracoes@hotmail.com'),
-  ('derlaajuse@gmail.com')
-on conflict (email) do nothing;
+-- OBS: os administradores ficam na tabela public.admin_users e são cadastrados pela migração
+-- supabase/migrations/20261013000000_security_hardening.sql (rode-a ANTES deste script).
+-- Para incluir/remover admin: insert/delete em public.admin_users pelo SQL Editor.
 
 create table if not exists public.site_events (
   id bigint generated always as identity primary key,
@@ -55,11 +52,8 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists(
-    select 1
-    from public.admin_users a
-    where lower(a.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
-  );
+  -- Delega para is_admin() (exige e-mail confirmado). Definida na migração de segurança.
+  select public.is_admin();
 $$;
 
 create or replace function public.admin_reports_timeseries(

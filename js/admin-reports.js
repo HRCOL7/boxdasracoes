@@ -2,19 +2,18 @@
   const LOG_PREFIX = '[admin-reports]';
   const logWarn = (message, ...args) => console.warn(`${LOG_PREFIX} ${message}`, ...args);
 
-  function normalizeEmail(email){ return String(email || '').trim().toLowerCase(); }
-  function getAllowedAdminEmails(){
-    const fromWindow = Array.isArray(window.ADMIN_ALLOWED_EMAILS) ? window.ADMIN_ALLOWED_EMAILS : [];
-    const fromStorage = String(localStorage.getItem('admin_allowed_emails') || '')
-      .split(',')
-      .map(s=>normalizeEmail(s))
-      .filter(Boolean);
-    return Array.from(new Set(fromWindow.concat(fromStorage).map(normalizeEmail).filter(Boolean)));
-  }
-  function isAllowedAdminUser(user){
-    const email = normalizeEmail(user && user.email ? user.email : '');
-    if(!email) return false;
-    return getAllowedAdminEmails().includes(email);
+  // Quem é admin é decidido SOMENTE pelo servidor (função is_admin() no Supabase, que exige e-mail
+  // confirmado). Este arquivo só usa a resposta para mostrar/esconder a interface; a proteção
+  // real dos dados é a RLS do banco. Se a pergunta falhar (ex.: migração ainda não aplicada),
+  // a resposta é "não é admin" (falha fechada).
+  async function checkIsAdmin(user){
+    if(!user) return false;
+    try{
+      if(window.supa && typeof window.supa.isAdmin === 'function'){
+        return (await window.supa.isAdmin()) === true;
+      }
+    }catch(e){ logWarn('isAdmin check failed', e); }
+    return false;
   }
 
   function setStatus(msg, type){
@@ -190,7 +189,7 @@
     try{
       const user = (window.supa && typeof window.supa.getUser === 'function') ? await window.supa.getUser() : null;
       const modal = document.getElementById('admin-login');
-      const allowed = !!(user && isAllowedAdminUser(user));
+      const allowed = !!(user && await checkIsAdmin(user));
       if(modal){
         if(allowed) modal.classList.remove('visible');
         else modal.classList.add('visible');

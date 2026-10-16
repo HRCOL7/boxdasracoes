@@ -3,21 +3,56 @@
   publish = "."
 
 [context.production.environment]
-  # These should be set in Netlify UI (Site settings → Build & deploy → Environment)
-  # SUPABASE_URL = "https://your-project.supabase.co"
-  # SUPABASE_ANON_KEY = "public-anon-key"
+  # Defina no painel do Netlify (Site settings → Build & deploy → Environment):
+  # SUPABASE_URL = "https://seu-projeto.supabase.co"
+  # SUPABASE_ANON_KEY = "chave-anon-publica"
 
+# ---- Segurança em todas as páginas ----------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # microphone=(self): necessário para o assistente de voz (Parte C). Câmera/GPS bloqueados.
+    Permissions-Policy = "camera=(), geolocation=(), microphone=(self)"
+
+# ---- Content-Security-Policy (MODO RELATÓRIO) ---------------------------------
+# "Report-Only" NÃO bloqueia nada: só mostra no console do navegador (F12 > Console) o que seria
+# bloqueado. Navegue por TODAS as páginas (inclusive admin e checkout). Sem avisos "[Report Only]"?
+# Então troque o nome abaixo para Content-Security-Policy (modo bloqueante) e publique.
+# style-src mantém 'unsafe-inline' porque o JS monta alguns style="..." (risco bem menor que em scripts).
+# img-src aceita https: porque as imagens dos produtos vêm de URLs cadastradas no admin.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+
+# ---- Cache ------------------------------------------------------------------
+# "no-cache" NÃO é "não guardar": o navegador guarda, mas pergunta ao servidor se mudou
+# (resposta 304, bem leve). Antes era "no-store", que baixava tudo de novo a cada visita.
 [[headers]]
   for = "/*.html"
   [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
+    Cache-Control = "no-cache"
 
 [[headers]]
   for = "/"
   [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
+    Cache-Control = "no-cache"
 
 [[headers]]
   for = "/js/*"
   [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# Imagens mudam raramente: 1 dia no navegador.
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

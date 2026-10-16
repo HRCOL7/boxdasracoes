@@ -5,29 +5,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Produtos - Box Das Rações</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/mobile.css">
   <link rel="stylesheet" href="css/desktop.css" media="(min-width:900px)">
+  <link rel="stylesheet" href="css/a11y.css">
+  <link rel="stylesheet" href="css/assistant.css">
+  <script src="js/a11y.js"></script>
 </head>
 <body>
-  <script src="js/header.js"></script>
+  <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
+    <script src="js/header.js"></script>
   <script src="js/menu.js" defer></script>
   <script src="js/search.js" defer></script>
-  <script>
-    (function(){
-      var s = document.createElement('script');
-      s.src = '/config.js';
-      s.onload = function(){};
-      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
-      (document.head || document.documentElement).appendChild(s);
-    })();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="/js/config-loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="js/supabase-client.js" defer></script>
   <script src="js/analytics.js" defer></script>
   <script src="js/utils.js" defer></script>
   <script src="js/customer-auth.js" defer></script>
-  <main>
+  <main id="main-content" tabindex="-1">
     <h1>Produtos</h1>
     <div class="products-page">
       <aside id="product-filters" class="product-filters"></aside>
@@ -40,5 +39,6 @@
   <script src="js/cart.js" defer></script>
   <script src="js/site-checkout.js" defer></script>
   <script src="js/whatsapp.js" defer></script>
+  <script src="js/assistant.js" defer></script>
 </body>
 </html>

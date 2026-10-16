@@ -317,6 +317,17 @@
     }catch(e){ logWarn('supa.getUser failed', e); return null; }
   }
 
+  // Pergunta ao servidor se o usuário logado é admin (função SQL is_admin()).
+  // Devolve true/false, ou null quando não foi possível saber (função ainda não criada, sem rede).
+  async function isAdmin(){
+    const supa = init(); if(!supa || typeof supa.rpc !== 'function') return null;
+    try{
+      const result = await supa.rpc('is_admin');
+      if(result && result.error){ logWarn('supa.isAdmin rpc failed', result.error); return null; }
+      return !!(result && result.data === true);
+    }catch(e){ logWarn('supa.isAdmin failed', e); return null; }
+  }
+
   function onAuthStateChange(cb){
     const supa = init(); if(!supa || !supa.auth || typeof supa.auth.onAuthStateChange !== 'function') return ()=>{};
     const sub = supa.auth.onAuthStateChange((event, session) => { try{ cb && cb(event, session); }catch(e){ logWarn('onAuthStateChange handler error', e); } });
@@ -334,6 +345,7 @@
     signIn,
     signOut,
     getUser,
+    isAdmin,
     onAuthStateChange,
     resendConfirmation,
     getSiteSettings,

@@ -1,4 +1,4 @@
-﻿# Node
+# Node
 node_modules/
 dist/
 .env
@@ -15,3 +15,15 @@ __pycache__/
 .netlify
 
 # Supabase anon config is required for static hosts (GitHub Pages).
+
+# Segredos e dados do negócio: NUNCA versionar
+.env
+.env.*
+!.env.example
+erp_connector/.env
+erp_connector/backups/
+
+# Testes locais / saídas
+*.log
+.vscode/
+coverage/

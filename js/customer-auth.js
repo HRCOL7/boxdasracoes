@@ -539,7 +539,7 @@
           const firstPrice = variants.length ? Number(variants[0].price || 0) : Number(p.price || 0);
           return `
             <a class="customer-fav-card" href="product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name || '')}">
-              <div class="customer-fav-image-wrap"><img src="${String(image).replace(/"/g,'&quot;')}" alt="${escapeHtml(p.name || 'Produto')}"></div>
+              <div class="customer-fav-image-wrap"><img src="${window.appUtils.safeImageUrl(image)}" alt="${escapeHtml(p.name || 'Produto')}"></div>
               ${chips}
               <div class="customer-fav-name">${escapeHtml(p.name || 'Produto')}</div>
               <div class="customer-fav-price">R$ ${firstPrice.toFixed(2)}</div>

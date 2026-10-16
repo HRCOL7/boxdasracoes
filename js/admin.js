@@ -44,21 +44,18 @@
   function hasSupabaseConfig(){
     return !!(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey);
   }
-  function normalizeEmail(email){ return String(email || '').trim().toLowerCase(); }
-  function getAllowedAdminEmails(){
-    const fromWindow = Array.isArray(window.ADMIN_ALLOWED_EMAILS) ? window.ADMIN_ALLOWED_EMAILS : [];
-    const fromStorage = String(localStorage.getItem('admin_allowed_emails') || '')
-      .split(',')
-      .map(s=>normalizeEmail(s))
-      .filter(Boolean);
-    const all = fromWindow.concat(fromStorage).map(normalizeEmail).filter(Boolean);
-    return Array.from(new Set(all));
-  }
-  function isAllowedAdminUser(user){
-    const email = normalizeEmail(user && user.email ? user.email : '');
-    if(!email) return false;
-    const allowed = getAllowedAdminEmails();
-    return allowed.includes(email);
+  // Quem é admin é decidido SOMENTE pelo servidor (função is_admin() no Supabase, que exige e-mail
+  // confirmado). Este arquivo só usa a resposta para mostrar/esconder a interface; a proteção
+  // real dos dados é a RLS do banco. Se a pergunta falhar (ex.: migração ainda não aplicada),
+  // a resposta é "não é admin" (falha fechada).
+  async function checkIsAdmin(user){
+    if(!user) return false;
+    try{
+      if(window.supa && typeof window.supa.isAdmin === 'function'){
+        return (await window.supa.isAdmin()) === true;
+      }
+    }catch(e){ logWarn('isAdmin check failed', e); }
+    return false;
   }
   function getSiteSettingsSafe(){
     try{
@@ -113,8 +110,11 @@
       (adminSiteSettings.banners || []).slice(0, 8).forEach(src=>{
         const img = document.createElement('img');
         img.className = 'media-thumb';
-        img.src = src;
-        img.alt = 'banner';
+        // O admin fica em /admin/: caminhos do site como "img/x.jpg" precisam de "../".
+        const rawSrc = String(src || '').trim();
+        const isRelative = rawSrc && !/^([a-z][a-z0-9+.-]*:|\/|\.\.\/)/i.test(rawSrc);
+        img.src = window.appUtils.safeImageUrl(isRelative ? '../' + rawSrc : rawSrc);
+        img.alt = 'Banner ' + (adminSiteSettings.banners.indexOf(src) + 1);
         bannersPreview.appendChild(img);
       });
     }
@@ -423,7 +423,7 @@
       const price = (Array.isArray(p.variants) && p.variants.length)? p.variants[0].price : Number(p.price||0);
       const primaryImg = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || '');
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-      const imgSrcAttr = primaryImg ? String(primaryImg).replace(/"/g,'&quot;') : '';
+      const imgSrcAttr = primaryImg ? window.appUtils.safeImageUrl(primaryImg) : '';
       const img = primaryImg ? `<img class="admin-thumb" src="${imgSrcAttr}" alt="${esc(p.name||'')}">` : `<div style="width:72px;height:72px;border-radius:8px;background:#fafafa;border:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;color:#ccc">No img</div>`;
       const descRaw = p.description ? (p.description.length>120? p.description.slice(0,117)+'...' : p.description) : '';
       const highlightedTitle = highlight(p.name||'', searchTerm);
@@ -509,8 +509,8 @@
     }
   }
 
-  function setAdminAuthState(user){
-    const allowedUser = (user && isAllowedAdminUser(user)) ? user : null;
+  async function setAdminAuthState(user){
+    const allowedUser = (user && await checkIsAdmin(user)) ? user : null;
     currentAdminUser = allowedUser;
     isAdminAuthenticated = !!allowedUser;
     const modal = document.getElementById('admin-login');
@@ -527,7 +527,7 @@
     try{
       if(window.supa && typeof window.supa.getUser === 'function'){
         const user = await window.supa.getUser();
-        setAdminAuthState(user);
+        await setAdminAuthState(user);
       }
     }catch(e){
       logWarn('Failed to verify admin auth state', e);
@@ -905,13 +905,13 @@
                 await window.supa.signIn(email, pass);
                 const user = (window.supa && typeof window.supa.getUser === 'function') ? await window.supa.getUser() : null;
                 if(!user){ throw new Error('Sessão não encontrada após login.'); }
-                if(!isAllowedAdminUser(user)){
+                if(!(await checkIsAdmin(user))){
                   try{ if(window.supa && typeof window.supa.signOut === 'function') await window.supa.signOut(); }catch(e){}
                   setAdminAuthState(null);
                   alert('Seu usuário está autenticado, mas não possui permissão de administrador.');
                   return;
                 }
-                setAdminAuthState(user);
+                await setAdminAuthState(user);
                 try{ await loadErpPriceAlerts(); }catch(e){ logWarn('Failed to load ERP alerts after login', e); }
                 alert('Login efetuado com sucesso.');
                 return;

@@ -126,28 +126,15 @@ for select
 using (true);
 
 -- Admin write only (recommended)
--- IMPORTANT: update the email list below to your real admin users.
+-- Admins: tabela public.admin_users + função public.is_admin() (migração 20261013000000_security_hardening.sql, rode-a ANTES).
 drop policy if exists "Authenticated write" on public.products;
 drop policy if exists "Admin write" on public.products;
 create policy "Admin write"
 on public.products
 for all
-using (
-  auth.role() = 'authenticated'
-  and lower(coalesce(auth.jwt() ->> 'email', '')) in (
-    'hicarodev@outlook.com',
-    'boxdasracoes@hotmail.com',
-    'derlaajuse@gmail.com'
-  )
-)
-with check (
-  auth.role() = 'authenticated'
-  and lower(coalesce(auth.jwt() ->> 'email', '')) in (
-    'hicarodev@outlook.com',
-    'boxdasracoes@hotmail.com',
-    'derlaajuse@gmail.com'
-  )
-);
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
 
 -- Optional: if you need temporary open writes from browser without auth, uncomment below.
 -- WARNING: insecure for production.

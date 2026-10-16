@@ -73,7 +73,17 @@
     return base;
   }
 
-  function updateCount(){const c=document.getElementById('cart-count'); if(!c) return; const count=read().reduce((s,i)=>s+i.qty,0); c.textContent=count}
+  let lastCount = null;
+  function updateCount(){
+    const c=document.getElementById('cart-count'); if(!c) return;
+    const count=read().reduce((s,i)=>s+i.qty,0); c.textContent=count;
+    const btn=document.getElementById('cart-btn');
+    if(btn) btn.setAttribute('aria-label', count>0 ? `Abrir carrinho, ${count} ${count===1?'item':'itens'}` : 'Abrir carrinho');
+    if(lastCount!==null && count!==lastCount && window.appA11y){
+      window.appA11y.announce(count>lastCount ? `Item adicionado. Carrinho com ${count} ${count===1?'item':'itens'}.` : (count===0 ? 'Carrinho vazio.' : `Carrinho com ${count} ${count===1?'item':'itens'}.`));
+    }
+    lastCount = count;
+  }
 
   function renderCart(){
     const panel=document.getElementById('cart-panel'); const itemsRoot=document.getElementById('cart-items'); if(!itemsRoot) return; itemsRoot.innerHTML=''; const items=read();
@@ -88,10 +98,10 @@
       if(!imgSrc){ const prod = productsById.get(it.productId); if(prod && prod.image) imgSrc = prod.image; }
       if(!imgSrc) imgSrc = 'https://via.placeholder.com/80';
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-      const imgAttr = String(imgSrc).replace(/"/g,'&quot;');
+      const imgAttr = window.appUtils.safeImageUrl(imgSrc);
       r.innerHTML = `
         <div class="cart-left">
-          <img src="${imgAttr}" alt="${esc(it.name||'')}">
+          <img src="${imgAttr}" alt="">
         </div>
         <div class="cart-main">
           <div class="cart-info">
@@ -99,9 +109,9 @@
             <div class="cart-price">R$ ${(it.price*it.qty).toFixed(2)}</div>
           </div>
           <div class="cart-qty">
-            <button type="button" class="qty-decrease" data-key="${it.key}">−</button>
+            <button type="button" class="qty-decrease" data-key="${esc(it.key)}" aria-label="Diminuir quantidade de ${esc(it.name||'')}"><span aria-hidden="true">−</span></button>
             <div class="qty-value">${it.qty}</div>
-            <button type="button" class="qty-increase" data-key="${it.key}">+</button>
+            <button type="button" class="qty-increase" data-key="${esc(it.key)}" aria-label="Aumentar quantidade de ${esc(it.name||'')}"><span aria-hidden="true">+</span></button>
           </div>
         </div>
       `;
@@ -118,7 +128,7 @@
     const products=JSON.parse(localStorage.getItem('products')||'[]');
     const p=products.find(x=>x.id===detail.id); if(!p) return;
     if(toBoolean(p.is_unavailable)){
-      alert('Produto indisponivel no momento.');
+      uiNotify('Produto indisponivel no momento.');
       return;
     }
     // coerce variantIndex to number if provided (accept strings from DOM dataset)
@@ -139,7 +149,7 @@
     if(Array.isArray(p.variants) && vi!==null){
       const v = p.variants[vi];
       if(v && isVariantUnavailable(v)){
-        alert('Esta variante esta indisponivel no momento.');
+        uiNotify('Esta variante esta indisponivel no momento.');
         return;
       }
       if(v){ price = getEffectiveUnitPrice(p, vi); variantLabel = v.weight; }
@@ -167,17 +177,17 @@
         // clear images to reduce storage footprint
         cart.forEach(ci=>{ ci.image = ''; });
         save(cart);
-        alert('Espaço de armazenamento local estourado; imagens removidas do carrinho para salvar os itens.');
+        uiNotify('Espaço de armazenamento local estourado; imagens removidas do carrinho para salvar os itens.');
       }catch(e2){
         logError('Failed to save cart after clearing images', e2);
-        alert('Não foi possível salvar o carrinho (localStorage cheio). Reinicie o navegador ou limpe o armazenamento.');
+        uiNotify('Não foi possível salvar o carrinho (localStorage cheio). Reinicie o navegador ou limpe o armazenamento.');
       }
     }
     updateCount(); renderCart();
     // request that cart panel be opened. If header/cart is present open now,
     // otherwise set a flag so setupBindings can open when the header is injected.
     try{ localStorage.setItem('cart_open_request','1'); }catch(e){}
-    try{ const panel = document.getElementById('cart-panel'); if(panel) { panel.classList.remove('hidden'); try{ localStorage.removeItem('cart_open_request'); }catch(e){} } }catch(e){}
+    try{ if(document.getElementById('cart-panel')) { openCart(document.activeElement); try{ localStorage.removeItem('cart_open_request'); }catch(e){} } }catch(e){}
   }
 
   function increaseOne(key){ const cart=read(); const idx=cart.findIndex(x=>x.key===key); if(idx>-1){ cart[idx].qty += 1; save(cart); updateCount(); renderCart(); } }
@@ -189,7 +199,7 @@
     try{ ensureDeliveryDateMin(); prefillCheckoutFromProfile(); }catch(e){}
     try{ applySiteCheckoutVisibility(); }catch(e){}
     // if a previous add requested the cart to open, open it now
-    try{ if(localStorage.getItem('cart_open_request')){ const panel=document.getElementById('cart-panel'); if(panel) panel.classList.remove('hidden'); localStorage.removeItem('cart_open_request'); } }catch(e){}
+    try{ if(localStorage.getItem('cart_open_request')){ if(document.getElementById('cart-panel')) openCart(); localStorage.removeItem('cart_open_request'); } }catch(e){}
     // ensure add-to-cart handler (may be dispatched from other scripts)
     document.removeEventListener('add-to-cart', addByDetailListener);
     document.addEventListener('add-to-cart', addByDetailListener);
@@ -223,6 +233,8 @@
       paymentChangeHandler();
     }catch(e){}
   }
+
+  function uiNotify(msg){ if(window.appA11y) window.appA11y.notify(msg, 'error'); else window.alert(msg); }
 
   function updateCheckoutState(){
     const checkoutBtn = document.getElementById('checkout');
@@ -365,8 +377,31 @@
     const dec = e.target.closest && e.target.closest('.qty-decrease'); if(dec){ removeOne(dec.dataset.key); return; }
     const rem = e.target.closest && e.target.closest('.remove'); if(rem){ removeOne(rem.dataset.key); return; }
   }
-  function cartToggle(){ const panel = document.getElementById('cart-panel'); if(panel) panel.classList.toggle('hidden'); }
-  function cartCloseHandler(){ const panel = document.getElementById('cart-panel'); if(panel) panel.classList.add('hidden'); }
+  // Carrinho como painel lateral acessível: foco entra ao abrir, Esc fecha e devolve o foco
+  // ao botão que abriu; a página atrás continua usável (diálogo não-modal).
+  let cartDialog = null;
+  function isCartOpen(){ const panel = document.getElementById('cart-panel'); return !!panel && !panel.classList.contains('hidden'); }
+  function openCart(opener){
+    const panel = document.getElementById('cart-panel'); if(!panel) return;
+    panel.classList.remove('hidden');
+    const btn = document.getElementById('cart-btn');
+    if(btn) btn.setAttribute('aria-expanded', 'true');
+    if(window.appA11y && !cartDialog){
+      // Celular: o painel cobre quase a tela inteira, então é modal (foco preso, resto inerte).
+      // Computador: painel lateral de 360px, a página continua utilizável (não-modal).
+      const isNarrow = !!(window.matchMedia && window.matchMedia('(max-width: 899px)').matches);
+      cartDialog = window.appA11y.openDialog(panel, { modal: isNarrow, opener: opener || btn, labelledby: 'cart-title', initialFocus: '#cart-close', onClose: closeCart });
+    }
+  }
+  function closeCart(){
+    const panel = document.getElementById('cart-panel');
+    if(panel) panel.classList.add('hidden');
+    const btn = document.getElementById('cart-btn');
+    if(btn) btn.setAttribute('aria-expanded', 'false');
+    if(cartDialog){ const d = cartDialog; cartDialog = null; d.close(); }
+  }
+  function cartToggle(){ if(isCartOpen()) closeCart(); else openCart(); }
+  function cartCloseHandler(){ closeCart(); }
   function clearCartHandler(){ localStorage.removeItem(KEY); cartCacheRaw = null; cartCacheParsed = []; renderCart(); updateCount(); const totalEl=document.getElementById('cart-total'); if(totalEl) totalEl.textContent='R$ 0,00'; }
   function paymentChangeHandler(){
     const payment=document.getElementById('payment');
@@ -383,24 +418,24 @@
     el.value = el.value.replace(/[^0-9\,\.]/g,''); }
   async function checkoutHandler(){
     const payment=document.getElementById('payment'); const pay=payment?.value;
-    if(!pay){ alert('Escolha a forma de pagamento'); return }
+    if(!pay){ uiNotify('Escolha a forma de pagamento'); return }
     if(window.customerAuth && typeof window.customerAuth.ensureAuthenticated === 'function'){
       const ok = await window.customerAuth.ensureAuthenticated();
-      if(!ok){ alert('Faça login para finalizar a compra.'); return; }
+      if(!ok){ uiNotify('Faça login para finalizar a compra.'); return; }
     }
     const needChange=document.getElementById('need-change')?.value||'no';
     const cashAmountEl = document.getElementById('cash-amount');
     const cashAmountRaw = cashAmountEl ? cashAmountEl.value.trim() : '';
     const cart=read();
-    if(cart.length===0){ alert('Carrinho vazio'); return }
+    if(cart.length===0){ uiNotify('Carrinho vazio'); return }
 
     // if payment is DINHEIRO and user requested change, require cash amount
     if(pay === 'DINHEIRO' && needChange === 'yes'){
-      if(!cashAmountRaw){ alert('Informe o valor que será pago para calcular o troco'); return }
+      if(!cashAmountRaw){ uiNotify('Informe o valor que será pago para calcular o troco'); return }
       // normalize number (allow comma)
       const normalized = cashAmountRaw.replace(/\./g,'').replace(',','.');
       const paid = Number(normalized);
-      if(isNaN(paid) || paid <= 0){ alert('Valor de pagamento inválido'); return }
+      if(isNaN(paid) || paid <= 0){ uiNotify('Valor de pagamento inválido'); return }
       var cashPaid = paid;
     }
 
@@ -434,26 +469,26 @@
 
   async function checkoutSiteHandler(){
     if(!isSiteCheckoutEnabled()){
-      alert('Checkout no site está desativado no momento.');
+      uiNotify('Checkout no site está desativado no momento.');
       return;
     }
     const payment=document.getElementById('payment'); const pay=payment?.value;
-    if(!pay){ alert('Escolha a forma de pagamento'); return; }
+    if(!pay){ uiNotify('Escolha a forma de pagamento'); return; }
     if(!isOnlinePaymentMethod(pay)){
-      alert('Para finalizar no site, selecione Caixa PIX, Banese débito/crédito ou Getnet débito/crédito.');
+      uiNotify('Para finalizar no site, selecione Caixa PIX, Banese débito/crédito ou Getnet débito/crédito.');
       return;
     }
     if(window.customerAuth && typeof window.customerAuth.ensureAuthenticated === 'function'){
       const ok = await window.customerAuth.ensureAuthenticated();
-      if(!ok){ alert('Faça login para finalizar a compra.'); return; }
+      if(!ok){ uiNotify('Faça login para finalizar a compra.'); return; }
     }
 
     const cart=read();
-    if(cart.length===0){ alert('Carrinho vazio'); return; }
+    if(cart.length===0){ uiNotify('Carrinho vazio'); return; }
 
     const delivery = collectDeliveryData(true);
     if(!delivery){
-      alert('Confirme rua, número, bairro, data e horário da entrega para finalizar no site.');
+      uiNotify('Confirme rua, número, bairro, data e horário da entrega para finalizar no site.');
       return;
     }
 

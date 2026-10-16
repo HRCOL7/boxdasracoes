@@ -188,6 +188,20 @@
   window.appUtils.buildGarantiaHtml = window.appUtils.buildGarantiaHtml || buildGarantiaHtml;
   function escapeHtml(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   window.appUtils.escapeHtml = window.appUtils.escapeHtml || escapeHtml;
+
+  // URL de imagem segura para colocar em atributo src="...": aceita http(s), caminho relativo e
+  // data:image/*; recusa javascript:, vbscript: etc. Também codifica aspas.
+  function safeImageUrl(u, fallback){
+    const fb = fallback === undefined ? '' : fallback;
+    const s = String(u === null || u === undefined ? '' : u).trim();
+    if(!s) return fb;
+    let ok = false;
+    if(/^data:image\/(png|jpe?g|gif|webp|avif|svg\+xml)[;,]/i.test(s)) ok = true;
+    else if(/^(https?:)?\/\//i.test(s)) ok = true;
+    else if(!/^[a-z][a-z0-9+.-]*:/i.test(s)) ok = true; // caminho relativo
+    return ok ? s.replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E') : fb;
+  }
+  window.appUtils.safeImageUrl = window.appUtils.safeImageUrl || safeImageUrl;
   // standardized payment label map (code -> display)
   const PAYMENT_LABELS = {
     PIX: 'PIX',

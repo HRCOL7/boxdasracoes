@@ -15,15 +15,6 @@ Considere como escopo principal:
 - `product.html`
 - `admin/admin.html`
 
-## Arquivos legados
-
-Arquivos legados detectados:
-
-- `_root.html`
-- `_root127.html`
-
-Status recomendado: manter como referência histórica, fora do fluxo ativo.
-
 ## Rotina sugerida
 
 1. Rodar `./tools/health-check.ps1`.
@@ -36,5 +27,4 @@ Status recomendado: manter como referência histórica, fora do fluxo ativo.
 ## Regras de segurança para manutenção
 
 - Não alterar HTML/CSS/JS de produção sem necessidade explícita.
-- Não remover arquivos legados sem backup/validação em branch.
 - Toda melhoria deve manter comportamento visual e funcional existente.

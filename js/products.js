@@ -355,7 +355,7 @@
       const it=document.createElement('div');
       it.className='item';
       it.dataset.defaultVi = String(defaultVariantIndex);
-      it.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${String(img).replace(/\"/g,'&quot;')}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl}">${esc(p.name||'')}</a>${subgroupLink}</div>${promoPriceHtml}`;
+      it.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${window.appUtils.safeImageUrl(img)}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl}">${esc(p.name||'')}</a>${subgroupLink}</div>${promoPriceHtml}`;
       if(isPromoProduct){ promoRoot.appendChild(it); promoCount += 1; }
       else root.appendChild(it);
     });
@@ -489,7 +489,7 @@
       filtersRoot.classList.add('product-filters-panel');
       filtersRoot.classList.toggle('mobile-collapsed', isMobileViewport && !mobileFiltersExpanded);
 
-      const header = document.createElement('h3'); header.textContent = 'Filtros'; filtersRoot.appendChild(header);
+      const header = document.createElement('h2'); header.textContent = 'Filtros'; header.className = 'filters-heading'; filtersRoot.appendChild(header);
       const mobileToggle = document.createElement('button');
       mobileToggle.type = 'button';
       mobileToggle.className = 'filters-mobile-toggle btn';
@@ -506,6 +506,7 @@
       sortWrap.innerHTML = `<div class="filter-title">Ordenar por preço</div>`;
       const sortSel = document.createElement('select');
       sortSel.innerHTML = '<option value="">Padrão</option><option value="price_asc">Menor preço</option><option value="price_desc">Maior preço</option>';
+      sortSel.id = 'product-sort'; sortSel.setAttribute('aria-label', 'Ordenar por preço');
       sortSel.value = sortMode;
       sortSel.addEventListener('change', ()=>applyFilterParams({ sort: sortSel.value }));
       sortWrap.appendChild(sortSel);
@@ -592,14 +593,14 @@
       const promoPrice = getVariantPromoPrice(p, defaultVariantIndex);
       const subgroupLink = p.subgroup ? `<div class="subgroup"><a class="subgroup-link" href="products.html?group=${encodeURIComponent(slugify(p.group||''))}&sub=${encodeURIComponent(slugify(p.subgroup||''))}">${esc(p.subgroup||'')}</a></div>` : '';
       const linkUrl2 = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
-      const imgAttr = String(img).replace(/\"/g,'&quot;');
+      const imgAttr = window.appUtils.safeImageUrl(img);
       const brandHtml = p.brand ? ('Marca: ' + esc(p.brand)) : '';
       const manufacturerHtml = p.manufacturer ? ('Fabricante: ' + esc(p.manufacturer)) : '';
       const brandBlock = [brandHtml, manufacturerHtml].filter(Boolean).map(x=>`<div class="brand">${x}</div>`).join('');
       const unavailableBadge = toBoolean(p.is_unavailable) ? '<div class="badge-unavailable">Indisponivel</div>' : '';
       const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
       const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
-      el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}${brandBlock}</div>${promoPriceHtml}`;
+      el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}${brandBlock}</div>${promoPriceHtml}`;
       el.dataset.defaultVi = String(defaultVariantIndex);
       return el;
     }
@@ -643,12 +644,12 @@
   }
 
   function showVariantSelector(product){
-    const modal = document.createElement('div'); modal.className='modal visible';
+    const modal = document.createElement('div'); modal.className='modal visible'; modal.setAttribute('data-remove-on-close','1');
     const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'));
-    const imgAttr = String(product.image || 'https://via.placeholder.com/64').replace(/\"/g,'&quot;');
+    const imgAttr = window.appUtils.safeImageUrl(product.image || 'https://via.placeholder.com/64');
     modal.innerHTML = `
       <div class="modal-body" style="max-width:480px;width:92%;padding:18px;background:#fff;border-radius:10px;">
-        <button class="modal-close" style="float:right;border:none;background:transparent;font-size:20px">×</button>
+        <button type="button" class="modal-close" aria-label="Fechar" style="float:right;border:none;background:transparent;font-size:20px;min-width:44px;min-height:44px"><span aria-hidden="true">×</span></button>
         <h3 style="margin:6px 0 12px">Qual você gostaria?</h3>
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
           <img src="${imgAttr}" style="width:64px;height:64px;object-fit:contain;border-radius:6px;border:1px solid #eee;margin-right:8px">
@@ -660,14 +661,14 @@
             const promo = getVariantPromoPrice(product, i);
             const unavailable = isVariantUnavailable(v);
             const priceHtml = (promo !== null)
-              ? `<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1"><span style="font-size:12px;color:#8a8a8a;text-decoration:line-through">R$ ${base.toFixed(2)}</span><span style="font-weight:700;color:var(--orange,#f08b2a)">R$ ${promo.toFixed(2)}</span></div>`
-              : `<div style="font-weight:700;color:var(--orange,#f08b2a)">R$ ${base.toFixed(2)}</div>`;
+              ? `<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1"><span style="font-size:12px;color:#6b6b6b;text-decoration:line-through">R$ ${base.toFixed(2)}</span><span style="font-weight:700;color:var(--orange,#bf5600)">R$ ${promo.toFixed(2)}</span></div>`
+              : `<div style="font-weight:700;color:var(--orange,#bf5600)">R$ ${base.toFixed(2)}</div>`;
             const buttonStyle = unavailable
               ? 'background:#bdbdbd;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:not-allowed;opacity:.9'
-              : 'background:var(--orange,#f08b2a);color:#fff;border:none;padding:6px 10px;border-radius:6px';
+              : 'background:var(--orange,#bf5600);color:#fff;border:none;padding:6px 10px;border-radius:6px';
             const buttonLabel = unavailable ? 'Indisponível' : 'Adicionar à sacola';
             const buttonAttrs = unavailable ? ' disabled aria-disabled="true"' : '';
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #eee;background:#fff"><div>${esc(v.weight||'')}${unavailable ? '<div style="font-size:12px;color:#9a9a9a">Indisponível</div>' : ''}</div><div style="display:flex;gap:10px;align-items:center">${priceHtml}<button class="variant-add" data-id="${product.id}" data-vi="${i}" style="${buttonStyle}"${buttonAttrs}>${buttonLabel}</button></div></div>`;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #eee;background:#fff"><div>${esc(v.weight||'')}${unavailable ? '<div style="font-size:12px;color:#6b6b6b">Indisponível</div>' : ''}</div><div style="display:flex;gap:10px;align-items:center">${priceHtml}<button class="variant-add" data-id="${product.id}" data-vi="${i}" style="${buttonStyle}"${buttonAttrs}>${buttonLabel}</button></div></div>`;
           }).join('')}
         </div>
       </div>
@@ -782,7 +783,7 @@
       const p = products.find(x=>x.id===id);
       if(!p) return;
       if(toBoolean(p.is_unavailable)){
-        alert('Produto indisponivel no momento.');
+        (window.appA11y ? function(m){ window.appA11y.notify(m, 'info'); } : window.alert)('Produto indisponivel no momento.');
         return;
       }
       if(Array.isArray(p.variants) && p.variants.length>1){
@@ -791,7 +792,7 @@
         const activeChip = card ? card.querySelector(`.weight-chip[data-id="${id}"].active`) : null;
         if(activeChip){
           if(activeChip.classList.contains('disabled')){
-            alert('Esta variante esta indisponivel no momento.');
+            (window.appA11y ? function(m){ window.appA11y.notify(m, 'info'); } : window.alert)('Esta variante esta indisponivel no momento.');
             return;
           }
           const vi = Number(activeChip.dataset.vi);
@@ -801,7 +802,7 @@
         }
       } else if(Array.isArray(p.variants) && p.variants.length===1){
         if(isVariantUnavailable(p.variants[0])){
-          alert('Esta variante esta indisponivel no momento.');
+          (window.appA11y ? function(m){ window.appA11y.notify(m, 'info'); } : window.alert)('Esta variante esta indisponivel no momento.');
           return;
         }
         document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id,variantIndex:0}}));
@@ -868,7 +869,7 @@
         const promoPrice = getVariantPromoPrice(p, defaultVariantIndex);
         const link3 = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
         const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
-        it.innerHTML = `<div class="image-wrap"><img src="${String(img).replace(/\"/g,'&quot;')}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${link3}">${esc(p.name||'')}</a></div>${buildPriceHtml(basePrice, promoPrice)}`;
+        it.innerHTML = `<div class="image-wrap"><img src="${window.appUtils.safeImageUrl(img)}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${link3}">${esc(p.name||'')}</a></div>${buildPriceHtml(basePrice, promoPrice)}`;
         it.dataset.defaultVi = String(defaultVariantIndex);
         root.appendChild(it);
       });

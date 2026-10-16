@@ -8,10 +8,13 @@
   <link rel="stylesheet" href="../css/mobile.css">
   <link rel="stylesheet" href="../css/desktop.css" media="(min-width:900px)">
   <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../css/a11y.css">
+  <script src="../js/a11y.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
   <!-- Header removed for admin page to avoid site header injection -->
-  <main class="admin-layout">
+  <main id="main-content" tabindex="-1" class="admin-layout">
     <aside class="admin-form">
       <div class="admin-head">
         <img src="../img/logobox.png" alt="Box Das Rações" class="admin-head-logo">
@@ -182,27 +185,12 @@
   </div>
   <script src="../js/storage-idb.js" defer></script>
   <!-- Supabase configuration: load external config.js or fallback to placeholders -->
-  <script>
-    (function(){
-      var s = document.createElement('script');
-      s.src = '/config.js';
-      s.onload = function(){};
-      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
-      (document.head || document.documentElement).appendChild(s);
-    })();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="/js/config-loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="../js/supabase-client.js" defer></script>
   <script src="../js/utils.js" defer></script>
   <script src="../js/admin.js" defer></script>
   <script src="../js/admin-ui.js" defer></script>
-  <script defer>
-    document.addEventListener('DOMContentLoaded', ()=>{
-      try{
-        // attempt to initialize supabase client; no UI status created in production
-        if(window.supa && typeof window.supa.init === 'function') window.supa.init();
-      }catch(e){ console.warn('supa test failed', e); }
-    });
-  </script>
+  <script src="../js/admin-init.js" defer></script>
 </body>
 </html>

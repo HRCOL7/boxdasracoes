@@ -5,7 +5,7 @@
       const palette = ['#F1F8FF','#FFF5E8','#EEF9F0'];
       const bg = palette[index % palette.length];
       const text = encodeURIComponent(`Banner ${index + 1}`);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1188" height="419" viewBox="0 0 1188 419"><rect width="1188" height="419" fill="${bg}"/><circle cx="120" cy="90" r="58" fill="#ffffff" opacity=".55"/><circle cx="1020" cy="320" r="82" fill="#ffffff" opacity=".5"/><text x="594" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="700" fill="#ff7a00">${decodeURIComponent(text)}</text></svg>`;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1188" height="419" viewBox="0 0 1188 419"><rect width="1188" height="419" fill="${bg}"/><circle cx="120" cy="90" r="58" fill="#ffffff" opacity=".55"/><circle cx="1020" cy="320" r="82" fill="#ffffff" opacity=".5"/><text x="594" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" font-weight="700" fill="#bf5600">${decodeURIComponent(text)}</text></svg>`;
       return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
     };
 
@@ -29,7 +29,7 @@
         const d = document.createElement('div'); d.className='item';
         const img = document.createElement('img');
         img.src = src;
-        img.alt = `Banner ${idx+1}`;
+        img.alt = `Destaque ${idx+1} de ${finalBanners.length}`;
         img.loading='lazy';
         img.onerror = ()=>{ img.src = fallbackBanner(idx); };
         d.appendChild(img);
@@ -98,7 +98,7 @@
         if(!dotsWrap) return;
         const pageWidth = root.clientWidth;
         const page = Math.round(root.scrollLeft / pageWidth) || 0;
-        dotButtons.forEach((b,i)=> b.classList.toggle('active', i===page));
+        dotButtons.forEach((b,i)=>{ b.classList.toggle('active', i===page); if(i===page) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current'); });
       }
 
       function buildDots(){
@@ -107,7 +107,7 @@
         const items = getItems();
         const pages = opts.forceDotsCount || Math.max(1, Math.ceil(items.length / visible));
         for(let i=0;i<pages;i++){
-          const b = document.createElement('button'); b.type='button'; b.className='carousel-dot'; b.setAttribute('data-index', i);
+          const b = document.createElement('button'); b.type='button'; b.className='carousel-dot'; b.setAttribute('data-index', i); b.setAttribute('aria-label', 'Ir para o item ' + (i+1));
           b.addEventListener('click', ()=>{ root.scrollTo({left: i * root.clientWidth, behavior:'smooth'}); });
           dotsWrap.appendChild(b); dotButtons.push(b);
         }
@@ -196,7 +196,7 @@
       dotsWrap.innerHTML='';
       const dotButtons = [];
       for(let i=0;i<dotsCount;i++){
-        const b = document.createElement('button'); b.type='button'; b.className='carousel-dot'; b.setAttribute('data-index', i);
+        const b = document.createElement('button'); b.type='button'; b.className='carousel-dot'; b.setAttribute('data-index', i); b.setAttribute('aria-label', 'Ir para o item ' + (i+1));
         b.addEventListener('click', ()=>{ index = i; goTo(index); });
         dotsWrap.appendChild(b); dotButtons.push(b);
       }
@@ -210,9 +210,13 @@
         const gap = Number(root.dataset.bannerGap || 0);
         const offset = index * (cardWidth + gap);
         track.style.transform = `translateX(-${offset}px)`;
-        dotButtons.forEach((b,idx)=> b.classList.toggle('active', idx===index));
+        dotButtons.forEach((b,idx)=>{ b.classList.toggle('active', idx===index); if(idx===index) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current'); });
         Array.from(track.children).forEach((child, idx)=>{
           child.classList.toggle('active', idx === index);
+          child.setAttribute('role', 'group'); child.setAttribute('aria-roledescription', 'slide');
+          child.setAttribute('aria-label', (idx + 1) + ' de ' + dotsCount);
+          // slides fora da tela não são lidos nem focados
+          if(idx === index) child.removeAttribute('aria-hidden'); else child.setAttribute('aria-hidden', 'true');
         });
       }
 
@@ -238,9 +242,12 @@
         });
       }
 
+      let userPaused = false;
+      const reduced = ()=> !!(window.appA11y && window.appA11y.prefs.prefersReducedMotion());
       function startAutoplay(){
         stopAutoplay();
-        if(dotsCount <= 1) return;
+        if(dotsCount <= 1 || userPaused || reduced()) return;
+        track.setAttribute('aria-live', 'off');
         autoplayTimer = setInterval(()=>{
           index = (index + 1) % dotsCount;
           goTo(index);
@@ -248,10 +255,23 @@
       }
 
       function stopAutoplay(){
+        track.setAttribute('aria-live', 'polite');   // parado: leitor de tela anuncia o slide novo
         if(autoplayTimer){
           clearInterval(autoplayTimer);
           autoplayTimer = null;
         }
+      }
+
+      // Botão de pausa (WCAG 2.2.2): quem não consegue acompanhar o movimento precisa poder parar.
+      let pauseBtn = root.querySelector('.carousel-pause');
+      if(!pauseBtn && dotsCount > 1 && !reduced()){
+        const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>';
+        const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+        pauseBtn = document.createElement('button'); pauseBtn.type = 'button'; pauseBtn.className = 'carousel-pause';
+        const paint = ()=>{ pauseBtn.innerHTML = userPaused ? ICON_PLAY : ICON_PAUSE; pauseBtn.setAttribute('aria-label', userPaused ? 'Retomar apresentação automática dos destaques' : 'Pausar apresentação automática dos destaques'); };
+        paint();
+        pauseBtn.addEventListener('click', ()=>{ userPaused = !userPaused; paint(); if(userPaused) stopAutoplay(); else startAutoplay(); });
+        root.appendChild(pauseBtn);
       }
 
       // set initial layout styles

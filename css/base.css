@@ -1,5 +1,6 @@
-:root{--orange:#ff7a00; --orange-dark:#e66f00; --green:#27ae60; --green-shadow: rgba(39,174,96,0.18); --bg:#fff}
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+/* Cores ajustadas para contraste WCAG AA (>= 4,5:1 com branco). O laranja original da marca
+   continua disponível como --orange-brand para usos decorativos. */
+:root{--orange-brand:#ff7a00; --orange:#bf5600; --orange-dark:#a84800; --green:#1e8449; --muted:#6b6b6b; --green-shadow: rgba(39,174,96,0.18); --bg:#fff}
 *{box-sizing:border-box}
 /* use a rounded, bold-ish system with Nunito as primary */
 body{font-family:'Nunito', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:inherit; font-weight:600}
@@ -40,7 +41,7 @@ img.logo-img{height:64px;width:64px}
 .carousel-wrap .carousel-nav.prev{left:-52px}
 .carousel-wrap .carousel-nav.next{right:-52px}
 .carousel-wrap .carousel-nav svg{width:18px;height:18px;display:block}
-.carousel-wrap .carousel-nav:focus{outline:none;box-shadow:0 0 0 4px rgba(0,0,0,0.06)}
+.carousel-wrap .carousel-nav:focus{box-shadow:0 0 0 4px rgba(0,0,0,0.06)}
 .carousel-wrap .carousel-nav:active,.carousel-wrap .carousel-nav:focus{border-color:#000}
 /* dots (small pagers) */
 .carousel-dots{display:flex;gap:8px;justify-content:center;padding:10px 0}
@@ -100,7 +101,7 @@ img.logo-img{height:64px;width:64px}
 .carousel .item .product-name{margin:8px 0 6px}
 .carousel .item .price{color:var(--orange);font-weight:700}
 .promo-price-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.price-old{color:#999;text-decoration:line-through;font-weight:700;font-size:13px}
+.price-old{color:var(--muted);text-decoration:line-through;font-weight:700;font-size:13px}
 .price-promo{color:#d32f2f;font-weight:800}
 .badge-unavailable{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:999px;background:#111;color:#fff;font-size:11px;font-weight:700;margin-bottom:6px}
 .add-circle.disabled{opacity:.5;pointer-events:none;filter:grayscale(0.2)}
@@ -302,7 +303,7 @@ img.logo-img{height:64px;width:64px}
 .cart-buttons{display:flex;gap:8px;margin-top:8px}
 button{cursor:pointer}
 /* section headings color */
-.catalog h2, .brands h3{color:var(--orange)}
+.catalog h2, .brands h2, .brands h3{color:var(--orange)}
 
 /* cash amount input styling inside cart */
 #cash-amount{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd}
@@ -320,7 +321,7 @@ input, button, select, textarea{font-family:inherit;font-weight:600}
 .buy-actions .qty .qty-btn:active{transform:scale(.98)}
 .buy-actions .qty .qty-val{width:48px;height:34px;border-radius:8px;border:1px solid #eee;text-align:center;font-weight:800;font-size:15px;background:#fff;color:#000}
 .buy-actions .qty .qty-val::-webkit-outer-spin-button,.buy-actions .qty .qty-val::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
-.buy-actions .qty .qty-val:focus{outline:none;box-shadow:0 6px 16px rgba(10,102,255,0.10)}
+.buy-actions .qty .qty-val:focus{box-shadow:0 6px 16px rgba(10,102,255,0.10)}
 
 /* illustrative label styling */
 .illustrative{color:var(--orange);font-weight:700;font-size:13px;margin-left:0;margin-top:6px}
@@ -328,7 +329,7 @@ input, button, select, textarea{font-family:inherit;font-weight:600}
 /* Make sure qty aligns well next to the primary add button */
 .buy-actions{display:flex;align-items:center;gap:12px}
 .buy-actions .btn{min-height:48px}
-#payment:focus{outline:none;box-shadow:0 0 0 4px rgba(43,138,95,0.06)}
+#payment:focus{box-shadow:0 0 0 4px rgba(43,138,95,0.06)}
 
 .cart-controls-site{margin-top:8px}
 .checkout-delivery,.checkout-schedule{margin-top:10px}
@@ -373,7 +374,7 @@ input, button, select, textarea{font-family:inherit;font-weight:600}
 .variant-chip:focus{outline:3px solid rgba(255,122,0,0.2);outline-offset:2px}
 .variant-chip-weight{font-weight:800;color:#1f1f1f;line-height:1.1}
 .variant-chip-price-row{display:flex;gap:6px;align-items:baseline;line-height:1}
-.variant-chip-old{font-size:12px;color:#9a9a9a;text-decoration:line-through}
+.variant-chip-old{font-size:12px;color:var(--muted);text-decoration:line-through}
 .variant-chip-price{font-size:14px;font-weight:800;color:#2c2c2c}
 .variant-chip.promo{background:linear-gradient(180deg,#fff9f0 0%,#fff3e1 100%);border-color:#ffbc7a}
 .variant-chip.promo .variant-chip-price{color:#cc5e00}

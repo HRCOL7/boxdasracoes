@@ -90,7 +90,7 @@
       }));
     }catch(err){ }
 
-    alert(
+    (window.appA11y ? function(m){ window.appA11y.notify(m, 'info'); } : window.alert)(
       'Pedido criado para checkout no site: ' + code + '\n\n' +
       'Endereco e agendamento confirmados.\n' +
       'Integracao PIX/cartao fica pronta para conectar com o gateway quando voce decidir ativar.'

@@ -3,24 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Box Das Rações</title>
+  <title>Box Das Rações — ração, medicamentos e acessórios para pets</title>
+  <meta name="description" content="Box Das Rações: rações, medicamentos, brinquedos e acessórios para cães, gatos e outros pets. Peça pelo site ou pelo WhatsApp.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/mobile.css">
   <link rel="stylesheet" href="css/desktop.css" media="(min-width:900px)">
+  <link rel="stylesheet" href="css/a11y.css">
+  <link rel="stylesheet" href="css/assistant.css">
+  <script src="js/a11y.js"></script>
   <link rel="icon" href="favicon.ico">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
   <header class="top">
-    <button id="hamburger" aria-label="menu" class="icon">☰</button>
-    <div class="logo"><img src="logobox.png" alt="logo" class="logo-img"></div>
+    <button id="hamburger" type="button" class="icon" aria-label="Abrir menu de categorias" aria-expanded="false" aria-controls="side-menu"><span aria-hidden="true">☰</span></button>
+    <div class="logo"><a href="/index.html" aria-label="Box Das Rações, página inicial"><img src="img/logobox.png" alt="" class="logo-img"></a></div>
     <div id="customer-auth-holder"></div>
-    <button id="cart-btn" class="icon"><img src="cart-l2.png" alt="carrinho" class="cart-icon"><span id="cart-count" class="cart-count">0</span></button>
+    <button id="cart-btn" type="button" class="icon" aria-label="Abrir carrinho" aria-expanded="false" aria-controls="cart-panel"><img src="img/cart-l2.png" alt="" class="cart-icon"><span id="cart-count" class="cart-count" aria-hidden="true">0</span></button>
   </header>
 
-  <div id="search-area" class="search-area">
+  <div id="search-area" class="search-area" role="search" aria-label="Buscar produtos">
     <div style="position:relative">
-      <input id="search" placeholder="O seu pet merece o melhor !">
-      <button id="search-btn" class="search-btn" aria-label="Pesquisar" title="Pesquisar">
+      <label for="search" class="sr-only">Buscar produtos</label>
+      <input id="search" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="O seu pet merece o melhor !">
+      <button id="search-btn" class="search-btn" type="button" aria-label="Pesquisar" title="Pesquisar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/>
@@ -28,31 +37,33 @@
       </button>
     </div>
     <div id="search-results" class="search-results"></div>
+    <div id="search-status" class="sr-only" role="status" aria-live="polite"></div>
   </div>
 
-  <main>
-    <section id="top-carousel" class="carousel banner"></section>
+  <main id="main-content" tabindex="-1">
+    <h1 class="sr-only">Box Das Rações: rações, medicamentos e acessórios para o seu pet</h1>
+    <section id="top-carousel" class="carousel banner" aria-roledescription="carrossel" aria-label="Destaques e promoções"></section>
 
-    <section class="catalog promotions-catalog" id="promotions-section" style="display:none">
-      <h2>Promoções</h2>
+    <section class="catalog promotions-catalog" id="promotions-section" aria-labelledby="promo-title" style="display:none">
+      <h2 id="promo-title">Promoções</h2>
       <div id="promotions-carousel" class="carousel products"></div>
     </section>
 
-    <section class="catalog">
-      <h2>Produtos Em Destaque</h2>
+    <section class="catalog" aria-labelledby="featured-title">
+      <h2 id="featured-title">Produtos Em Destaque</h2>
       <div id="products-carousel" class="carousel products"></div>
     </section>
 
-    <section class="brands">
-      <h3>Marcas Parceiras</h3>
+    <section class="brands" aria-labelledby="brands-title">
+      <h2 id="brands-title">Marcas Parceiras</h2>
       <div id="brands-carousel" class="carousel brands-list"></div>
     </section>
   </main>
 
-  <aside id="cart-panel" class="cart-panel hidden">
+  <aside id="cart-panel" class="cart-panel hidden" aria-labelledby="cart-title">
     <div class="cart-header">
-      <h3>Seu Carrinho</h3>
-      <button id="cart-close" class="cart-close">✕</button>
+      <h2 id="cart-title">Seu Carrinho</h2>
+      <button id="cart-close" type="button" class="cart-close" aria-label="Fechar carrinho"><span aria-hidden="true">✕</span></button>
     </div>
     <div id="cart-items" class="cart-items"></div>
     <div class="cart-footer">
@@ -65,9 +76,9 @@
         <button id="checkout-site" class="btn btn-blue btn-right" disabled><span class="btn-line">Finalizar<br>no site</span></button>
       </div>
       <div class="cart-actions">
-        <label style="display:block;margin-top:8px;font-weight:700">Pagamento:</label>
+        <label for="payment" style="display:block;margin-top:8px;font-weight:700">Pagamento:</label>
         <div class="payment-row" style="display:flex;gap:8px;align-items:center;margin-top:6px">
-          <select id="payment" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd">
+          <select id="payment" autocomplete="off" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd">
             <option value="">Selecione</option>
             <option value="PIX">PIX</option>
             <option value="DEBITO">DÉBITO</option>
@@ -79,24 +90,29 @@
           </select>
         </div>
         <div id="cash-change" class="hidden" style="margin-top:8px">
-          <label>Precisa de troco? <select id="need-change"><option value="no">Não</option><option value="yes">Sim</option></select></label>
-          <div id="cash-amount-row" class="hidden" style="margin-top:8px">Valor que irá pagar: <input id="cash-amount" type="text" placeholder="ex: 200.00" style="padding:8px;border-radius:6px;border:1px solid #ddd;width:100%"></div>
+          <label for="need-change">Precisa de troco? <select id="need-change"><option value="no">Não</option><option value="yes">Sim</option></select></label>
+          <div id="cash-amount-row" class="hidden" style="margin-top:8px"><label for="cash-amount">Valor que irá pagar:</label> <input id="cash-amount" type="text" inputmode="decimal" placeholder="ex: 200.00" style="padding:8px;border-radius:6px;border:1px solid #ddd;width:100%"></div>
         </div>
         <div class="checkout-delivery">
-          <label class="checkout-section-title">Confirmar endereço de entrega:</label>
+          <p class="checkout-section-title" id="delivery-title" style="margin:0 0 4px;font-weight:700">Confirmar endereço de entrega:</p>
           <div class="checkout-grid two-cols">
+            <label for="checkout-street" class="sr-only">Rua</label>
             <input id="checkout-street" type="text" placeholder="Rua" autocomplete="address-line1">
+            <label for="checkout-number" class="sr-only">Número</label>
             <input id="checkout-number" type="text" placeholder="Número" autocomplete="address-line2">
+            <label for="checkout-neighborhood" class="sr-only">Bairro</label>
             <input id="checkout-neighborhood" type="text" placeholder="Bairro" autocomplete="address-level2">
-            <input id="checkout-zip" type="text" placeholder="CEP" autocomplete="postal-code">
+            <label for="checkout-zip" class="sr-only">CEP</label>
+            <input id="checkout-zip" type="text" inputmode="numeric" placeholder="CEP" autocomplete="postal-code">
           </div>
+          <label for="checkout-reference" class="sr-only">Referência (opcional)</label>
           <input id="checkout-reference" type="text" placeholder="Referência (opcional)">
         </div>
         <div class="checkout-schedule">
-          <label class="checkout-section-title">Agendamento da entrega:</label>
+          <p class="checkout-section-title" id="schedule-title" style="margin:0 0 4px;font-weight:700">Agendamento da entrega:</p>
           <div class="checkout-grid two-cols">
-            <input id="delivery-date" type="date">
-            <select id="delivery-window">
+            <label for="delivery-date" class="sr-only">Data da entrega</label><input id="delivery-date" type="date">
+            <label for="delivery-window" class="sr-only">Horário da entrega</label><select id="delivery-window">
               <option value="">Selecione o horário</option>
               <option value="09:00-11:00">09:00 às 11:00</option>
               <option value="13:00-15:00">13:00 às 15:00</option>
@@ -104,23 +120,15 @@
             </select>
           </div>
         </div>
-        <p id="checkout-site-hint" class="checkout-site-hint">Checkout no site pronto para integração com gateway PIX/cartão.</p>
+        <p id="checkout-site-hint" class="checkout-site-hint" role="note">Checkout no site pronto para integração com gateway PIX/cartão.</p>
       </div>
     </div>
   </aside>
 
   <script src="js/carousel.js" defer></script>
   <script src="js/menu.js" defer></script>
-  <script>
-    (function(){
-      var s = document.createElement('script');
-      s.src = '/config.js';
-      s.onload = function(){};
-      s.onerror = function(){ window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || { url: 'https://your-project.supabase.co', anonKey: 'your-anon-key' }; };
-      (document.head || document.documentElement).appendChild(s);
-    })();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js" defer></script>
+  <script src="/js/config-loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="js/supabase-client.js" defer></script>
   <script src="js/analytics.js" defer></script>
   <script src="js/utils.js" defer></script>
@@ -130,5 +138,6 @@
   <script src="js/cart.js" defer></script>
   <script src="js/site-checkout.js" defer></script>
   <script src="js/whatsapp.js" defer></script>
+  <script src="js/assistant.js" defer></script>
 </body>
 </html>

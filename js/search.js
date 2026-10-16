@@ -236,20 +236,23 @@
     async function performSearch(){
       const q = normalizeText(input.value);
       results.innerHTML = '';
+      const statusEl = document.getElementById('search-status');
+      if(statusEl) statusEl.textContent = '';
       if(!q) return;
       const matches = await findMatches(q, 8);
       const frag = document.createDocumentFragment();
       matches.forEach(p=>{
-        const r = document.createElement('div');
+        const r = document.createElement('a');
         r.className = 'search-row';
+        r.href = 'product.html?id=' + encodeURIComponent(p.id);
         const img = getCardImage(p);
         const displayPrice = getDisplayPrice(p);
         const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-        r.innerHTML = `<img class="search-thumb" src="${String(img).replace(/\"/g,'&quot;')}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${displayPrice.toFixed(2)}</div></div>`;
-        r.addEventListener('click', ()=>{ window.location.href = 'product.html?id='+encodeURIComponent(p.id); });
+        r.innerHTML = `<img class="search-thumb" alt="" src="${window.appUtils.safeImageUrl(img)}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${displayPrice.toFixed(2)}</div></div>`;
         frag.appendChild(r);
       });
       results.appendChild(frag);
+      if(statusEl) statusEl.textContent = matches.length ? (matches.length + (matches.length === 1 ? ' resultado encontrado. Use a seta para baixo para navegar.' : ' resultados encontrados. Use a seta para baixo para navegar.')) : 'Nenhum produto encontrado.';
     }
 
     if(input.dataset.searchBound !== '1'){
@@ -270,6 +273,17 @@
           const first = results.querySelector('.search-row'); if(first) first.click();
         });
       }
+      // Setas: do campo para a lista e entre os resultados; Esc fecha e volta ao campo.
+      input.addEventListener('keydown', (e)=>{
+        if(e.key === 'ArrowDown'){ const first = results.querySelector('.search-row'); if(first){ e.preventDefault(); first.focus(); } }
+        if(e.key === 'Escape'){ results.innerHTML = ''; const st = document.getElementById('search-status'); if(st) st.textContent = ''; }
+      });
+      results.addEventListener('keydown', (e)=>{
+        const rows = Array.from(results.querySelectorAll('.search-row')); const i = rows.indexOf(document.activeElement);
+        if(e.key === 'ArrowDown' && i > -1){ e.preventDefault(); (rows[i + 1] || rows[i]).focus(); }
+        else if(e.key === 'ArrowUp' && i > -1){ e.preventDefault(); (i === 0 ? input : rows[i - 1]).focus(); }
+        else if(e.key === 'Escape'){ results.innerHTML = ''; input.focus(); }
+      });
       input.dataset.searchBound = '1';
     }
 
@@ -284,12 +298,11 @@
           if(mobileSuggestions) mobileSuggestions.innerHTML = '';
           const frag = document.createDocumentFragment();
           matches.forEach(p=>{
-            const r = document.createElement('div'); r.className='search-row';
+            const r = document.createElement('a'); r.className='search-row'; r.href = 'product.html?id=' + encodeURIComponent(p.id);
             const img = getCardImage(p);
             const displayPrice = getDisplayPrice(p);
             const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
-            r.innerHTML = `<img class="search-thumb" src="${String(img).replace(/\"/g,'&quot;')}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${displayPrice.toFixed(2)}</div></div>`;
-            r.addEventListener('click', ()=>{ window.location.href='product.html?id='+encodeURIComponent(p.id); });
+            r.innerHTML = `<img class="search-thumb" alt="" src="${window.appUtils.safeImageUrl(img)}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${displayPrice.toFixed(2)}</div></div>`;
             frag.appendChild(r);
           });
           if(mobileSuggestions) mobileSuggestions.appendChild(frag);

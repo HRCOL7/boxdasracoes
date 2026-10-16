@@ -12,7 +12,7 @@
     function buildPanel(){
       let panel=document.getElementById('side-menu');
       if(panel) return panel;
-      panel=document.createElement('div');panel.id='side-menu';panel.className='side-menu';
+      panel=document.createElement('nav');panel.id='side-menu';panel.className='side-menu';panel.setAttribute('aria-label','Categorias de produtos');panel.inert=true;
       const ul=document.createElement('div');ul.className='side-list';
 
       const menu = (settings && Array.isArray(settings.categories) && settings.categories.length)
@@ -36,20 +36,23 @@
       menu.forEach(item=>{
         const row=document.createElement('div'); row.className='side-row';
         const header=document.createElement('div'); header.className='side-row-header';
-        const left=document.createElement('div'); left.className='side-row-left';
+        const hasSubs = !!(item.subs && item.subs.length);
+        const left=document.createElement(hasSubs ? 'button' : 'a'); left.className='side-row-left';
+        if(hasSubs){ left.type='button'; left.setAttribute('aria-expanded','false'); }
+        else { left.href = 'products.html?group=' + encodeURIComponent(slugify(item.title)); }
         const iconSpan=document.createElement('span'); iconSpan.className='side-icon'; iconSpan.innerHTML = icons[item.title] || '';
         const txt=document.createElement('span'); txt.className='side-title'; txt.textContent = item.title;
         left.appendChild(iconSpan); left.appendChild(txt);
         header.appendChild(left);
 
         if(item.subs && item.subs.length){
-          const arrow=document.createElement('button'); arrow.className='side-arrow'; arrow.type='button'; arrow.setAttribute('aria-expanded','false');
+          const arrow=document.createElement('button'); arrow.className='side-arrow'; arrow.type='button'; arrow.setAttribute('aria-expanded','false'); arrow.setAttribute('aria-hidden','true'); arrow.tabIndex=-1; /* duplicado do botão ao lado: só para mouse */
           arrow.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
           header.appendChild(arrow);
-          const subul=document.createElement('div'); subul.className='side-submenu';
+          const subul=document.createElement('div'); subul.className='side-submenu'; subul.id='side-sub-' + slugify(item.title); left.setAttribute('aria-controls', subul.id);
           item.subs.forEach(s=>{
-            const li=document.createElement('div'); li.className='side-sub'; li.textContent=s;
-            li.addEventListener('click',()=>{ window.location.href = 'products.html?group=' + encodeURIComponent(slugify(item.title)) + '&sub=' + encodeURIComponent(slugify(s)); });
+            const li=document.createElement('a'); li.className='side-sub'; li.textContent=s;
+            li.href = 'products.html?group=' + encodeURIComponent(slugify(item.title)) + '&sub=' + encodeURIComponent(slugify(s));
             subul.appendChild(li);
           });
           row.appendChild(header);
@@ -60,11 +63,12 @@
             const panel = document.getElementById('side-menu');
             if(panel){
               panel.querySelectorAll('.side-submenu.open').forEach(s=>{
-                if(s!==subul){ s.classList.remove('open'); const a = s.parentElement.querySelector('.side-arrow'); if(a){ a.classList.remove('rotated'); a.setAttribute('aria-expanded','false'); } }
+                if(s!==subul){ s.classList.remove('open'); const a = s.parentElement.querySelector('.side-arrow'); if(a){ a.classList.remove('rotated'); a.setAttribute('aria-expanded','false'); } const l = s.parentElement.querySelector('.side-row-left'); if(l) l.setAttribute('aria-expanded','false'); }
               });
             }
             const open = arrow.getAttribute('aria-expanded') === 'true';
             arrow.setAttribute('aria-expanded', String(!open));
+            left.setAttribute('aria-expanded', String(!open));
             subul.classList.toggle('open', !open);
             arrow.classList.toggle('rotated', !open);
           }
@@ -73,18 +77,20 @@
           left.addEventListener('click',(e)=>{ e.stopPropagation(); toggleThis(); });
         } else {
           // no subs: clicking header navigates to products for that group
-          header.appendChild(document.createElement('span'));
-          header.addEventListener('click',()=>{ window.location.href = 'products.html?group=' + encodeURIComponent(slugify(item.title)); });
           row.appendChild(header);
         }
         ul.appendChild(row);
       });
 
+      const closeBtn=document.createElement('button'); closeBtn.type='button'; closeBtn.className='side-menu-close'; closeBtn.innerHTML='<span aria-hidden="true">✕</span> Fechar menu';
+      closeBtn.addEventListener('click',()=>closePanel(panel));
+      panel.appendChild(closeBtn);
       panel.appendChild(ul); document.body.appendChild(panel);
       return panel;
     }
 
     let outsideClickHandler = null;
+    let menuDialog = null;
     function closePanel(panel){
       if(!panel) return;
       // collapse any open submenus
@@ -92,7 +98,11 @@
       panel.querySelectorAll('.side-arrow.rotated').forEach(a=>a.classList.remove('rotated'));
       const arrows = panel.querySelectorAll('.side-arrow[aria-expanded]');
       if(arrows && arrows.length){ arrows.forEach(a=>a.setAttribute('aria-expanded','false')); }
+      panel.querySelectorAll('.side-row-left[aria-expanded]').forEach(b=>b.setAttribute('aria-expanded','false'));
       panel.classList.remove('open');
+      panel.inert = true;
+      if(hamburger) hamburger.setAttribute('aria-expanded','false');
+      if(menuDialog){ const d = menuDialog; menuDialog = null; d.close(); }
       if(outsideClickHandler){ document.removeEventListener('click', outsideClickHandler); outsideClickHandler = null; }
     }
 
@@ -107,6 +117,9 @@
       if(isOpen){ closePanel(panel); return; }
       // open
       panel.classList.add('open');
+      panel.inert = false;
+      hamburger.setAttribute('aria-expanded','true');
+      if(window.appA11y){ menuDialog = window.appA11y.openDialog(panel, { opener: hamburger, initialFocus: '.side-menu-close', onClose: ()=>closePanel(panel) }); }
 
       // add document click listener to close when clicking outside
       outsideClickHandler = function(ev){
@@ -125,7 +138,7 @@
     if(brandsRoot){
       const fallbackBrandLogo = (name)=>{
         const label = String(name || 'Marca').replace(/</g,'').replace(/>/g,'').slice(0, 18);
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="120" viewBox="0 0 220 120"><rect width="220" height="120" rx="14" fill="#ffffff"/><rect x="2" y="2" width="216" height="116" rx="12" fill="none" stroke="#e7e7e7"/><text x="110" y="66" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#ff7a00">${label}</text></svg>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="120" viewBox="0 0 220 120"><rect width="220" height="120" rx="14" fill="#ffffff"/><rect x="2" y="2" width="216" height="116" rx="12" fill="none" stroke="#e7e7e7"/><text x="110" y="66" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#bf5600">${label}</text></svg>`;
         return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
       };
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
@@ -136,14 +149,14 @@
       configuredBrands.forEach(entry=>{
         const b = (entry && typeof entry === 'object') ? String(entry.name||'').trim() : String(entry||'').trim();
         if(!b) return;
-        const it=document.createElement('div');it.className='item';
+        const it=document.createElement('a');it.className='item'; it.href='products.html?brand=' + encodeURIComponent(b);
         const bEsc = esc(b);
         const image = (entry && typeof entry === 'object' && entry.image) ? String(entry.image).trim() : '';
         const imgUrl = image || fallbackBrandLogo(b);
-        it.innerHTML=`<img src="${imgUrl}" alt="${bEsc}"><div>${bEsc}</div>`;
+        it.innerHTML=`<img src="${window.appUtils.safeImageUrl(imgUrl, fallbackBrandLogo(b))}" alt=""><div>${bEsc}</div>`;
         const imgEl = it.querySelector('img');
         if(imgEl){ imgEl.onerror = ()=>{ imgEl.src = fallbackBrandLogo(b); }; }
-        it.addEventListener('click',()=>document.dispatchEvent(new CustomEvent('filter',{detail:{group:undefined},b: b})));brandsRoot.appendChild(it)
+        brandsRoot.appendChild(it)
       });
       try{ document.dispatchEvent(new CustomEvent('brands:rendered')); }catch(e){}
     }
