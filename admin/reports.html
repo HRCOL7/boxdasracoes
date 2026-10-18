@@ -9,7 +9,9 @@
   <link rel="stylesheet" href="../css/desktop.css" media="(min-width:900px)">
   <link rel="stylesheet" href="../css/admin.css">
   <link rel="stylesheet" href="../css/a11y.css">
+  <link rel="stylesheet" href="../css/admin-theme.css">
   <script src="../js/a11y.js"></script>
+  <script src="../js/theme.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
@@ -18,6 +20,11 @@
       <div class="admin-head">
         <img src="../img/logobox.png" alt="Box Das Racoes" class="admin-head-logo">
         <h1 class="admin-head-title">Admin - Relatorios</h1>
+        <nav class="admin-nav" aria-label="Seções do painel">
+          <a href="./orders.html">Pedidos</a>
+          <a href="./admin.html">Produtos</a>
+          <a href="./reports.html" aria-current="page">Relatórios</a>
+        </nav>
       </div>
 
       <div class="admin-tools reports-tools">
@@ -112,7 +119,7 @@
     </div>
   </div>
 
-  <script src="/js/config-loader.js"></script>
+  <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="../js/supabase-client.js" defer></script>
   <script src="../js/admin-reports.js" defer></script>

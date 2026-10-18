@@ -56,3 +56,10 @@
   for = "/img/*"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+
+# ---- PWA: o service worker sempre revalidado ----
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Service-Worker-Allowed = "/"

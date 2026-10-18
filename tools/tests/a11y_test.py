@@ -67,7 +67,15 @@ try:
     check("imagens têm atributo alt", page.evaluate("[...document.images].every(i=>i.hasAttribute('alt'))"))
     check("há exatamente 1 <h1>", page.evaluate("document.querySelectorAll('h1').length")==1)
     check("html tem lang", page.evaluate("document.documentElement.lang")=="pt-BR")
-    check("botão de pausar carrossel presente", page.evaluate("!!document.querySelector('.carousel-pause')"), "")
+    # sem banners cadastrados no admin o carrossel não existe (as ofertas ocupam o lugar)
+    check("sem banners do admin: carrossel escondido", page.evaluate("document.getElementById('top-carousel').hidden===true"))
+    # com banners cadastrados: o botão de pausar (WCAG 2.2.2) tem que existir
+    pc = b.new_context(viewport={"width":1000,"height":800}); pb = pc.new_page()
+    pb.route("**/*", lambda r: r.abort() if ("jsdelivr" in r.request.url or "googleapis" in r.request.url) else r.continue_())
+    pb.add_init_script("window.BANNERS=['img/banner1.jpg','img/banner2.jpg'];")
+    pb.goto("http://localhost:8765/index.html"); pb.wait_for_timeout(1500)
+    check("com banners do admin: botão de pausar carrossel presente", pb.evaluate("!!document.querySelector('.carousel-pause') && !document.getElementById('top-carousel').hidden"), "")
+    pc.close()
     # 5 reduce motion
     ctx2 = b.new_context(viewport={"width":390,"height":800}, reduced_motion="reduce")
     p2 = ctx2.new_page(); p2.route("**/*", lambda r: r.abort() if ("jsdelivr" in r.request.url or "googleapis" in r.request.url) else r.continue_())
@@ -78,7 +86,7 @@ try:
         c=[x/255 for x in c]; f=lambda v: v/12.92 if v<=0.03928 else ((v+0.055)/1.055)**2.4
         return 0.2126*f(c[0])+0.7152*f(c[1])+0.0722*f(c[2])
     cc = page.evaluate("""()=>{const cs=getComputedStyle(document.documentElement);return [cs.getPropertyValue('--orange').trim(),cs.getPropertyValue('--green').trim()]}""")
-    check("cores do tema atualizadas (--orange/--green)", cc==["#bf5600","#1e8449"], str(cc))
+    check("cores do tema atualizadas (--orange/--green)", [cc[0].lower(),cc[1].lower()]==["#a84800","#1e8449"], str(cc))
     check("sem erros JS na página", len(errors)==0, "; ".join(errors[:3]))
     page.screenshot(path=ROOT+"/../shot_index.png")
 

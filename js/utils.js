@@ -202,6 +202,21 @@
     return ok ? s.replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E') : fb;
   }
   window.appUtils.safeImageUrl = window.appUtils.safeImageUrl || safeImageUrl;
+  // peso ("500g", "15 kg", "1,5kg") -> kg; texto "Equivale a R$ X por kg" (vazio quando o peso é 1kg ou desconhecido)
+  function weightToKg(w){
+    const m = String(w || '').toLowerCase().replace(',', '.').match(/(\d+(?:\.\d+)?)\s*(kg|g)\b/);
+    if(!m) return null;
+    const n = parseFloat(m[1]);
+    const kg = m[2] === 'g' ? n / 1000 : n;
+    return kg > 0 ? kg : null;
+  }
+  function perKgValue(price, weight){
+    const kg = weightToKg(weight);
+    if(!kg || !(price > 0) || kg === 1) return '';
+    return 'R$ ' + (price / kg).toFixed(2).replace('.', ',') + ' por kg';
+  }
+  window.appUtils.weightToKg = window.appUtils.weightToKg || weightToKg;
+  window.appUtils.perKgValue = window.appUtils.perKgValue || perKgValue;
   // standardized payment label map (code -> display)
   const PAYMENT_LABELS = {
     PIX: 'PIX',

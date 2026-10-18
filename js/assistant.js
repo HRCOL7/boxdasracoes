@@ -34,6 +34,11 @@
     }catch(e){}
   }
 
+  // Escolha de ocultar o botão (fica salva neste navegador até a pessoa mostrar de novo).
+  var HIDE_KEY = 'assistant_hidden_v1';
+  function readHidden(){ try{ return localStorage.getItem(HIDE_KEY) === '1'; }catch(e){ return false; } }
+  function writeHidden(v){ try{ if(v) localStorage.setItem(HIDE_KEY, '1'); else localStorage.removeItem(HIDE_KEY); }catch(e){} }
+
   // ---------------------------------------------------------------- endpoint
   function endpointInfo(){
     var c = window.ASSISTANT_CONFIG || {};
@@ -326,6 +331,12 @@
   function build(){
     var root = mk('div', { id: 'assistant-root' });
     els.launcher = mk('button', { type: 'button', 'class': 'as-launcher', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'assistant-panel' }, [icon(), mk('span', { text: 'Ajuda e acessibilidade' })]);
+    els.hideX = mk('button', { type: 'button', 'class': 'as-hide-x', 'aria-label': 'Ocultar o botão de ajuda e acessibilidade', title: 'Ocultar este botão' });
+    els.hideX.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+    els.dock = mk('div', { 'class': 'as-dock' }, [els.launcher, els.hideX]);
+    // Link discreto no fim da página para trazer o botão de volta (só aparece quando está oculto).
+    els.restoreBtn = mk('button', { type: 'button', 'class': 'as-restore-btn', text: 'Mostrar ajuda e acessibilidade' });
+    els.restore = mk('div', { 'class': 'as-restore', hidden: '' }, [els.restoreBtn]);
 
     els.panel = mk('section', { id: 'assistant-panel', 'class': 'as-panel', role: 'dialog', 'aria-labelledby': 'assistant-title' });
     els.close = mk('button', { type: 'button', 'class': 'as-btn', text: 'Fechar', 'aria-label': 'Fechar assistente' });
@@ -347,6 +358,7 @@
     var prefs = mk('details', { 'class': 'as-prefs' }, [mk('summary', { text: 'Ajustar a exibição do site' }), grid, mk('div', { style: 'margin-top:8px' }, [reset])]);
 
     // Voz de saída
+    els.hideBtn = mk('button', { type: 'button', 'class': 'as-btn', text: 'Ocultar este botão' });
     els.speakBtn = mk('button', { type: 'button', 'class': 'as-btn', 'aria-pressed': state.speak ? 'true' : 'false', text: 'Ler respostas em voz alta' });
     els.speakBtn.addEventListener('click', function(){
       state.speak = !state.speak; els.speakBtn.setAttribute('aria-pressed', state.speak ? 'true' : 'false');
@@ -360,7 +372,7 @@
     els.send = mk('button', { type: 'submit', 'class': 'as-btn', text: 'Enviar' });
     var form = mk('form', { 'class': 'as-form' }, [els.input, els.send]);
     var mic = setupMic();
-    var actions = mk('div', { 'class': 'as-suggest' }, [els.speakBtn, mic]);
+    var actions = mk('div', { 'class': 'as-suggest' }, [els.speakBtn, els.hideBtn, mic]);
     var note = mk('p', { 'class': 'as-note', text: 'As mensagens podem ser processadas por uma IA. Não digite senhas, cartão ou documentos. O assistente não finaliza compras.' });
 
     form.addEventListener('submit', function(e){ e.preventDefault(); var v = els.input.value; els.input.value = ''; submit(v); els.input.focus(); });
@@ -368,7 +380,7 @@
 
     els.panel.appendChild(head);
     els.panel.appendChild(mk('div', { 'class': 'as-body' }, [prefs, els.log, els.status, form, actions, note]));
-    root.appendChild(els.launcher); root.appendChild(els.panel);
+    root.appendChild(els.dock); root.appendChild(els.panel); root.appendChild(els.restore);
     document.body.appendChild(root);
 
     state.log.forEach(function(m){ addMsg(m.role, m.text, m.links, true); });
@@ -378,20 +390,37 @@
     var dlg = null;
     function open(){
       if(state.open && dlg) return;
-      els.panel.classList.add('open'); els.launcher.hidden = true; els.launcher.setAttribute('aria-expanded', 'true');
+      els.panel.classList.add('open'); els.dock.hidden = true; els.launcher.setAttribute('aria-expanded', 'true');
       dlg = A.openDialog(els.panel, { modal: false, opener: els.launcher, labelledby: 'assistant-title', initialFocus: els.input, onClose: close });
       state.open = true; save();
     }
     function close(){
-      els.panel.classList.remove('open'); els.launcher.hidden = false; els.launcher.setAttribute('aria-expanded', 'false');
+      els.panel.classList.remove('open'); els.dock.hidden = false; els.launcher.setAttribute('aria-expanded', 'false');
       if(dlg){ dlg.close(); dlg = null; }
       if('speechSynthesis' in window) window.speechSynthesis.cancel();
       state.open = false; save();
     }
+    function hideWidget(){
+      if(state.open) close();
+      writeHidden(true);
+      els.dock.hidden = true; els.restore.hidden = false;
+      A.announce('Botão de ajuda ocultado. Para mostrar de novo, use o botão "Mostrar ajuda e acessibilidade" no fim da página.');
+      els.restoreBtn.focus();
+    }
+    function showWidget(){
+      writeHidden(false);
+      els.restore.hidden = true; els.dock.hidden = false;
+      A.announce('Botão de ajuda visível de novo.');
+      els.launcher.focus();
+    }
     els.launcher.addEventListener('click', open);
     els.close.addEventListener('click', close);
-    if(state.open){ state.open = false; open(); }
-    window.appAssistant = { open: open, close: close, ask: submit };
+    els.hideX.addEventListener('click', hideWidget);
+    els.hideBtn.addEventListener('click', hideWidget);
+    els.restoreBtn.addEventListener('click', showWidget);
+    if(readHidden()){ els.dock.hidden = true; els.restore.hidden = false; state.open = false; }
+    else if(state.open){ state.open = false; open(); }
+    window.appAssistant = { open: open, close: close, ask: submit, hide: hideWidget, show: showWidget };
   }
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);

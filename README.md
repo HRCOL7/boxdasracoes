@@ -29,7 +29,7 @@ O site lê `config.js` (URL e chave **anon/pública** do Supabase). No Netlify e
 | `js/assistant.js` | Assistente "Ajuda e acessibilidade" (chat, voz, ajustes de exibição) |
 | `js/supabase-client.js` | Acesso ao Supabase (produtos, configurações, `isAdmin()`) |
 | `js/cart.js`, `site-checkout.js`, `products.js`, `product-page.js`, `search.js`, `menu.js`, `carousel.js` | Funcionalidades da loja |
-| `js/config-loader.js` | Carrega `config.js` (fica em arquivo para a CSP não precisar de script inline) |
+| `config.js` | Configuração pública do Supabase (gerada no build); carregada por `<script src="/config.js">` antes dos demais scripts |
 | `supabase/migrations/` | Migrações **novas e atuais** do banco (aplicar em ordem de data) |
 | `supabase/tests/` | Testes SQL das migrações |
 | `supabase/functions/assistant/` | Função de servidor (Edge Function) que guarda a chave da IA |
@@ -66,7 +66,7 @@ psql -d SEU_BANCO_DE_TESTE -f supabase/tests/site_events_test.sql   # esperado: 
 pip install playwright && playwright install chromium
 python tools/tests/a11y_test.py .          # 29 checagens de acessibilidade
 python tools/tests/desktop_cart_test.py .  # carrinho no desktop
-python tools/tests/assistant_test.py .     # assistente (21 checagens)
+python tools/tests/assistant_test.py .     # assistente (32 checagens, inclui ocultar/mostrar o botão)
 python tools/tests/audit.py .              # auditoria: contraste, nomes, rótulos, alvos de toque (esperado: 0 problemas)
 python tools/tests/csp_test.py . tools/tests/csp.txt   # carrega as páginas COM a CSP e conta violações (esperado: 0)
 ```

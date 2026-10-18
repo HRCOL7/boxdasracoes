@@ -11,7 +11,12 @@
 
 /* ---- Foco sempre visível (anel de 2 cores: funciona em fundo claro e escuro) */
 :focus{outline-offset:2px}
-:focus-visible{outline:3px solid #0b3d91 !important;outline-offset:2px;box-shadow:0 0 0 2px #fff !important;border-radius:6px}
+:focus-visible{outline:2px solid #0b3d91 !important;outline-offset:2px}
+/* campos ficam com o contorno por dentro: nunca é cortado por painéis com rolagem (carrinho) */
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:-2px}
+/* sobre fundos escuros o contorno azul some: usa branco */
+.site-footer :focus-visible,.top :focus-visible{outline-color:#fff !important}
+.hero :focus-visible{outline-color:#1F1B16 !important}
 main:focus,[tabindex="-1"]:focus{outline:none !important;box-shadow:none !important}   /* alvo programático do skip-link */
 input:focus-visible,select:focus-visible,textarea:focus-visible{border-color:#0b3d91}
 
@@ -105,3 +110,8 @@ html[data-a11y-contrast="high"] input,html[data-a11y-contrast="high"] select,htm
 .product-filters label{display:flex;align-items:center;gap:8px;min-height:32px;cursor:pointer}
 .product-filters input[type="checkbox"]{width:24px;height:24px;flex:0 0 24px;accent-color:var(--orange)}
 .product-filters select{min-height:40px;padding:6px 10px}
+
+/* Modo escuro: contorno de foco azul-claro (o azul escuro some no fundo escuro) */
+html[data-theme="dark"] :focus-visible{outline-color:#8AB4FF !important}
+html[data-theme="dark"] input:focus-visible,html[data-theme="dark"] select:focus-visible,html[data-theme="dark"] textarea:focus-visible{border-color:#8AB4FF}
+html[data-theme="dark"] .hero :focus-visible{outline-color:#8AB4FF !important}

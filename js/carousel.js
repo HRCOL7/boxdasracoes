@@ -17,6 +17,11 @@
       const configured = (window.appUtils && typeof window.appUtils.getSiteSettings === 'function')
         ? window.appUtils.getSiteSettings().banners
         : null;
+      // os 3 banners padrão (img/banner1-3.jpg) não contam: só banners que o admin cadastrou
+      const isDefault = (list)=> Array.isArray(list) && list.length === defaults.length && list.every((v, i)=> String(v || '').trim() === defaults[i]);
+      const hasCustom = !!((window.BANNERS && window.BANNERS.length) || (configured && configured.length && !isDefault(configured)));
+      el.hidden = !hasCustom;      // sem banners cadastrados no admin, as ofertas da home ocupam o lugar
+      if(!hasCustom) return;
       const banners = (window.BANNERS && window.BANNERS.length)
         ? window.BANNERS
         : (configured && configured.length ? configured : defaults);

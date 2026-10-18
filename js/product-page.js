@@ -100,6 +100,18 @@
         return `<button type="button" class="variant-chip${i===0?' active':''}${promo !== null ? ' promo' : ''}${unavailable ? ' disabled' : ''}" data-vi="${i}" aria-pressed="${i===0?'true':'false'}"${unavailable ? ' disabled aria-disabled="true" title="Variante indisponível"' : ''}><span class="variant-chip-weight">${esc(v.weight||'Tamanho')}</span><span class="variant-chip-price-row">${oldPrice}<span class="variant-chip-price">R$ ${current.toFixed(2)}</span></span>${unavailable ? '<span class="variant-chip-old">Indisponível</span>' : ''}</button>`;
       }).join('');
 
+      function weightToKg(w){
+        const m = String(w || '').toLowerCase().replace(',', '.').match(/(\d+(?:\.\d+)?)\s*(kg|g)\b/);
+        if(!m) return null;
+        const n = parseFloat(m[1]);
+        const kg = m[2] === 'g' ? n / 1000 : n;
+        return kg > 0 ? kg : null;
+      }
+      function perKgHtml(price, variant){
+        const kg = weightToKg(variant && variant.weight);
+        if(!kg || !(price > 0) || kg === 1) return '';
+        return 'Equivale a R$ ' + (price / kg).toFixed(2).replace('.', ',') + ' por kg';
+      }
       function buildPriceHtml(basePrice, promoPrice){
         if(Number.isFinite(promoPrice) && promoPrice > 0){
           return `<div class="price promo-price-wrap"><span class="price-old">R$ ${basePrice.toFixed(2)}</span><span class="price-promo">R$ ${promoPrice.toFixed(2)}</span></div>`;
@@ -129,8 +141,11 @@
               <div id="product-price-wrap">${buildPriceHtml(initialBasePrice, initialPromoPrice)}</div>
               <button id="favorite-btn" class="favorite" title="Favoritar">♡</button>
             </div>
-            <div class="variants">${ variants.length>0 ? `<label>Selecione o tamanho:</label><div class="ptz-selector-wrapper"><div id="variant-chips" class="variant-chips">${variantChipsHtml}</div></div>` : '' }</div>
+            <p id="price-per-kg" class="price-per-kg"></p>
+            <a id="share-wa" class="share-wa" target="_blank" rel="noopener noreferrer" href="#">Compartilhar no WhatsApp<span class="sr-only"> (abre em nova aba)</span></a>
+            <div class="variants">${ variants.length>0 ? `<label>Escolha o peso:</label><div class="ptz-selector-wrapper"><div id="variant-chips" class="variant-chips">${variantChipsHtml}</div></div>` : '' }</div>
 
+            <p id="variant-status" class="variant-status" role="status" aria-live="polite"></p>
             <div class="buy-actions">
               <div class="qty">
                 <button id="qty-dec" class="qty-btn">−</button>
@@ -164,12 +179,29 @@
         if(priceWrapEl) priceWrapEl.innerHTML = buildPriceHtml(basePrice, promoPrice);
         const selectedVariant = variants[idx] || null;
         const unavailable = isVariantUnavailable(selectedVariant);
+        const kgEl = document.getElementById('price-per-kg');
+        if(kgEl){
+          const eff = (Number.isFinite(promoPrice) && promoPrice > 0) ? promoPrice : basePrice;
+          kgEl.textContent = perKgHtml(eff, selectedVariant);
+        }
+        const stEl = document.getElementById('variant-status');
+        if(stEl) stEl.textContent = unavailable ? 'Este peso está indisponível no momento. Escolha outro peso ou fale com a gente no WhatsApp.' : (variants.some(isVariantUnavailable) ? 'Os pesos riscados estão indisponíveis no momento.' : '');
         if(addToCartBtn){
           addToCartBtn.disabled = !!unavailable;
           addToCartBtn.classList.toggle('disabled', !!unavailable);
           addToCartBtn.textContent = unavailable ? 'Variante indisponível' : 'Adicionar ao carrinho';
         }
       }
+
+      (function(){
+        const a = document.getElementById('share-wa');
+        if(!a) return;
+        const base = Number(getVariantBasePrice(p, variants, 0)) || 0;
+        const promo = getVariantPromoPrice(p, variants, 0);
+        const price = (Number.isFinite(promo) && promo > 0) ? promo : base;
+        const txt = (p.name || 'Produto') + (price > 0 ? ' - R$ ' + price.toFixed(2).replace('.', ',') : '') + ' | Box das Rações\n' + location.href;
+        a.href = 'https://wa.me/?text=' + encodeURIComponent(txt);
+      })();
 
       function setActiveVariant(idx){
         const n = Number(idx);

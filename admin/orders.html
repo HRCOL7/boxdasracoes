@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - Pedidos</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/mobile.css">
+  <link rel="stylesheet" href="../css/desktop.css" media="(min-width:900px)">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../css/a11y.css">
+  <link rel="stylesheet" href="../css/admin-theme.css">
+  <script src="../js/a11y.js"></script>
+  <script src="../js/theme.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
+  <main id="main-content" tabindex="-1" class="admin-layout orders-layout">
+    <section class="admin-list orders-panel">
+      <div class="admin-head">
+        <img src="../img/logobox.png" alt="Box Das Rações" class="admin-head-logo">
+        <h1 class="admin-head-title">Admin — Pedidos</h1>
+        <nav class="admin-nav" aria-label="Seções do painel">
+          <a href="./orders.html" aria-current="page">Pedidos</a>
+          <a href="./admin.html">Produtos</a>
+          <a href="./reports.html">Relatórios</a>
+        </nav>
+      </div>
+
+      <div class="orders-top">
+        <div>
+          <h2 class="orders-title">Pedidos do site</h2>
+          <p id="orders-today" class="orders-sub"></p>
+        </div>
+        <div class="orders-controls">
+          <label for="orders-filter">Status
+            <select id="orders-filter">
+              <option value="">Todos</option>
+              <option value="pending">Novos</option>
+              <option value="preparing">Em preparo</option>
+              <option value="delivering">A caminho</option>
+              <option value="delivered">Entregues</option>
+              <option value="cancelled">Cancelados</option>
+            </select>
+          </label>
+          <button id="orders-refresh" type="button" class="btn btn-orange">Atualizar</button>
+          <button id="orders-logout" type="button" class="btn">Sair</button>
+        </div>
+      </div>
+
+      <div id="orders-status" class="reports-status" role="status" aria-live="polite" style="display:none"></div>
+
+      <section class="orders-kpis" aria-label="Resumo de hoje">
+        <article class="ord-kpi"><span class="label">Pedidos hoje</span><strong id="kpi-count">0</strong><small id="kpi-count-sub"></small></article>
+        <article class="ord-kpi"><span class="label">Faturamento hoje</span><strong id="kpi-revenue">R$ 0,00</strong><small>Sem pedidos cancelados</small></article>
+        <article class="ord-kpi"><span class="label">Ticket médio</span><strong id="kpi-avg">R$ 0,00</strong><small>Faturamento ÷ pedidos</small></article>
+        <article class="ord-kpi"><span class="label">Aguardando você</span><strong id="kpi-new">0</strong><small>Pedidos novos</small></article>
+      </section>
+
+      <div class="orders-cols">
+        <div class="orders-main">
+          <section class="ord-card" aria-label="Lista de pedidos">
+            <div class="ord-scroll">
+              <table class="ord-table" id="orders-table">
+                <thead><tr><th scope="col">Pedido</th><th scope="col">Cliente</th><th scope="col">Itens</th><th scope="col">Total</th><th scope="col">Data</th><th scope="col">Status</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="ord-card ord-chart-card" aria-labelledby="chart-title">
+            <h3 id="chart-title" class="ord-h3">Faturamento, últimos 7 dias <span class="orders-sub">(R$, sem cancelados)</span></h3>
+            <div id="orders-chart" class="ord-chart"></div>
+          </section>
+        </div>
+        <aside id="order-detail" class="ord-card ord-detail" aria-label="Detalhe do pedido">
+          <p class="orders-sub">Escolha um pedido na lista para ver os detalhes.</p>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div id="admin-login" class="modal">
+    <div class="modal-body admin-login-card">
+      <h3 class="admin-login-title">Entrar no painel</h3>
+      <p class="admin-login-subtitle">Use sua conta de administrador para ver os pedidos.</p>
+      <label class="admin-login-label">Email
+        <input id="admin-email" type="email" placeholder="admin@exemplo.com" autocomplete="email">
+      </label>
+      <label class="admin-login-label">Senha
+        <input id="admin-pass" type="password" placeholder="Senha" autocomplete="current-password">
+      </label>
+      <div class="admin-login-actions">
+        <button id="admin-enter" class="btn btn-orange">Entrar</button>
+        <button id="admin-close" class="btn">Voltar ao site</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="../js/supabase-client.js" defer></script>
+  <script src="../js/admin-orders.js" defer></script>
+</body>
+</html>

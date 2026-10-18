@@ -251,6 +251,29 @@
     }catch(err){ logWarn('supa.resendConfirmation failed', err); throw err; }
   }
 
+  async function resetPassword(email){
+    const supa = init();
+    if(!supa) throw new Error('Supabase not configured');
+    const safeEmail = String(email || '').trim();
+    if(!safeEmail) throw new Error('Email is required');
+    const redirectTo = `${window.location.origin}/index.html`;
+    try{
+      const res = await supa.auth.resetPasswordForEmail(safeEmail, { redirectTo });
+      if(res && res.error) throw res.error;
+      return res;
+    }catch(err){ logWarn('supa.resetPassword failed', err); throw err; }
+  }
+
+  async function updatePassword(newPassword){
+    const supa = init();
+    if(!supa) throw new Error('Supabase not configured');
+    try{
+      const res = await supa.auth.updateUser({ password: String(newPassword || '') });
+      if(res && res.error) throw res.error;
+      return res;
+    }catch(err){ logWarn('supa.updatePassword failed', err); throw err; }
+  }
+
   async function signOut(){
     const supa = init(); if(!supa) throw new Error('Supabase not configured');
     try{ if(supa.auth && typeof supa.auth.signOut === 'function') return await supa.auth.signOut(); }catch(err){ logWarn('supa.signOut failed', err); throw err; }
@@ -348,6 +371,8 @@
     isAdmin,
     onAuthStateChange,
     resendConfirmation,
+    resetPassword,
+    updatePassword,
     getSiteSettings,
     saveSiteSettings,
     getErpPriceAlerts,

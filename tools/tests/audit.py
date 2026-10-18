@@ -49,7 +49,7 @@ try:
     b=p.chromium.launch()
     for vw,vh,tag in [(390,800,'celular'),(1280,800,'desktop')]:
       for path in ["index.html","products.html","product.html?id=101"]:
-        for state in ["normal","menu","carrinho","assistente"] if path=="index.html" else ["normal"]:
+        for state in ["normal","menu","carrinho","assistente","escuro","escuro-carrinho","login","escuro-login"] if path=="index.html" else ["normal","escuro"]:
           pg=b.new_page(viewport={"width":vw,"height":vh})
           pg.route("**/*", lambda r: r.abort() if not r.request.url.startswith(f"http://localhost:{PORT}") else r.continue_())
           errs=[]
@@ -62,10 +62,13 @@ try:
           pg.route(re.compile(r".*supabase-js.*"), lambda r: r.fulfill(status=200, content_type="application/javascript", body="window.supabase={createClient:function(){return {from:function(){return {select:function(){return Promise.resolve({data:[],error:null})}}},auth:{getUser:function(){return Promise.resolve({data:{user:null}})},onAuthStateChange:function(){return {data:{subscription:{unsubscribe(){}}}}},getSession:function(){return Promise.resolve({data:{session:null}})}},channel:function(){return {on:function(){return this},subscribe:function(){return this}}},removeChannel:function(){}}}};"))
           pg.route("**/rest/v1/products*", rest)
           pg.add_init_script("localStorage.setItem('products', %s);" % json.dumps(json.dumps(PRODUCTS)))
+          if state.startswith("escuro"): pg.add_init_script("localStorage.setItem('theme_v1','dark');")
           pg.goto(f"http://localhost:{PORT}/{path}"); pg.wait_for_timeout(6500)
           if state=="menu": pg.click("#hamburger"); pg.wait_for_timeout(500)
-          if state=="carrinho":
+          if state in ("carrinho","escuro-carrinho"):
               pg.click("#cart-btn"); pg.wait_for_timeout(400)
+          if state in ("login","escuro-login"):
+              pg.evaluate("window.customerAuth.openAuthModal()"); pg.wait_for_timeout(400)
           if state=="assistente":
               pg.click(".as-launcher"); pg.click(".as-prefs summary"); pg.wait_for_timeout(300)
           r=pg.evaluate(JS_AUDIT); cards=pg.evaluate("document.querySelectorAll('#products-carousel .item, #product-list .item').length")
@@ -73,6 +76,8 @@ try:
           issues = len(errs)+len(r['contrast'])+len(r['names'])+len(r['labels'])+len(r['dupIds'])+len(r['headings'])+len(r['small'])
           total+=issues
           print(f"\n=== {tag} {path} [{state}] problemas: {issues}  landmarks={r['landmarks']} cartões={cards}")
+          if "product.html" in path and state=="normal":
+            pk=pg.evaluate("(document.getElementById('price-per-kg')||{}).textContent"); print("  preço por kg:",repr(pk)); total+= 0 if pk and "por kg" in pk else 1
           for k in ['jserr','contrast','names','labels','dupIds','headings','small']:
             for v in r[k][:8]: print(f"  - {k}: {v}")
           pg.close()

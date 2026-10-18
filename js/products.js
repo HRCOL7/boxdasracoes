@@ -333,6 +333,7 @@
     const promoSection = qs('#promotions-section');
     const products=read();
     let promoCount = 0;
+    const promoItems = [];
     products.forEach(p=>{
         const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'));
         const img = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || 'https://via.placeholder.com/200');
@@ -355,10 +356,39 @@
       const it=document.createElement('div');
       it.className='item';
       it.dataset.defaultVi = String(defaultVariantIndex);
-      it.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${window.appUtils.safeImageUrl(img)}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl}">${esc(p.name||'')}</a>${subgroupLink}</div>${promoPriceHtml}`;
-      if(isPromoProduct){ promoRoot.appendChild(it); promoCount += 1; }
+      it.innerHTML=`${unavailableBadge}<div class="image-wrap"><img loading="lazy" decoding="async" src="${window.appUtils.safeImageUrl(img)}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl}">${esc(p.name||'')}</a>${subgroupLink}</div>${promoPriceHtml}`;
+      if(isPromoProduct){ promoItems.push({ p, it, vi: defaultVariantIndex, basePrice, promoPrice, img, linkUrl }); promoCount += 1; }
       else root.appendChild(it);
     });
+    // as 3 primeiras promoções viram banners de oferta; as demais ficam no carrossel
+    const offerRoot = qs('#offer-banners');
+    if(offerRoot){
+      offerRoot.innerHTML = '';
+      const esc2 = (s)=> (window.appUtils && window.appUtils.escapeHtml) ? window.appUtils.escapeHtml(s) : String(s == null ? '' : s);
+      const money = (n)=> 'R$ ' + Number(n).toFixed(2).replace('.', ',');
+      promoItems.slice(0, 3).forEach((o, k)=>{
+        const v = (Array.isArray(o.p.variants) && o.p.variants[o.vi]) || null;
+        const shown = (Number.isFinite(o.promoPrice) && o.promoPrice > 0) ? o.promoPrice : o.basePrice;
+        const perKg = (window.appUtils && window.appUtils.perKgValue) ? window.appUtils.perKgValue(shown, v && v.weight) : '';
+        const oldP = (Number.isFinite(o.promoPrice) && o.promoPrice > 0 && o.basePrice > o.promoPrice) ? '<p class="offer-old">de ' + money(o.basePrice) + '</p>' : '';
+        const a = document.createElement('article');
+        a.className = 'offer offer-' + (k + 1);
+        a.innerHTML = '<div class="offer-text"><span class="offer-tag">Oferta</span>'
+          + '<h3 class="offer-name">' + esc2(o.p.name || '') + (v && v.weight ? ' <span class="offer-weight">' + esc2(v.weight) + '</span>' : '') + '</h3>'
+          + oldP + '<p class="offer-price">' + money(shown) + '</p>'
+          + (perKg ? '<p class="offer-kg">' + esc2(perKg) + '</p>' : '')
+          + '<a class="offer-btn" href="' + o.linkUrl + '">Comprar<span class="sr-only"> ' + esc2(o.p.name || '') + '</span></a></div>'
+          + '<div class="offer-art"><img loading="lazy" decoding="async" alt="" src="' + window.appUtils.safeImageUrl(o.img) + '"></div>';
+        offerRoot.appendChild(a);
+      });
+    }
+    promoItems.slice(3).forEach(o=>{ if(promoRoot) promoRoot.appendChild(o.it); });
+    if(promoRoot){
+      const hasMore = promoItems.length > 3;
+      promoRoot.style.display = hasMore ? '' : 'none';
+      const wrap = promoRoot.closest('.carousel-wrap');   // setas e pontos do carrossel somem junto
+      if(wrap) wrap.style.display = hasMore ? '' : 'none';
+    }
     if(promoSection) promoSection.style.display = promoCount > 0 ? 'block' : 'none';
     bindWeightChipsScroll();
   }
@@ -388,6 +418,11 @@
       if(Object.prototype.hasOwnProperty.call(patch, 'subs')){ setListParam(next, 'subs', patch.subs); next.delete('sub'); }
       if(Object.prototype.hasOwnProperty.call(patch, 'brands')) setListParam(next, 'brand', patch.brands);
       if(Object.prototype.hasOwnProperty.call(patch, 'manufacturers')) setListParam(next, 'manufacturer', patch.manufacturers);
+      if(Object.prototype.hasOwnProperty.call(patch, 'sizes')) setListParam(next, 'porte', patch.sizes);
+      if(Object.prototype.hasOwnProperty.call(patch, 'ages')) setListParam(next, 'idade', patch.ages);
+      ['pmin','pmax'].forEach(k=>{ if(Object.prototype.hasOwnProperty.call(patch, k)){ const v = String(patch[k] || '').trim(); if(v) next.set(k, v); else next.delete(k); } });
+      ['promo','avail'].forEach(k=>{ if(Object.prototype.hasOwnProperty.call(patch, k)){ if(patch[k]) next.set(k, '1'); else next.delete(k); } });
+      if(patch.clear){ ['animal','groups','group','subs','sub','brand','manufacturer','porte','idade','pmin','pmax','promo','avail'].forEach(k=>next.delete(k)); }
       const query = next.toString();
       history.replaceState(null, '', query ? `products.html?${query}` : 'products.html');
       renderList();
@@ -398,6 +433,13 @@
     const wantBrands = new Set(parseList('brand'));
     const wantManufacturers = new Set(parseList('manufacturer'));
     const wantAnimals = new Set(parseList('animal'));
+    const wantPromo = params.get('promo') === '1';
+    const wantSizes = new Set(parseList('porte'));
+    const wantAges = new Set(parseList('idade'));
+    const wantAvail = params.get('avail') === '1';
+    const num = (v)=>{ const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
+    const priceMin = num(params.get('pmin'));
+    const priceMax = num(params.get('pmax'));
     const sortMode = String(params.get('sort') || '').trim();
 
     const classifyAnimal = (p)=>{
@@ -409,6 +451,31 @@
       if(text.includes('gato')) return 'gatos';
       if(text.includes('cao') || text.includes('caes') || text.includes('cachorr')) return 'caes';
       return '';
+    };
+    // porte e idade são detectados pelo nome/subgrupo do produto (não exigem cadastro novo)
+    const norm = (t)=> String(t || '').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+    const classifyAge = (p)=>{
+      const t = norm(`${p && p.name || ''} ${p && p.subgroup || ''}`);
+      if(/filhote|puppy|kitten|junior/.test(t)) return 'filhote';
+      if(/senior|idoso|maduro|\b7\+|\b8\+/.test(t)) return 'senior';
+      if(/adult/.test(t)) return 'adulto';
+      return '';
+    };
+    const classifySize = (p)=>{
+      const t = norm(`${p && p.name || ''} ${p && p.subgroup || ''}`);
+      if(/mini|pequen|small|toy/.test(t)) return 'pequeno';
+      if(/medio|medium/.test(t)) return 'medio';
+      if(/grande|large|gigante|maxi/.test(t)) return 'grande';
+      return '';
+    };
+    const isProductUnavailable = (p)=> toBoolean(p && p.is_unavailable) || (Array.isArray(p && p.variants) && p.variants.length > 0 && p.variants.every(v=>isVariantUnavailable(v)));
+    const getSortPerKg = (p)=>{
+      const vi = getFirstAvailableVariantIndex(p);
+      const promo = getVariantPromoPrice(p, vi);
+      const price = (Number.isFinite(promo) && promo > 0) ? promo : getVariantBasePrice(p, vi);
+      const v = Array.isArray(p.variants) ? p.variants[vi] : null;
+      const kg = window.appUtils && window.appUtils.weightToKg ? window.appUtils.weightToKg(v && v.weight) : null;
+      return (kg && price > 0) ? price / kg : Infinity;
     };
     const getSortPrice = (p)=>{
       const base = getVariantBasePrice(p, 0);
@@ -424,12 +491,20 @@
       if(wantManufacturers.size && !wantManufacturers.has(String(p.manufacturer || '').trim())) return false;
       const animal = classifyAnimal(p);
       if(wantAnimals.size && !wantAnimals.has(animal)) return false;
+      if(wantPromo && !hasAnyPromo(p)) return false;
+      if(wantAvail && isProductUnavailable(p)) return false;
+      if(wantSizes.size && !wantSizes.has(classifySize(p))) return false;
+      if(wantAges.size && !wantAges.has(classifyAge(p))) return false;
+      const sp = getSortPrice(p);
+      if(priceMin !== null && sp < priceMin) return false;
+      if(priceMax !== null && sp > priceMax) return false;
       return true;
     };
 
     const filtered = products.filter(matchesBase);
     if(sortMode === 'price_asc') filtered.sort((a,b)=>getSortPrice(a)-getSortPrice(b));
     else if(sortMode === 'price_desc') filtered.sort((a,b)=>getSortPrice(b)-getSortPrice(a));
+    else if(sortMode === 'kg_asc') filtered.sort((a,b)=>getSortPerKg(a)-getSortPerKg(b));
 
     const selectedBrandFilter = wantBrands.size > 0;
     const selectedManufacturerFilter = wantManufacturers.size > 0;
@@ -505,7 +580,7 @@
       const sortWrap = document.createElement('div'); sortWrap.className = 'filter-section';
       sortWrap.innerHTML = `<div class="filter-title">Ordenar por preço</div>`;
       const sortSel = document.createElement('select');
-      sortSel.innerHTML = '<option value="">Padrão</option><option value="price_asc">Menor preço</option><option value="price_desc">Maior preço</option>';
+      sortSel.innerHTML = '<option value="">Padrão</option><option value="price_asc">Menor preço</option><option value="price_desc">Maior preço</option><option value="kg_asc">Menor preço por kg</option>';
       sortSel.id = 'product-sort'; sortSel.setAttribute('aria-label', 'Ordenar por preço');
       sortSel.value = sortMode;
       sortSel.addEventListener('change', ()=>applyFilterParams({ sort: sortSel.value }));
@@ -530,6 +605,43 @@
         animalWrap.appendChild(row);
       });
       filtersRoot.appendChild(animalWrap);
+
+      // porte e idade: só aparecem se algum produto tiver essa informação no nome
+      const mkChecks = (title, opts, selected, key, hint)=>{
+        const wrap = document.createElement('div'); wrap.className = 'filter-section';
+        wrap.innerHTML = `<div class="filter-title">${title}</div>`;
+        opts.forEach(opt=>{
+          const row = document.createElement('div'); row.className = 'filter-row';
+          row.innerHTML = `<label><input type="checkbox" data-k="${opt.value}" ${selected.has(opt.value) ? 'checked' : ''}> ${opt.label}</label>`;
+          row.querySelector('input').addEventListener('change', ()=>{
+            const values = Array.from(wrap.querySelectorAll('input[type=checkbox]:checked')).map(i=>i.dataset.k);
+            applyFilterParams({ [key]: values });
+          });
+          wrap.appendChild(row);
+        });
+        if(hint){ const h = document.createElement('p'); h.className = 'filter-hint'; h.textContent = hint; wrap.appendChild(h); }
+        return wrap;
+      };
+      const sizeOpts = [{value:'pequeno',label:'Pequeno'},{value:'medio',label:'Médio'},{value:'grande',label:'Grande'}];
+      const ageOpts = [{value:'filhote',label:'Filhote'},{value:'adulto',label:'Adulto'},{value:'senior',label:'Sênior'}];
+      if(products.some(p=>classifySize(p))) filtersRoot.appendChild(mkChecks('Porte', sizeOpts, wantSizes, 'sizes', 'Identificado pelo nome do produto.'));
+      if(products.some(p=>classifyAge(p))) filtersRoot.appendChild(mkChecks('Idade', ageOpts, wantAges, 'ages', 'Identificado pelo nome do produto.'));
+
+      const priceWrap = document.createElement('div'); priceWrap.className = 'filter-section';
+      priceWrap.innerHTML = '<div class="filter-title">Preço</div><div class="filter-price">'
+        + '<div><label for="price-min">Mínimo (R$)</label><input id="price-min" type="text" inputmode="decimal" placeholder="0" value="' + esc(params.get('pmin') || '') + '"></div>'
+        + '<div><label for="price-max">Máximo (R$)</label><input id="price-max" type="text" inputmode="decimal" placeholder="500" value="' + esc(params.get('pmax') || '') + '"></div></div>';
+      const applyPrice = ()=> applyFilterParams({ pmin: priceWrap.querySelector('#price-min').value, pmax: priceWrap.querySelector('#price-max').value });
+      priceWrap.querySelectorAll('input').forEach(i=> i.addEventListener('change', applyPrice));
+      filtersRoot.appendChild(priceWrap);
+
+      const showWrap = document.createElement('div'); showWrap.className = 'filter-section';
+      showWrap.innerHTML = '<div class="filter-title">Mostrar</div>'
+        + '<div class="filter-row"><label><input type="checkbox" id="f-promo" ' + (wantPromo ? 'checked' : '') + '> Só promoções</label></div>'
+        + '<div class="filter-row"><label><input type="checkbox" id="f-avail" ' + (wantAvail ? 'checked' : '') + '> Só disponíveis</label></div>';
+      showWrap.querySelector('#f-promo').addEventListener('change', (e)=> applyFilterParams({ promo: e.target.checked }));
+      showWrap.querySelector('#f-avail').addEventListener('change', (e)=> applyFilterParams({ avail: e.target.checked }));
+      filtersRoot.appendChild(showWrap);
 
       const groupWrap = document.createElement('div'); groupWrap.className = 'filter-section';
       groupWrap.innerHTML = `<div class="filter-title">Grupos</div>`;
@@ -600,9 +712,50 @@
       const unavailableBadge = toBoolean(p.is_unavailable) ? '<div class="badge-unavailable">Indisponivel</div>' : '';
       const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
       const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
-      el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}${brandBlock}</div>${promoPriceHtml}`;
+      el.innerHTML=`${unavailableBadge}<div class="image-wrap"><img loading="lazy" decoding="async" src="${imgAttr}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${linkUrl2}">${esc(p.name||'')}</a>${subgroupLink}${brandBlock}</div>${promoPriceHtml}`;
       el.dataset.defaultVi = String(defaultVariantIndex);
       return el;
+    }
+
+    // resumo: quantos produtos + filtros ativos (cada um pode ser removido)
+    const summary = document.getElementById('filter-summary');
+    if(summary){
+      const active = [];
+      const animalLabels = { caes: 'Cães', gatos: 'Gatos', medicamentos: 'Medicamentos' };
+      const sizeLabels = { pequeno: 'Porte pequeno', medio: 'Porte médio', grande: 'Porte grande' };
+      const ageLabels = { filhote: 'Filhote', adulto: 'Adulto', senior: 'Sênior' };
+      const minus = (set, v)=> Array.from(set).filter(x=>x !== v);
+      wantAnimals.forEach(v=>active.push({ label: animalLabels[v] || v, rm: ()=>applyFilterParams({ animals: minus(wantAnimals, v) }) }));
+      wantGroups.forEach(v=>active.push({ label: groupMap.get(v) || v, rm: ()=>applyFilterParams({ groups: minus(wantGroups, v) }) }));
+      wantSubs.forEach(v=>active.push({ label: subMap.get(v) || v, rm: ()=>applyFilterParams({ subs: minus(wantSubs, v) }) }));
+      wantBrands.forEach(v=>active.push({ label: v, rm: ()=>applyFilterParams({ brands: minus(wantBrands, v) }) }));
+      wantManufacturers.forEach(v=>active.push({ label: v, rm: ()=>applyFilterParams({ manufacturers: minus(wantManufacturers, v) }) }));
+      wantSizes.forEach(v=>active.push({ label: sizeLabels[v] || v, rm: ()=>applyFilterParams({ sizes: minus(wantSizes, v) }) }));
+      wantAges.forEach(v=>active.push({ label: ageLabels[v] || v, rm: ()=>applyFilterParams({ ages: minus(wantAges, v) }) }));
+      if(wantPromo) active.push({ label: 'Promoções', rm: ()=>applyFilterParams({ promo: false }) });
+      if(wantAvail) active.push({ label: 'Disponíveis', rm: ()=>applyFilterParams({ avail: false }) });
+      if(priceMin !== null || priceMax !== null){
+        const lbl = priceMin !== null && priceMax !== null ? `R$ ${priceMin}–${priceMax}` : (priceMin !== null ? `A partir de R$ ${priceMin}` : `Até R$ ${priceMax}`);
+        active.push({ label: lbl, rm: ()=>applyFilterParams({ pmin: '', pmax: '' }) });
+      }
+      summary.innerHTML = '';
+      const count = document.createElement('p'); count.className = 'filter-count'; count.setAttribute('role', 'status');
+      count.textContent = filtered.length === 1 ? 'Mostrando 1 produto' : `Mostrando ${filtered.length} produtos`;
+      summary.appendChild(count);
+      if(active.length){
+        const row = document.createElement('div'); row.className = 'active-filters';
+        active.forEach(a=>{
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'active-filter';
+          b.setAttribute('aria-label', 'Remover filtro: ' + a.label);
+          b.innerHTML = esc(a.label) + ' <span aria-hidden="true">✕</span>';
+          b.addEventListener('click', a.rm);
+          row.appendChild(b);
+        });
+        const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'clear-filters'; clear.textContent = 'Limpar filtros';
+        clear.addEventListener('click', ()=>applyFilterParams({ clear: true }));
+        row.appendChild(clear);
+        summary.appendChild(row);
+      }
     }
 
     // render product cards applying filters
@@ -869,7 +1022,7 @@
         const promoPrice = getVariantPromoPrice(p, defaultVariantIndex);
         const link3 = `product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name||'')}`;
         const btnClass = toBoolean(p.is_unavailable) ? 'add-circle disabled' : 'add-circle';
-        it.innerHTML = `<div class="image-wrap"><img src="${window.appUtils.safeImageUrl(img)}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${link3}">${esc(p.name||'')}</a></div>${buildPriceHtml(basePrice, promoPrice)}`;
+        it.innerHTML = `<div class="image-wrap"><img loading="lazy" decoding="async" src="${window.appUtils.safeImageUrl(img)}" alt="${esc(p.name||'')}"><button class="${btnClass}" aria-label="Adicionar ${esc(p.name||'')} ao carrinho" data-id="${p.id}">+</button></div>${chips}<div class="product-name"><a href="${link3}">${esc(p.name||'')}</a></div>${buildPriceHtml(basePrice, promoPrice)}`;
         it.dataset.defaultVi = String(defaultVariantIndex);
         root.appendChild(it);
       });

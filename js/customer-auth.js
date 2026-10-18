@@ -60,6 +60,32 @@
     try{ localStorage.setItem(key, JSON.stringify(Array.isArray(ids) ? ids : [])); return true; }catch(e){ return false; }
   }
 
+  function enhancePasswordFields(root){
+    if(!root) return;
+    root.querySelectorAll('input[type="password"]').forEach(function(inp){
+      if(inp.dataset.pwEnhanced) return;
+      inp.dataset.pwEnhanced = '1';
+      var wrap = document.createElement('span');
+      wrap.className = 'pw-wrap';
+      inp.parentNode.insertBefore(wrap, inp);
+      wrap.appendChild(inp);
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'pw-toggle';
+      btn.setAttribute('aria-label', 'Mostrar senha'); btn.setAttribute('aria-pressed', 'false');
+      var eye = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+      var eyeOff = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 3l18 18"/><path d="M10.6 6.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.1 4M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7c1.6 0 3-.4 4.3-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+      btn.innerHTML = eye;
+      btn.addEventListener('click', function(){
+        var show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        btn.innerHTML = show ? eyeOff : eye;
+        btn.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+        btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
   function ensureModal(){
     let modal = document.getElementById(AUTH_MODAL_ID);
     if(modal) return modal;
@@ -68,83 +94,126 @@
     modal.className = 'modal customer-auth-modal';
     modal.innerHTML = `
       <div class="modal-body customer-auth-card">
-        <h3 class="customer-auth-title">Entrar para finalizar compra</h3>
-        <p class="customer-auth-subtitle">Cadastre-se uma vez e nas próximas compras é só fazer login.</p>
-
-        <div class="customer-auth-tabs">
-          <button type="button" class="btn customer-auth-tab active" data-tab="login">Login</button>
-          <button type="button" class="btn customer-auth-tab" data-tab="register">Cadastrar</button>
+        <div class="auth-brand">
+          <img src="/img/logobox.png" alt="" class="auth-logo" width="44" height="44">
+          <div>
+            <h2 class="customer-auth-title" id="customer-auth-title">Entrar para finalizar a compra</h2>
+            <p class="customer-auth-subtitle" id="customer-auth-subtitle">Cadastre-se uma vez e, nas próximas compras, é só entrar.</p>
+          </div>
         </div>
 
-        <div id="customer-auth-status" class="customer-auth-status" style="display:none"></div>
+        <div class="customer-auth-tabs" role="group" aria-label="Escolha entrar ou cadastrar">
+          <button type="button" class="btn customer-auth-tab active" data-tab="login" aria-pressed="true">Entrar</button>
+          <button type="button" class="btn customer-auth-tab" data-tab="register" aria-pressed="false">Cadastrar</button>
+        </div>
+
+        <div id="customer-auth-status" class="customer-auth-status" role="status" aria-live="polite" style="display:none"></div>
 
         <form id="customer-login-form" class="customer-auth-form">
-          <label>Email
+          <label>E-mail
             <input type="email" name="email" required autocomplete="email" placeholder="seuemail@dominio.com">
           </label>
           <label>Senha
             <input type="password" name="password" required autocomplete="current-password" placeholder="Sua senha">
           </label>
+          <button type="button" class="auth-link" data-view="forgot">Esqueci minha senha</button>
           <div class="customer-auth-actions">
             <button type="submit" class="btn btn-orange">Entrar</button>
             <button type="button" class="btn customer-auth-cancel">Cancelar</button>
           </div>
         </form>
 
-        <form id="customer-register-form" class="customer-auth-form hidden">
-          <label>Nome completo
-            <input type="text" name="full_name" required placeholder="Nome e sobrenome">
-          </label>
-          <label>Email
+        <form id="customer-forgot-form" class="customer-auth-form hidden">
+          <p class="auth-help">Informe o e-mail do seu cadastro. Enviaremos um link para você criar uma nova senha.</p>
+          <label>E-mail
             <input type="email" name="email" required autocomplete="email" placeholder="seuemail@dominio.com">
           </label>
-          <label>Senha
-            <input type="password" name="password" required autocomplete="new-password" placeholder="Crie uma senha" minlength="6">
-          </label>
-          <label>Confirmar senha
-            <input type="password" name="password_confirm" required autocomplete="new-password" placeholder="Digite a senha novamente" minlength="6">
-          </label>
-          <label>Telefone / WhatsApp
-            <input type="text" name="phone" required placeholder="(79) 99999-9999">
-          </label>
-          <label>CPF/CNPJ
-            <input type="text" name="document" required placeholder="000.000.000-00">
-          </label>
-          <div class="customer-auth-grid two-cols">
-            <label>CEP
-              <input type="text" name="zip" required placeholder="49000-000">
-            </label>
-            <label>UF
-              <input type="text" name="state" required placeholder="SE" maxlength="2">
-            </label>
-          </div>
-          <label>Rua
-            <input type="text" name="street" required placeholder="Nome da rua/avenida">
-          </label>
-          <div class="customer-auth-grid two-cols">
-            <label>Número
-              <input type="text" name="number" required placeholder="123">
-            </label>
-            <label>Complemento
-              <input type="text" name="complement" placeholder="Casa, apto, bloco...">
-            </label>
-          </div>
-          <div class="customer-auth-grid two-cols">
-            <label>Bairro
-              <input type="text" name="neighborhood" required placeholder="Seu bairro">
-            </label>
-            <label>Cidade
-              <input type="text" name="city" required placeholder="Sua cidade">
-            </label>
-          </div>
           <div class="customer-auth-actions">
-            <button type="submit" class="btn btn-orange">Cadastrar</button>
+            <button type="submit" class="btn btn-orange">Enviar link</button>
+            <button type="button" class="btn" data-view="login">Voltar</button>
+          </div>
+        </form>
+
+        <form id="customer-reset-form" class="customer-auth-form hidden">
+          <p class="auth-help">Crie uma nova senha para a sua conta.</p>
+          <label>Nova senha
+            <input type="password" name="password" required autocomplete="new-password" minlength="6" placeholder="Pelo menos 6 caracteres">
+          </label>
+          <label>Confirmar nova senha
+            <input type="password" name="password_confirm" required autocomplete="new-password" minlength="6" placeholder="Digite novamente">
+          </label>
+          <div class="customer-auth-actions">
+            <button type="submit" class="btn btn-orange">Salvar nova senha</button>
+            <button type="button" class="btn customer-auth-cancel">Cancelar</button>
+          </div>
+        </form>
+
+        <form id="customer-register-form" class="customer-auth-form hidden">
+          <fieldset class="auth-group">
+            <legend>Seus dados</legend>
+            <label>Nome completo
+              <input type="text" name="full_name" required autocomplete="name" placeholder="Nome e sobrenome">
+            </label>
+            <label>E-mail
+              <input type="email" name="email" required autocomplete="email" placeholder="seuemail@dominio.com">
+            </label>
+            <div class="customer-auth-grid two-cols">
+              <label>Senha
+                <input type="password" name="password" required autocomplete="new-password" placeholder="Crie uma senha" minlength="6">
+              </label>
+              <label>Confirmar senha
+                <input type="password" name="password_confirm" required autocomplete="new-password" placeholder="Digite novamente" minlength="6">
+              </label>
+            </div>
+            <div class="customer-auth-grid two-cols">
+              <label>Telefone / WhatsApp
+                <input type="tel" name="phone" required autocomplete="tel" placeholder="(79) 99999-9999">
+              </label>
+              <label>CPF/CNPJ
+                <input type="text" name="document" required inputmode="numeric" placeholder="000.000.000-00">
+              </label>
+            </div>
+          </fieldset>
+          <fieldset class="auth-group">
+            <legend>Endereço de entrega</legend>
+            <div class="customer-auth-grid two-cols">
+              <label>CEP
+                <input type="text" name="zip" required autocomplete="postal-code" inputmode="numeric" placeholder="49000-000">
+              </label>
+              <label>UF
+                <input type="text" name="state" required autocomplete="address-level1" placeholder="SE" maxlength="2">
+              </label>
+            </div>
+            <label>Rua
+              <input type="text" name="street" required autocomplete="address-line1" placeholder="Nome da rua/avenida">
+            </label>
+            <div class="customer-auth-grid two-cols">
+              <label>Número
+                <input type="text" name="number" required placeholder="123">
+              </label>
+              <label>Complemento
+                <input type="text" name="complement" placeholder="Casa, apto, bloco...">
+              </label>
+            </div>
+            <div class="customer-auth-grid two-cols">
+              <label>Bairro
+                <input type="text" name="neighborhood" required placeholder="Seu bairro">
+              </label>
+              <label>Cidade
+                <input type="text" name="city" required autocomplete="address-level2" placeholder="Sua cidade">
+              </label>
+            </div>
+            <p class="auth-help">Você poderá confirmar ou alterar o endereço a cada pedido.</p>
+          </fieldset>
+          <div class="customer-auth-actions">
+            <button type="submit" class="btn btn-orange">Criar conta</button>
             <button type="button" class="btn customer-auth-cancel">Cancelar</button>
           </div>
         </form>
       </div>
     `;
     document.body.appendChild(modal);
+    enhancePasswordFields(modal);
 
     const loginForm = modal.querySelector('#customer-login-form');
     const registerForm = modal.querySelector('#customer-register-form');
@@ -158,20 +227,65 @@
       status.className = 'customer-auth-status ' + (type || 'info');
     }
 
-    modal.querySelectorAll('.customer-auth-tab').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        modal.querySelectorAll('.customer-auth-tab').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        const tab = btn.dataset.tab;
-        if(tab === 'login'){
-          loginForm.classList.remove('hidden');
-          registerForm.classList.add('hidden');
-        } else {
-          loginForm.classList.add('hidden');
-          registerForm.classList.remove('hidden');
-        }
-        setStatus('');
+    const forgotForm = modal.querySelector('#customer-forgot-form');
+    const resetForm = modal.querySelector('#customer-reset-form');
+    const titleEl = modal.querySelector('#customer-auth-title');
+    const subEl = modal.querySelector('#customer-auth-subtitle');
+    const tabsEl = modal.querySelector('.customer-auth-tabs');
+    const VIEWS = {
+      login:    { form: loginForm,    title: 'Entrar para finalizar a compra', sub: 'Cadastre-se uma vez e, nas próximas compras, é só entrar.', tabs: true },
+      register: { form: registerForm, title: 'Criar sua conta',                sub: 'Leva um minuto. Seus dados ficam salvos para as próximas compras.', tabs: true },
+      forgot:   { form: forgotForm,   title: 'Esqueci minha senha',            sub: 'Vamos enviar um link para o seu e-mail.', tabs: false },
+      reset:    { form: resetForm,     title: 'Criar nova senha',               sub: 'Escolha uma senha nova para entrar.', tabs: false }
+    };
+    function showView(name){
+      const v = VIEWS[name] || VIEWS.login;
+      Object.keys(VIEWS).forEach(k=>VIEWS[k].form.classList.toggle('hidden', k !== name));
+      titleEl.textContent = v.title; subEl.textContent = v.sub;
+      tabsEl.classList.toggle('hidden', !v.tabs);
+      modal.querySelectorAll('.customer-auth-tab').forEach(b=>{
+        const on = b.dataset.tab === name;
+        b.classList.toggle('active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
+      setStatus('');
+      const first = v.form.querySelector('input'); if(first && modal.classList.contains('visible')) first.focus();
+    }
+    modal._showView = showView;
+    modal.querySelectorAll('.customer-auth-tab').forEach(btn=>btn.addEventListener('click', ()=>showView(btn.dataset.tab)));
+    modal.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click', ()=>showView(btn.dataset.view)));
+
+    forgotForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = String(new FormData(forgotForm).get('email') || '').trim();
+      if(!email){ setStatus('Informe o seu e-mail.', 'error'); return; }
+      try{
+        if(!window.supa || typeof window.supa.resetPassword !== 'function') throw new Error('Supabase Auth não configurado.');
+        await window.supa.resetPassword(email);
+      }catch(err){
+        console.warn('Password reset request failed', err);
+        const m = String((err && err.message) || '').toLowerCase();
+        if(m.includes('rate') || m.includes('seconds')){ setStatus('Aguarde um minuto antes de pedir outro link.', 'error'); return; }
+      }
+      // mesma mensagem exista ou não o e-mail (não revela quem tem cadastro)
+      setStatus('Se esse e-mail tiver cadastro, enviamos um link para criar a nova senha. Veja também a caixa de spam.', 'success');
+    });
+
+    resetForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(resetForm);
+      const np = String(fd.get('password') || ''), npc = String(fd.get('password_confirm') || '');
+      if(np.length < 6){ setStatus('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
+      if(np !== npc){ setStatus('A confirmação de senha não confere.', 'error'); return; }
+      try{
+        await window.supa.updatePassword(np);
+        resetForm.reset();
+        currentUser = await getUser();
+        setStatus('Senha alterada! Você já está conectado.', 'success');
+        try{ history.replaceState(null, '', location.pathname + location.search); }catch(x){}
+        setTimeout(()=>closeModal(true), 900);
+      }catch(err){
+        setStatus('Não foi possível alterar a senha: ' + (err && err.message ? err.message : String(err)), 'error');
+      }
     });
 
     modal.querySelectorAll('.customer-auth-cancel').forEach(btn=>btn.addEventListener('click', ()=>closeModal(false)));
@@ -335,6 +449,12 @@
     modal.classList.add('visible');
   }
 
+  function openRecovery(){
+    const modal = ensureModal();
+    modal.classList.add('visible');
+    if(modal._showView) modal._showView('reset');
+  }
+
   function closeModal(success){
     const modal = document.getElementById(AUTH_MODAL_ID);
     if(modal) modal.classList.remove('visible');
@@ -394,6 +514,22 @@
       address,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
+  }
+
+  async function saveAddress(addr){
+    const client = getClient();
+    if(!client || !currentUser) throw new Error('Usuário não autenticado.');
+    const md = currentUser.user_metadata || {};
+    const payload = {
+      street: String(addr.street || '').trim(), number: String(addr.number || '').trim(),
+      neighborhood: String(addr.neighborhood || '').trim(), zip: String(addr.zip || '').trim(),
+      complement: md.complement || '', city: md.city || '', state: md.state || ''
+    };
+    const upd = await client.auth.updateUser({ data: { ...md, ...payload } });
+    if(upd && upd.error) throw upd.error;
+    await upsertAddressInProfile(client, currentUser, payload);
+    await getUser();
+    emitAuthChanged();
   }
 
   function ensureAccountModal(){
@@ -609,6 +745,7 @@
       });
     }
 
+    enhancePasswordFields(modal);
     switchTab('address');
     modal.classList.add('visible');
   }
@@ -652,7 +789,10 @@
     updateAuthUi();
     if(window.supa && typeof window.supa.onAuthStateChange === 'function'){
       try{
-        window.supa.onAuthStateChange(async ()=>{ await getUser(); emitAuthChanged(); updateAuthUi(); });
+        window.supa.onAuthStateChange(async (event)=>{
+          await getUser(); emitAuthChanged(); updateAuthUi();
+          if(event === 'PASSWORD_RECOVERY') openRecovery();
+        });
       }catch(e){ console.warn('Auth state listener failed', e); }
     }
   });
@@ -664,6 +804,7 @@
     getCurrentUser: ()=>currentUser,
     openAuthModal: openModal,
     openAccountModal,
+    saveAddress,
     getFavoriteIds,
     isFavorite,
     setFavorite,

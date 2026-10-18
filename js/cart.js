@@ -336,6 +336,12 @@
     if(zip && !String(zip.value || '').trim() && md.zip) zip.value = String(md.zip);
 
     updateCheckoutState();
+    try{
+      enhanceDeliveryBlock();
+      const bx = document.querySelector('.checkout-delivery');
+      if(bx && !bx.dataset.touched && addressIsFilled(collectDeliveryData(false))) setDeliveryEditing(false);
+      refreshDeliverySummary();
+    }catch(e){}
   }
 
   function collectDeliveryData(strict){
@@ -360,6 +366,108 @@
       window: windowSlot,
       isComplete
     };
+  }
+
+
+  // ---------- Endereço de entrega: resumo, alterar e confirmar a cada pedido ----------
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function addressLine(d){
+    if(!d || !d.street) return '';
+    var parts = [d.street + (d.number ? ', ' + d.number : ''), d.neighborhood, d.zip ? 'CEP ' + d.zip : ''].filter(Boolean);
+    return parts.join(' — ');
+  }
+  function addressIsFilled(d){ return !!(d && d.street && d.number && d.neighborhood); }
+  function setDeliveryEditing(on){
+    const box = document.querySelector('.checkout-delivery'); if(!box) return;
+    box.classList.toggle('collapsed', !on);
+    const btn = document.getElementById('delivery-edit-btn');
+    if(btn){ btn.textContent = on ? 'Pronto' : 'Alterar endereço'; btn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+    const save = document.getElementById('delivery-save-row'); const logged = !!(window.customerAuth && window.customerAuth.getCurrentUser && window.customerAuth.getCurrentUser());
+    if(save) save.classList.toggle('hidden', !(on && logged));
+    if(on){ const f = document.getElementById('checkout-street'); if(f) f.focus(); }
+    refreshDeliverySummary();
+  }
+  function refreshDeliverySummary(){
+    const sum = document.getElementById('delivery-summary'); if(!sum) return;
+    const d = collectDeliveryData(false);
+    const line = addressLine(d);
+    sum.textContent = line || 'Nenhum endereço informado ainda.';
+    sum.classList.toggle('is-empty', !line);
+  }
+  function enhanceDeliveryBlock(){
+    const box = document.querySelector('.checkout-delivery');
+    if(!box || box.dataset.enhanced) return;
+    box.dataset.enhanced = '1';
+    const title = document.getElementById('delivery-title');
+    const head = document.createElement('div');
+    head.className = 'delivery-head';
+    head.innerHTML = '<p id="delivery-summary" class="delivery-summary" aria-live="polite"></p>' +
+      '<button type="button" id="delivery-edit-btn" class="delivery-edit-btn" aria-expanded="false">Alterar endereço</button>';
+    if(title) title.after(head); else box.prepend(head);
+    const saveRow = document.createElement('label');
+    saveRow.id = 'delivery-save-row'; saveRow.className = 'delivery-save-row hidden';
+    saveRow.innerHTML = '<input type="checkbox" id="delivery-save-default"> Salvar como meu endereço padrão';
+    box.appendChild(saveRow);
+    document.getElementById('delivery-edit-btn').addEventListener('click', function(){
+      setDeliveryEditing(box.classList.contains('collapsed'));
+    });
+    box.addEventListener('input', function(){ box.dataset.touched = '1'; refreshDeliverySummary(); });
+    const d = collectDeliveryData(false);
+    setDeliveryEditing(!addressIsFilled(d));
+    refreshDeliverySummary();
+  }
+
+  async function saveDefaultAddressIfAsked(d){
+    const chk = document.getElementById('delivery-save-default');
+    if(!chk || !chk.checked) return;
+    try{
+      if(window.customerAuth && typeof window.customerAuth.saveAddress === 'function'){
+        await window.customerAuth.saveAddress({ street: d.street, number: d.number, neighborhood: d.neighborhood, zip: d.zip });
+      }
+    }catch(e){ logError('Falha ao salvar endereço padrão', e); }
+    chk.checked = false;
+  }
+
+  // Pergunta SEMPRE, antes de finalizar: "o endereço está certo?"  -> true = confirmado
+  function confirmDelivery(){
+    return new Promise(function(resolve){
+      const d = collectDeliveryData(false) || {};
+      const filled = addressIsFilled(d);
+      const modal = document.createElement('div');
+      modal.className = 'modal address-confirm-modal';
+      modal.setAttribute('data-remove-on-close', '1');
+      const when = (d.date || d.window) ? '<p class="ac-when">Entrega: ' + esc([d.date ? d.date.split('-').reverse().join('/') : '', d.window].filter(Boolean).join(' · ')) + '</p>' : '';
+      modal.innerHTML =
+        '<div class="modal-body address-confirm-card">' +
+          '<h2 id="ac-title" class="ac-title">' + (filled ? 'Confirme o endereço de entrega' : 'Falta o endereço de entrega') + '</h2>' +
+          (filled
+            ? '<p class="ac-address">' + esc(addressLine(d)) + '</p>' + (d.reference ? '<p class="ac-ref">Referência: ' + esc(d.reference) + '</p>' : '') + when +
+              '<p class="ac-help">Estamos entregando neste endereço. Está certo?</p>'
+            : '<p class="ac-help">Informe rua, número e bairro para continuar.</p>') +
+          '<div class="ac-actions">' +
+            (filled ? '<button type="button" class="btn btn-orange" data-ac="ok">Confirmar e finalizar</button>' : '') +
+            '<button type="button" class="btn" data-ac="edit">' + (filled ? 'Alterar endereço' : 'Informar endereço') + '</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      modal.setAttribute('aria-labelledby', 'ac-title');
+      let done = false;
+      function finish(ok){
+        if(done) return; done = true;
+        modal.classList.remove('visible');
+        setTimeout(function(){ if(modal.parentNode) modal.remove(); }, 50);
+        resolve(ok);
+      }
+      modal.addEventListener('click', function(e){
+        const b = e.target.closest && e.target.closest('[data-ac]');
+        if(!b) return;
+        if(b.dataset.ac === 'ok'){ saveDefaultAddressIfAsked(d).then(function(){ finish(true); }); }
+        else { finish(false); setTimeout(function(){ setDeliveryEditing(true); }, 150); }
+      });
+      // Esc fecha sem confirmar (a11y.js cuida do foco)
+      modal.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ finish(false); } });
+      requestAnimationFrame(function(){ modal.classList.add('visible'); const f = modal.querySelector('[data-ac]'); if(f) f.focus(); });
+    });
   }
 
   function isOnlinePaymentMethod(code){
@@ -439,6 +547,7 @@
       var cashPaid = paid;
     }
 
+    if(!(await confirmDelivery())) return;
     const total = cart.reduce((s,i)=>s + i.qty * i.price, 0);
     const delivery = collectDeliveryData(false);
     const order = {
@@ -492,6 +601,7 @@
       return;
     }
 
+    if(!(await confirmDelivery())) return;
     const total = cart.reduce((s,i)=>s + i.qty * i.price, 0);
     const order = {
       items: cart,
@@ -499,7 +609,7 @@
       total,
       checkoutChannel: 'site',
       paymentStatus: 'pending',
-      delivery
+      delivery: collectDeliveryData(true) || delivery
     };
 
     document.dispatchEvent(new CustomEvent('checkout-site-ready',{detail:order}));

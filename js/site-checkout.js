@@ -18,7 +18,8 @@
       `Agendamento: ${delivery.date || ''} ${delivery.window || ''}`,
       `Endereco: ${delivery.street || ''}, ${delivery.number || ''} - ${delivery.neighborhood || ''}`,
       `CEP: ${delivery.zip || ''}`,
-      `Referencia: ${delivery.reference || ''}`
+      `Referencia: ${delivery.reference || ''}`,
+      'Endereco confirmado pelo cliente: sim'
     ];
     return lines.join('\n').trim();
   }

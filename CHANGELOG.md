@@ -1,3 +1,34 @@
+## v7
+- Home nova: faixa de destaque mais curta com ilustração de cão e gato, ícones em SVG, faixa de confiança logo abaixo e **banners de oferta** (as 3 primeiras promoções, com preço "de/por" e preço por kg) no lugar do carrossel de imagens; o carrossel só aparece se o admin cadastrar banners próprios.
+- "Quer repetir o seu último pedido?" na home (usa o último pedido guardado neste aparelho).
+- Lista de produtos: contagem, filtros ativos que podem ser removidos, "Limpar filtros", Porte e Idade (detectados pelo nome do produto), faixa de preço, "Só promoções", "Só disponíveis" e ordenação por menor preço por kg.
+- Admin: abas Pedidos / Produtos / Relatórios; nova página `admin/orders.html` (resumo do dia, lista, detalhe com endereço e selo "Endereço confirmado pelo cliente", mudança de status, gráfico de 7 dias, link do WhatsApp do cliente).
+- Admin no modo escuro corrigido (cartões, campos e botões legíveis).
+- Pedido do site passa a registrar "Endereco confirmado pelo cliente: sim" na observação.
+- **Banco:** `supabase/migrations/20261017000000_admin_orders.sql` (admin lê/atualiza pedidos; só `status` e `note` podem mudar). Aplicar para a página de pedidos funcionar.
+- Novo teste `orders_test.py` (19); `a11y_test.py` agora cobre o carrossel escondido e o botão de pausar quando há banners.
+
+## v6
+- Modo escuro no estilo da opção B (preto, marrom e laranja), com botão sol/lua no cabeçalho; segue o sistema se o cliente não escolher (`js/theme.js`).
+- Login/cadastro redesenhados: olho para mostrar/ocultar a senha, "Esqueci minha senha" (e-mail com link) e tela "Criar nova senha" ao voltar pelo link.
+- Endereço de entrega: resumo no carrinho com "Alterar endereço", diálogo "Confirme o endereço" a cada pedido (WhatsApp e site) e opção "Salvar como meu endereço padrão".
+- Correção: `config.js` agora é carregado por `<script src="/config.js">` (antes era injetado de forma assíncrona e podia chegar depois dos outros scripts); `js/config-loader.js` removido.
+- Novos testes: `auth_test.py` (15), `address_test.py` (13); a auditoria passa a cobrir modo escuro e login.
+
+## v5
+- Cores da marca (laranja `#FF7A00`, marrom `#5C2E0A`, preto `#1F1B16`) no site e no admin; faixa de destaque (hero) laranja na home; cabeçalho preto; banners de exemplo regenerados.
+- Foco do teclado: contorno azul de 2px (antes 3px + halo); em campos fica por dentro, sem ser cortado no carrinho.
+
+## Novo visual (v4)
+- Tema novo (`css/theme.css`): fundo creme, cartões arredondados, laranja só em preços/botões, verde só no WhatsApp, cabeçalho enxuto, busca grande, carrinho renovado.
+- Home: chips de categoria (Cães, Gatos, Medicamentos, Promoções), faixa de confiança e rodapé (com campos `[...]` para preencher).
+- Produto: pesos em botões grandes, preço por kg, aviso de peso indisponível, botão "Compartilhar no WhatsApp".
+- Carregamento: esqueleto cinza e imagens com lazy loading.
+- "Comprar de novo" no carrinho vazio (guarda o último pedido só neste aparelho).
+- PWA: `manifest.webmanifest`, `sw.js`, `offline.html`, ícones; Open Graph genérico nas páginas.
+- Admin: `css/admin-theme.css` (mesma identidade visual).
+- Assistente: opção de ocultar/mostrar o botão.
+
 # Relatório de mudanças — Box das Rações
 
 ## A. Segurança e boas práticas
