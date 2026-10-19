@@ -123,6 +123,28 @@
 
       const displayName = p.name || nameParam || 'Produto';
       document.title = displayName + ' — Box Das Rações';
+      try{
+        // SEO: descrição, link canônico, redes sociais e dados estruturados (Product) para o Google
+        const origin = location.origin;
+        const canonical = origin + '/product.html?id=' + encodeURIComponent(p.id);
+        const plain = String(p.description || '').replace(/\s+/g,' ').trim();
+        const metaDesc = (plain ? plain.slice(0, 150) : (displayName + ' na Box das Rações. Peça pelo site ou pelo WhatsApp.'));
+        const setMeta = (sel, attr, val)=>{ let m = document.head.querySelector(sel); if(!m){ m = document.createElement('meta'); const k = sel.match(/\[(name|property)="([^"]+)"\]/); m.setAttribute(k[1], k[2]); document.head.appendChild(m); } m.setAttribute(attr, val); };
+        setMeta('meta[name="description"]', 'content', metaDesc);
+        setMeta('meta[property="og:title"]', 'content', document.title);
+        setMeta('meta[property="og:description"]', 'content', metaDesc);
+        let can = document.head.querySelector('link[rel="canonical"]'); if(!can){ can = document.createElement('link'); can.rel = 'canonical'; document.head.appendChild(can); } can.href = canonical;
+        const imgs = (Array.isArray(p.images) && p.images.length) ? p.images : (p.image ? [p.image] : []);
+        const absImgs = imgs.filter(u=>/^https?:/i.test(String(u))).slice(0, 4);
+        if(absImgs[0]) setMeta('meta[property="og:image"]', 'content', absImgs[0]);
+        const price = (typeof initialPromoPrice === 'number' && initialPromoPrice > 0) ? initialPromoPrice : initialBasePrice;
+        const ld = { '@context':'https://schema.org', '@type':'Product', name: displayName, description: plain || displayName, sku: String(p.id), url: canonical };
+        if(absImgs.length) ld.image = absImgs;
+        if(p.brand) ld.brand = { '@type':'Brand', name: String(p.brand) };
+        if(Number.isFinite(price) && price > 0) ld.offers = { '@type':'Offer', priceCurrency:'BRL', price: Number(price).toFixed(2), url: canonical, availability: (p.is_unavailable === true || p.is_unavailable === 'true') ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', seller: { '@type':'Organization', name:'Box das Rações' } };
+        let tag = document.getElementById('ld-product'); if(!tag){ tag = document.createElement('script'); tag.type = 'application/ld+json'; tag.id = 'ld-product'; document.head.appendChild(tag); }
+        tag.textContent = JSON.stringify(ld);
+      }catch(e){}
       const safeCategory = esc(p.category||'Ração');
       root.innerHTML = `
         <nav class="breadcrumb" style="font-size:13px;color:#666;margin-bottom:8px">Pet Shop &gt; ${ safeCategory }</nav>

@@ -422,7 +422,8 @@
       if(Object.prototype.hasOwnProperty.call(patch, 'ages')) setListParam(next, 'idade', patch.ages);
       ['pmin','pmax'].forEach(k=>{ if(Object.prototype.hasOwnProperty.call(patch, k)){ const v = String(patch[k] || '').trim(); if(v) next.set(k, v); else next.delete(k); } });
       ['promo','avail'].forEach(k=>{ if(Object.prototype.hasOwnProperty.call(patch, k)){ if(patch[k]) next.set(k, '1'); else next.delete(k); } });
-      if(patch.clear){ ['animal','groups','group','subs','sub','brand','manufacturer','porte','idade','pmin','pmax','promo','avail'].forEach(k=>next.delete(k)); }
+      if(Object.prototype.hasOwnProperty.call(patch, 'q')){ const v = String(patch.q || '').trim(); if(v) next.set('q', v); else next.delete('q'); }
+      if(patch.clear){ ['q','animal','groups','group','subs','sub','brand','manufacturer','porte','idade','pmin','pmax','promo','avail'].forEach(k=>next.delete(k)); }
       const query = next.toString();
       history.replaceState(null, '', query ? `products.html?${query}` : 'products.html');
       renderList();
@@ -501,7 +502,15 @@
       return true;
     };
 
-    const filtered = products.filter(matchesBase);
+    const wantQuery = String(params.get('q') || '').trim();
+    if(wantQuery && !document.querySelector('meta[name="robots"]')){ const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex,follow'; document.head.appendChild(m); } // páginas de busca interna não vão para o Google
+    let filtered = products.filter(matchesBase);
+    if(wantQuery && window.appSearch){
+      // busca por texto: só entra quem contém TODAS as palavras; mais relevante primeiro
+      filtered = filtered.map(p=>({ p, sc: window.appSearch.score(p, wantQuery) })).filter(x=>x.sc > 0);
+      if(!sortMode) filtered.sort((a,b)=>b.sc - a.sc);
+      filtered = filtered.map(x=>x.p);
+    }
     if(sortMode === 'price_asc') filtered.sort((a,b)=>getSortPrice(a)-getSortPrice(b));
     else if(sortMode === 'price_desc') filtered.sort((a,b)=>getSortPrice(b)-getSortPrice(a));
     else if(sortMode === 'kg_asc') filtered.sort((a,b)=>getSortPerKg(a)-getSortPerKg(b));
@@ -721,6 +730,7 @@
     const summary = document.getElementById('filter-summary');
     if(summary){
       const active = [];
+      if(wantQuery) active.push({ label: 'Busca: ' + wantQuery, rm: ()=>{ const si = document.getElementById('search'); if(si) si.value = ''; applyFilterParams({ q: '' }); } });
       const animalLabels = { caes: 'Cães', gatos: 'Gatos', medicamentos: 'Medicamentos' };
       const sizeLabels = { pequeno: 'Porte pequeno', medio: 'Porte médio', grande: 'Porte grande' };
       const ageLabels = { filhote: 'Filhote', adulto: 'Adulto', senior: 'Sênior' };
@@ -762,7 +772,7 @@
     if(!filtered.length){
       const empty = document.createElement('div');
       empty.className = 'meta-small';
-      empty.textContent = 'Nenhum produto encontrado para os filtros selecionados.';
+      empty.textContent = wantQuery ? ('Nenhum produto encontrado para "' + wantQuery + '". Confira a digitação ou tente outra palavra.') : 'Nenhum produto encontrado para os filtros selecionados.';
       root.appendChild(empty);
     }
 

@@ -1,98 +1,65 @@
 (function(){
-  // header loader: insert a lightweight placeholder synchronously so other scripts can bind,
-  // then fetch the full include and replace it when available.
+  const SELF_SCRIPT = document.currentScript;
+  // Cabeçalho ÚNICO do site: montado aqui, de forma síncrona, igual em todas as páginas
+  // (antes havia 3 versões diferentes e o cabeçalho era trocado no meio do carregamento,
+  // o que fazia a barra de busca "pular" ao mudar de página). Agora ele nunca é substituído.
   const LOG_PREFIX = '[header]';
   const logWarn = (message, ...args) => console.warn(`${LOG_PREFIX} ${message}`, ...args);
-  const tries = ['includes/header.html','../includes/header.html','/includes/header.html'];
 
-  function createPlaceholder(){
-    if(document.querySelector('header.top')){
-      try{ document.dispatchEvent(new CustomEvent('header:loaded')); }catch(e){}
-      return;
-    }
-    const hdr = document.createElement('header'); hdr.className='top stacked';
-    hdr.innerHTML = `
-      <div class="top-row">
+  const HEADER_HTML = `
+    <div class="hd-main">
+      <div class="hd-left">
         <button id="hamburger" type="button" class="icon" aria-label="Abrir menu de categorias" aria-expanded="false" aria-controls="side-menu"><span aria-hidden="true">☰</span></button>
-        <div class="logo"><a href="/index.html" aria-label="Ir para a página inicial"><img src="/img/logobox.png" alt="" class="logo-img"></a></div>
         <div id="customer-auth-holder"></div>
-        <button id="cart-btn" type="button" class="icon" aria-label="Abrir carrinho" aria-expanded="false" aria-controls="cart-panel"><img src="/img/cart-l2.png" alt="" class="cart-icon"><span id="cart-count" class="cart-count" aria-hidden="true">0</span></button>
       </div>
+      <div class="logo"><a href="/index.html" aria-label="Box Das Rações, página inicial"><img src="/img/logobox.png" alt="" class="logo-img"></a></div>
       <div id="search-area" class="search-area" role="search" aria-label="Buscar produtos">
-        <div style="position:relative">
+        <div class="search-box">
           <label for="search" class="sr-only">Buscar produtos</label>
           <input id="search" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="O seu pet merece o melhor !">
           <button id="search-btn" class="search-btn" type="button" aria-label="Pesquisar" title="Pesquisar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/>
-            </svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/></svg>
           </button>
         </div>
         <div id="search-results" class="search-results"></div>
         <div id="search-status" class="sr-only" role="status" aria-live="polite"></div>
       </div>
-    `;
-    const main = document.querySelector('main');
-    if(main) document.body.insertBefore(hdr, main);
+      <div class="hd-actions">
+        <button id="cart-btn" type="button" class="icon" aria-label="Abrir carrinho" aria-expanded="false" aria-controls="cart-panel"><img src="/img/cart-l2.png" alt="" class="cart-icon"><span id="cart-count" class="cart-count" aria-hidden="true">0</span></button>
+      </div>
+    </div>`;
+
+  function mountHeader(){
+    if(document.querySelector('header.top')) return;
+    const hdr = document.createElement('header');
+    hdr.className = 'top site-header';
+    hdr.innerHTML = HEADER_HTML;
+    // entra exatamente onde o <script> está (logo depois do link "Pular para o conteúdo")
+    const me = SELF_SCRIPT;
+    if(me && me.parentNode) me.parentNode.insertBefore(hdr, me.nextSibling);
     else document.body.insertBefore(hdr, document.body.firstChild);
-    // notify that a header (placeholder) is present so other scripts can bind immediately
     try{ document.dispatchEvent(new CustomEvent('header:loaded')); }catch(e){}
   }
 
-  function insertHeader(html){
-    try{
-      const wrap = document.createElement('div'); wrap.innerHTML = html; const header = wrap.querySelector('header');
-      if(!header) return;
-      const existing = document.querySelector('header.top');
-      if(existing) existing.replaceWith(header);
-      else {
-        const main = document.querySelector('main');
-        if(main) document.body.insertBefore(header, main);
-        else document.body.insertBefore(header, document.body.firstChild);
-      }
-
-      // also insert/replace any shared nodes that accompany the header (e.g. cart panel)
-      try{
-        const fetchedAside = wrap.querySelector('aside#cart-panel');
-        if(fetchedAside){
-          const existingAside = document.getElementById('cart-panel');
-          if(existingAside) existingAside.replaceWith(fetchedAside);
-          else {
-            // insert the aside right after the header when possible
-            const headerEl = document.querySelector('header.top') || header;
-            if(headerEl && headerEl.parentNode){ headerEl.parentNode.insertBefore(fetchedAside, headerEl.nextSibling); }
-            else document.body.appendChild(fetchedAside);
-          }
-        }
-      }catch(e){/* ignore */}
-
-      document.dispatchEvent(new CustomEvent('header:loaded'));
-    }catch(e){ logWarn('Failed to insert fetched header include', e); }
-  }
-
-  async function tryLoad(paths){
-    for(const p of paths){
+  // Só o carrinho lateral vem do arquivo includes/header.html (o cabeçalho em si nunca é trocado)
+  async function loadCartPanel(){
+    if(document.getElementById('cart-panel')) return;
+    for(const p of ['/includes/header.html','includes/header.html','../includes/header.html']){
       try{
         const res = await fetch(p, {cache: 'no-store'});
         if(!res.ok) continue;
-        const text = await res.text();
-        insertHeader(text);
-        return true;
-      }catch(e){ logWarn('Header include fetch failed for path: ' + p, e); }
+        const wrap = document.createElement('div'); wrap.innerHTML = await res.text();
+        const aside = wrap.querySelector('aside#cart-panel');
+        if(!aside || document.getElementById('cart-panel')) return;
+        const headerEl = document.querySelector('header.top');
+        if(headerEl && headerEl.parentNode) headerEl.parentNode.insertBefore(aside, headerEl.nextSibling);
+        else document.body.appendChild(aside);
+        document.dispatchEvent(new CustomEvent('header:loaded'));
+        return;
+      }catch(e){ logWarn('Falha ao carregar o carrinho lateral: ' + p, e); }
     }
-    return false;
   }
 
-  // create placeholder synchronously so menu/search can bind immediately
-  createPlaceholder();
-
-  // start loading as soon as possible
-  tryLoad(tries);
-
-  // also try again after DOMContentLoaded in case relative paths resolve differently
-  document.addEventListener('DOMContentLoaded', ()=>{
-    tryLoad(tries);
-  });
-
+  mountHeader();
+  loadCartPanel();
 })();

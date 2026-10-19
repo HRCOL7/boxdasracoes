@@ -1,3 +1,16 @@
+## v8
+- Busca corrigida: só aparecem produtos que contêm TODAS as palavras digitadas (nome, marca, grupo; descrição com peso menor); erro de digitação leve aceito. Enter/lupa abre `products.html?q=...` com a lista completa e filtro "Busca: ..." removível; a lista suspensa tem "Ver todos os resultados".
+- Cabeçalho único (`js/header.js`) igual em todas as páginas e nunca mais trocado durante o carregamento (acabou o "pulo" da barra de busca); resultados da busca flutuam sem empurrar a página.
+- Modo escuro: descrição e textos cinza do produto agora legíveis.
+- Home no padrão Petz: cabeçalho com busca em pílula (mobile) / busca larga + menu de categorias (PC), faixa de aviso, blocos de categoria (3x2 no celular, 6 em linha no PC) e banner grande.
+- Nova logo (círculo cão e gato) no site, painel admin e ícones do app (a original foi guardada em `img/logobox-antigo.png`).
+- Botão de ajuda e acessibilidade compacto no celular (só o ícone) e que sobe quando a faixa de cookies está aberta.
+- Cookies/LGPD: faixa na primeira visita + centro de preferências (necessários, funcionalidade, analíticos, desempenho, publicidade), link "Preferências de cookies" em todas as páginas; a análise de visitas só roda se o cliente aceitar.
+- Cabeçalho do celular: menu + entrar à esquerda, logo no centro, tema + carrinho à direita; blocos de categoria só no celular (no PC o menu do topo já os traz) e faixa repetida removida.
+- PC: blocos de categoria voltam e o menu duplicado do topo sai. Menu lateral modernizado (cabeçalho com logo, atalhos, categorias em cartões, fundo escurecido).
+- Google: dados estruturados Product em cada produto, canonical, título/descrição por produto, dados da loja e caixa de busca na home, robots.txt, sitemap.xml e `tools/gen_sitemap.py` (lista todos os produtos). Páginas de busca interna ficam fora do Google.
+& e `consent_test.py`.
+
 ## v7
 - Home nova: faixa de destaque mais curta com ilustração de cão e gato, ícones em SVG, faixa de confiança logo abaixo e **banners de oferta** (as 3 primeiras promoções, com preço "de/por" e preço por kg) no lugar do carrossel de imagens; o carrossel só aparece se o admin cadastrar banners próprios.
 - "Quer repetir o seu último pedido?" na home (usa o último pedido guardado neste aparelho).

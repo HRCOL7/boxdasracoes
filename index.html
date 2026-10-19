@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
+  <link rel="canonical" href="https://boxdasracoes.com.br/">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"PetStore","@id":"https://boxdasracoes.com.br/#loja","name":"Box das Rações","url":"https://boxdasracoes.com.br/","logo":"https://boxdasracoes.com.br/img/icon-512.png","image":"https://boxdasracoes.com.br/img/icon-512.png","description":"Rações, medicamentos e acessórios para cães, gatos e outros pets, com entrega e atendimento pelo WhatsApp."},{"@type":"WebSite","url":"https://boxdasracoes.com.br/","name":"Box das Rações","potentialAction":{"@type":"SearchAction","target":"https://boxdasracoes.com.br/products.html?q={search_term_string}","query-input":"required name=search_term_string"}}]}</script>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Box das Rações">
   <meta property="og:title" content="Box Das Rações — ração, medicamentos e acessórios para pets">
@@ -22,6 +24,7 @@
   <link rel="stylesheet" href="css/desktop.css" media="(min-width:900px)">
   <link rel="stylesheet" href="css/a11y.css">
   <link rel="stylesheet" href="css/assistant.css">
+  <link rel="stylesheet" href="css/consent.css">
   <link rel="stylesheet" href="css/theme.css">
   <script src="js/a11y.js"></script>
   <script src="js/theme.js"></script>
@@ -29,35 +32,17 @@
 </head>
 <body>
   <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
-  <header class="top">
-    <button id="hamburger" type="button" class="icon" aria-label="Abrir menu de categorias" aria-expanded="false" aria-controls="side-menu"><span aria-hidden="true">☰</span></button>
-    <div class="logo"><a href="/index.html" aria-label="Box Das Rações, página inicial"><img src="img/logobox.png" alt="" class="logo-img"></a></div>
-    <div id="customer-auth-holder"></div>
-    <button id="cart-btn" type="button" class="icon" aria-label="Abrir carrinho" aria-expanded="false" aria-controls="cart-panel"><img src="img/cart-l2.png" alt="" class="cart-icon"><span id="cart-count" class="cart-count" aria-hidden="true">0</span></button>
-  </header>
-
-  <div id="search-area" class="search-area" role="search" aria-label="Buscar produtos">
-    <div style="position:relative">
-      <label for="search" class="sr-only">Buscar produtos</label>
-      <input id="search" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="O seu pet merece o melhor !">
-      <button id="search-btn" class="search-btn" type="button" aria-label="Pesquisar" title="Pesquisar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/>
-        </svg>
-      </button>
-    </div>
-    <div id="search-results" class="search-results"></div>
-    <div id="search-status" class="sr-only" role="status" aria-live="polite"></div>
-  </div>
+  <script src="js/header.js"></script>
 
   <main id="main-content" tabindex="-1">
     <h1 class="sr-only">Box Das Rações: rações, medicamentos e acessórios para o seu pet</h1>
-    <nav class="cat-chips" aria-label="Categorias">
-      <a class="cat-chip" href="products.html?animal=caes"><span class="cat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 14c-3 0-5 2-5 4 0 1.5 1.5 2.5 3 2.5.8 0 1.4-.3 2-.3s1.2.3 2 .3c1.5 0 3-1 3-2.5 0-2-2-4-5-4z"/><circle cx="6" cy="10" r="1.6"/><circle cx="10" cy="6.5" r="1.6"/><circle cx="14" cy="6.5" r="1.6"/><circle cx="18" cy="10" r="1.6"/></svg></span>Cães</a>
-      <a class="cat-chip" href="products.html?animal=gatos"><span class="cat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 10l1-6 4 3h4l4-3 1 6v4a7 7 0 0 1-14 0z"/><path d="M9.5 12v.5M14.5 12v.5M10 16c1.3.8 2.7.8 4 0"/></svg></span>Gatos</a>
-      <a class="cat-chip" href="products.html?animal=medicamentos"><span class="cat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M10.5 20.5a4.95 4.95 0 0 1-7-7l10-10a4.95 4.95 0 0 1 7 7z"/><path d="M8.5 8.5l7 7"/></svg></span>Medicamentos</a>
-      <a class="cat-chip" href="products.html?promo=1"><span class="cat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg></span>Promoções</a>
+    <nav class="cat-tiles" aria-label="Categorias">
+      <a class="cat-tile" href="products.html?animal=caes"><span class="cat-tile-label">Cães</span><span class="cat-tile-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 14c-3 0-5 2-5 4 0 1.5 1.5 2.5 3 2.5.8 0 1.4-.3 2-.3s1.2.3 2 .3c1.5 0 3-1 3-2.5 0-2-2-4-5-4z"/><circle cx="6" cy="10" r="1.6"/><circle cx="10" cy="6.5" r="1.6"/><circle cx="14" cy="6.5" r="1.6"/><circle cx="18" cy="10" r="1.6"/></svg></span></a>
+      <a class="cat-tile" href="products.html?animal=gatos"><span class="cat-tile-label">Gatos</span><span class="cat-tile-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 10l1-6 4 3h4l4-3 1 6v4a7 7 0 0 1-14 0z"/><path d="M9.5 12v.5M14.5 12v.5M10 16c1.3.8 2.7.8 4 0"/></svg></span></a>
+      <a class="cat-tile" href="products.html?animal=medicamentos"><span class="cat-tile-label">Medicamentos</span><span class="cat-tile-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M10.5 20.5a4.95 4.95 0 0 1-7-7l10-10a4.95 4.95 0 0 1 7 7z"/><path d="M8.5 8.5l7 7"/></svg></span></a>
+      <a class="cat-tile" href="products.html?promo=1"><span class="cat-tile-label">Promoções</span><span class="cat-tile-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg></span></a>
+      <a class="cat-tile" href="products.html"><span class="cat-tile-label">Todos os produtos</span><span class="cat-tile-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></span></a>
+      <a class="cat-tile" href="#brands-title"><span class="cat-tile-label">Marcas</span><span class="cat-tile-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></span></a>
     </nav>
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
@@ -173,6 +158,7 @@
   <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="js/supabase-client.js" defer></script>
+  <script src="js/consent.js" defer></script>
   <script src="js/analytics.js" defer></script>
   <script src="js/utils.js" defer></script>
   <script src="js/customer-auth.js" defer></script>

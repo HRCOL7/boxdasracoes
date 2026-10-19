@@ -1,0 +1,53 @@
+/* Cookies e privacidade */
+.ck-banner{position:fixed;left:12px;right:12px;bottom:12px;z-index:1600;max-width:960px;margin:0 auto;background:#1F1B16;color:#fff;border:1px solid #4A4036;border-radius:18px;padding:14px 16px;box-shadow:0 10px 32px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:10px}
+.ck-banner[hidden]{display:none}
+.ck-text{margin:0;font-size:14px;line-height:1.45}
+.ck-linkbtn{background:none;border:0;padding:0;margin:0;color:#FFA24D;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;min-height:24px}
+.ck-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ck-btn{min-height:44px;padding:0 18px;border-radius:999px;font:800 14px/1 inherit;font-family:inherit;cursor:pointer;flex:1 1 auto}
+.ck-primary{background:#FF7A00;color:#1F1B16;border:2px solid #FF7A00}
+.ck-primary:hover{background:#E56D00;border-color:#E56D00}
+.ck-secondary{background:transparent;color:inherit;border:2px solid currentColor}
+.ck-banner .ck-secondary{color:#fff}
+@media (min-width:700px){.ck-banner{flex-direction:row;align-items:center}.ck-actions{flex:0 0 auto;flex-wrap:nowrap}.ck-btn{flex:0 0 auto}}
+/* botão de ajuda sobe quando a faixa está aberta */
+body.ck-open .as-dock{bottom:calc(var(--ck-h,0px) + 12px)}
+
+.ck-back{position:fixed;inset:0;z-index:1700;background:rgba(20,17,13,.6);display:flex;align-items:center;justify-content:center;padding:12px}
+.ck-modal{background:#fff;color:#1F1B16;width:100%;max-width:680px;max-height:92vh;border-radius:20px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.ck-modal h2{margin:0;padding:18px 20px 6px;font-size:20px}
+.ck-intro{margin:0;padding:0 20px 10px;font-size:14px;line-height:1.5;color:#4a4339}
+.ck-body{overflow:auto;padding:0 20px;border-top:1px solid #E4DBCF;flex:1}
+.ck-section{padding:14px 0;border-bottom:1px solid #E4DBCF}
+.ck-section:last-child{border-bottom:0}
+.ck-cat-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ck-cat-head h3{margin:0;font-size:16px}
+.ck-always{font-weight:800;font-size:13px;color:#7A3500;background:#FFE4C7;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.ck-switch{position:relative;display:inline-flex;width:52px;height:44px;align-items:center;flex:0 0 52px}
+.ck-switch input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.ck-track{pointer-events:none;width:48px;height:28px;border-radius:999px;background:#6B645B;position:relative;transition:background .15s}
+.ck-track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
+.ck-switch input:checked + .ck-track{background:#A84800}
+.ck-switch input:checked + .ck-track::after{transform:translateX(20px)}
+.ck-switch input:focus-visible + .ck-track{outline:2px solid #0b3d91;outline-offset:3px}
+.ck-cat summary{cursor:pointer;color:#A84800;font-weight:800;font-size:14px;min-height:32px;display:flex;align-items:center}
+.ck-cat p{margin:6px 0;font-size:14px;line-height:1.5}
+.ck-none{color:#6B645B}
+.ck-items{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.ck-items li{background:#FBF8F3;border:1px solid #E4DBCF;border-radius:12px;padding:10px 12px;display:grid;gap:2px;font-size:13px}
+.ck-items small{color:#6B645B}
+.ck-foot{display:flex;gap:8px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid #E4DBCF;background:#fff}
+.ck-modal .ck-secondary{color:#1F1B16}
+body.ck-modal-open{overflow:hidden}
+.ck-open-prefs{background:none;border:0;color:inherit;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;min-height:44px;padding:0 8px}
+.ck-footer-link{margin-top:6px}
+.ck-page-link{text-align:center;padding:10px 16px 90px}
+.ck-page-link .ck-open-prefs{color:#A84800}
+html[data-theme="dark"] .ck-modal,html[data-theme="dark"] .ck-foot{background:#2C2620;color:#F3EDE4}
+html[data-theme="dark"] .ck-modal .ck-secondary{color:#F3EDE4}
+html[data-theme="dark"] .ck-intro,html[data-theme="dark"] .ck-none,html[data-theme="dark"] .ck-items small{color:#CFC6B9}
+html[data-theme="dark"] .ck-body,html[data-theme="dark"] .ck-section,html[data-theme="dark"] .ck-foot{border-color:#4A4036}
+html[data-theme="dark"] .ck-items li{background:#1F1B16;border-color:#4A4036}
+html[data-theme="dark"] .ck-cat summary,html[data-theme="dark"] .ck-page-link .ck-open-prefs{color:#FFA24D}
+html[data-theme="dark"] .ck-always{background:#5C2E0A;color:#FFE4C7}
+html[data-theme="dark"] .ck-switch input:checked + .ck-track{background:#FF7A00}

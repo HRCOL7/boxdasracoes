@@ -41,60 +41,67 @@
     return dp[n];
   }
 
-  function tokenMatches(token, candidateToken){
-    if(!token || !candidateToken) return false;
-    if(candidateToken.includes(token) || token.includes(candidateToken)) return true;
-    if(token.length <= 2 || candidateToken.length <= 2) return false;
-    const dist = levenshtein(token, candidateToken);
-    const maxLen = Math.max(token.length, candidateToken.length);
-    if(maxLen <= 4) return dist <= 1;
-    if(maxLen <= 7) return dist <= 2;
-    return dist <= 3;
+  // Palavras sem valor para busca ("de", "para"...) e plural/singular simples (cães→cao, rações→racao, gatos→gato)
+  const STOP = new Set(['de','da','do','das','dos','e','a','o','as','os','para','com','em','no','na','por','um','uma']);
+  function stem(t){
+    return String(t || '').replace(/(oes|aes)$/, 'ao').replace(/ais$/, 'al').replace(/s$/, '');
+  }
+  function fieldTokens(v){
+    return tokenize(v).filter(t=>!STOP.has(t)).map(stem).filter(Boolean);
   }
 
-  function buildSearchText(product){
-    return normalizeText([
-      product && product.name,
-      product && product.brand,
-      product && product.manufacturer,
-      product && product.group,
-      product && product.subgroup,
-      product && product.description
-    ].filter(Boolean).join(' '));
+  // Nota de uma palavra digitada contra as palavras de um campo.
+  // Só vale quando o campo CONTÉM a palavra digitada (nunca o contrário, senão "monello" casaria
+  // com qualquer "a" ou "de"). Erro de digitação só é aceito em palavras longas e na mesma inicial.
+  function tokenScore(token, candidates, weight, allowFuzzy){
+    let best = 0;
+    for(const c of candidates){
+      if(c === token){ best = Math.max(best, weight); continue; }
+      if(token.length < 2) continue;
+      if(c.startsWith(token)){ best = Math.max(best, weight * 0.9); continue; }
+      if(token.length >= 3 && c.includes(token)){ best = Math.max(best, weight * 0.7); continue; }
+      if(allowFuzzy && token.length >= 5 && c.length >= 4 && c[0] === token[0] && Math.abs(c.length - token.length) <= 2){
+        const dist = levenshtein(token, c);
+        const limit = token.length <= 6 ? 1 : 2;
+        if(dist <= limit) best = Math.max(best, weight * 0.55 - dist * 4);
+      }
+    }
+    return best;
   }
 
   function scoreProduct(product, query){
     const q = normalizeText(query);
     if(!q) return 0;
-    const text = buildSearchText(product);
-    if(!text) return 0;
-    if(text.includes(q)) return 1000 + q.length;
-
-    const qTokens = tokenize(q);
+    let qTokens = tokenize(q).filter(t=>!STOP.has(t)).map(stem).filter(Boolean);
+    if(!qTokens.length) qTokens = tokenize(q).map(stem).filter(Boolean);
     if(!qTokens.length) return 0;
-    const cTokens = tokenize(text);
-    let matched = 0;
-    let score = 0;
-    qTokens.forEach(token=>{
-      let best = 0;
-      cTokens.forEach(c=>{
-        if(c.includes(token)) best = Math.max(best, 90);
-        else if(tokenMatches(token, c)){
-          const dist = levenshtein(token, c);
-          best = Math.max(best, Math.max(50, 85 - dist * 10));
-        }
-      });
-      if(best > 0){
-        matched += 1;
-        score += best;
-      }
-    });
 
-    // Require at least half of query tokens to match to avoid noisy results.
-    const minimumMatches = Math.max(1, Math.ceil(qTokens.length / 2));
-    if(matched < minimumMatches) return 0;
-    return score + matched * 20;
+    const name = normalizeText(product && product.name);
+    const strong = normalizeText([product && product.brand, product && product.manufacturer, product && product.group, product && product.subgroup].filter(Boolean).join(' '));
+    const nameT = fieldTokens(name);
+    const strongT = fieldTokens(strong);
+    const descT = fieldTokens(product && product.description);
+
+    let total = 0;
+    for(const token of qTokens){
+      let best = tokenScore(token, nameT, 100, true);
+      best = Math.max(best, tokenScore(token, strongT, 70, true));
+      best = Math.max(best, tokenScore(token, descT, 30, false));
+      if(!best) return 0;          // TODAS as palavras digitadas precisam aparecer
+      total += best;
+    }
+    if(name.includes(q)) total += 200;
+    else if(strong.includes(q)) total += 100;
+    return total;
   }
+
+  // lista de produtos que combinam com a busca, do mais ao menos relevante
+  function filterProducts(products, query){
+    const scored = (Array.isArray(products) ? products : []).map(p=>({ product: p, score: scoreProduct(p, query) })).filter(x=>x.score > 0);
+    scored.sort((a,b)=> b.score - a.score);
+    return scored.map(x=>x.product);
+  }
+  window.appSearch = { score: scoreProduct, filter: filterProducts, normalize: normalizeText };
 
   function hasSupabaseConfig(){
     return !!(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey);
@@ -138,6 +145,11 @@
     const desktopAlreadyBound = input.dataset.searchBound === '1';
     const mobileAlreadyBound = !mobileInput || mobileInput.dataset.searchBound === '1';
     if(desktopAlreadyBound && mobileAlreadyBound) return;
+
+    try{
+      const qp = new URLSearchParams(location.search).get('q');
+      if(qp && !input.value) input.value = qp;
+    }catch(e){}
 
     function getProductsSync(){
       try{
@@ -207,20 +219,16 @@
 
     async function findMatches(q, limit){
       const products = await ensureProductsReady();
-      let scored = (Array.isArray(products) ? products : []).map(p=>({ product: p, score: scoreProduct(p, q) })).filter(x=>x.score > 0);
-      scored.sort((a,b)=> b.score - a.score);
-      let matches = scored.map(x=>x.product);
+      let matches = filterProducts(products, q);
       if(matches.length === 0){
+        // lista local pode estar velha: busca de novo no servidor antes de dizer "nada encontrado"
         if(!hydratePromise){
           hydratePromise = hydrateProductsFromSupabase().finally(()=>{ hydratePromise = null; });
         }
         await hydratePromise;
-        const retryProducts = getProductsSync();
-        scored = (Array.isArray(retryProducts) ? retryProducts : []).map(p=>({ product: p, score: scoreProduct(p, q) })).filter(x=>x.score > 0);
-        scored.sort((a,b)=> b.score - a.score);
-        matches = scored.map(x=>x.product);
+        matches = filterProducts(getProductsSync(), q);
       }
-      return matches.slice(0, limit || 8);
+      return limit ? matches.slice(0, limit) : matches;
     }
 
     function getCardImage(p){
@@ -231,6 +239,12 @@
     function getDisplayPrice(p){
       if(Array.isArray(p && p.variants) && p.variants.length) return Number(p.variants[0].price || 0);
       return Number((p && p.price) || 0);
+    }
+
+    function goToResults(value){
+      const v = String(value || '').trim();
+      if(!v) return;
+      location.href = 'products.html?q=' + encodeURIComponent(v);
     }
 
     async function performSearch(){
@@ -251,6 +265,13 @@
         r.innerHTML = `<img class="search-thumb" alt="" src="${window.appUtils.safeImageUrl(img)}"><div class="search-body"><div class="search-name">${esc(p.name||'')}</div><div class="search-price">R$ ${displayPrice.toFixed(2)}</div></div>`;
         frag.appendChild(r);
       });
+      if(matches.length){
+        const all = document.createElement('a');
+        all.className = 'search-row search-all';
+        all.href = 'products.html?q=' + encodeURIComponent(input.value.trim());
+        all.innerHTML = '<div class="search-body"><div class="search-name">Ver todos os resultados</div></div>';
+        frag.appendChild(all);
+      }
       results.appendChild(frag);
       if(statusEl) statusEl.textContent = matches.length ? (matches.length + (matches.length === 1 ? ' resultado encontrado. Use a seta para baixo para navegar.' : ' resultados encontrados. Use a seta para baixo para navegar.')) : 'Nenhum produto encontrado.';
     }
@@ -262,15 +283,13 @@
       // Enter key in input should trigger search/navigation if appropriate
       input.addEventListener('keydown', (e)=>{
         if(e.key === 'Enter'){
-          e.preventDefault(); performSearch();
-          const first = results.querySelector('.search-row'); if(first) first.click();
+          e.preventDefault(); goToResults(input.value);
         }
       });
 
       if(btn){
         btn.addEventListener('click',(e)=>{
-          e.preventDefault(); performSearch();
-          const first = results.querySelector('.search-row'); if(first) first.click();
+          e.preventDefault(); goToResults(input.value);
         });
       }
       // Setas: do campo para a lista e entre os resultados; Esc fecha e volta ao campo.
@@ -310,8 +329,8 @@
       }
       const performMobileSearchDebounced = debounce(performMobileSearch, 140);
       mobileInput.addEventListener('input', performMobileSearchDebounced);
-      mobileInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); performMobileSearch(); const f = (mobileSuggestions||document).querySelector('.search-row'); if(f) f.click(); } });
-      if(mobileBtn){ mobileBtn.addEventListener('click',(e)=>{ e.preventDefault(); performMobileSearch(); const f = (mobileSuggestions||document).querySelector('.search-row'); if(f) f.click(); }); }
+      mobileInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); goToResults(mobileInput.value); } });
+      if(mobileBtn){ mobileBtn.addEventListener('click',(e)=>{ e.preventDefault(); goToResults(mobileInput.value); }); }
       mobileInput.dataset.searchBound = '1';
     }
 

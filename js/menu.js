@@ -82,10 +82,17 @@
         ul.appendChild(row);
       });
 
-      const closeBtn=document.createElement('button'); closeBtn.type='button'; closeBtn.className='side-menu-close'; closeBtn.innerHTML='<span aria-hidden="true">✕</span> Fechar menu';
+      const closeBtn=document.createElement('button'); closeBtn.type='button'; closeBtn.className='side-menu-close'; closeBtn.setAttribute('aria-label','Fechar menu'); closeBtn.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
       closeBtn.addEventListener('click',()=>closePanel(panel));
-      panel.appendChild(closeBtn);
+      const head=document.createElement('div'); head.className='side-head';
+      head.innerHTML='<img class="side-logo" src="/img/logobox.png" alt="" width="44" height="44"><div class="side-brand"><strong>Box das Rações</strong><span>O que seu pet precisa?</span></div>';
+      head.appendChild(closeBtn);
+      const quick=document.createElement('div'); quick.className='side-quick';
+      quick.innerHTML='<a href="/index.html">Início</a><a href="products.html?promo=1">Promoções</a><a href="products.html">Todos os produtos</a>';
+      const lbl=document.createElement('p'); lbl.className='side-label'; lbl.textContent='Categorias';
+      panel.appendChild(head); panel.appendChild(quick); panel.appendChild(lbl);
       panel.appendChild(ul); document.body.appendChild(panel);
+      if(!document.getElementById('side-backdrop')){ const bd=document.createElement('div'); bd.id='side-backdrop'; bd.className='side-backdrop'; bd.addEventListener('click',()=>closePanel(panel)); document.body.appendChild(bd); }
       return panel;
     }
 
@@ -100,6 +107,7 @@
       if(arrows && arrows.length){ arrows.forEach(a=>a.setAttribute('aria-expanded','false')); }
       panel.querySelectorAll('.side-row-left[aria-expanded]').forEach(b=>b.setAttribute('aria-expanded','false'));
       panel.classList.remove('open');
+      const bdc=document.getElementById('side-backdrop'); if(bdc) bdc.classList.remove('show');
       panel.inert = true;
       if(hamburger) hamburger.setAttribute('aria-expanded','false');
       if(menuDialog){ const d = menuDialog; menuDialog = null; d.close(); }
@@ -117,6 +125,7 @@
       if(isOpen){ closePanel(panel); return; }
       // open
       panel.classList.add('open');
+      const bdo=document.getElementById('side-backdrop'); if(bdo) bdo.classList.add('show');
       panel.inert = false;
       hamburger.setAttribute('aria-expanded','true');
       if(window.appA11y){ menuDialog = window.appA11y.openDialog(panel, { opener: hamburger, initialFocus: '.side-menu-close', onClose: ()=>closePanel(panel) }); }

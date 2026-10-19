@@ -33,6 +33,8 @@
 
   async function track(eventType, payload){
     try{
+      // só mede visitas se o cliente aceitou os cookies analíticos
+      if(!(window.cookieConsent && window.cookieConsent.allowed('analytics'))) return false;
       const client = (window.supa && typeof window.supa.init === 'function') ? window.supa.init() : null;
       if(!client || !client.from) return false;
       const body = payload && typeof payload === 'object' ? payload : {};
@@ -56,6 +58,7 @@
   }
 
   function trackPageView(){
+    if(!(window.cookieConsent && window.cookieConsent.allowed('analytics'))) return;
     const key = 'pv:' + location.pathname + ':' + getSessionId();
     if(wasSent(key)) return;
     markSent(key);
@@ -67,6 +70,9 @@
       track('product_view', { product_id: Number.isFinite(idNum) ? idNum : null });
     }
   }
+
+  // se o cliente aceitar depois, conta a visita atual
+  document.addEventListener('consent:changed', trackPageView);
 
   window.siteAnalytics = {
     track

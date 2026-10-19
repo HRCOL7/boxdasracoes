@@ -40,3 +40,11 @@
 .as-suggest{display:flex;flex-wrap:wrap;gap:6px}
 
 @media (forced-colors:active){.as-launcher,.as-panel,.as-btn{border:2px solid CanvasText}}
+/* celular: botão de ajuda compacto (só o ícone; o nome continua para leitores de tela) */
+@media (max-width:899px){
+  .as-launcher{min-height:48px;width:48px;padding:0;justify-content:center;gap:0}
+  .as-launcher span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .as-hide-x{width:28px;height:28px;margin-left:-14px;margin-top:-34px;border-width:1.5px}
+  .as-hide-x svg{width:14px;height:14px}
+  .as-dock{gap:0}
+}
