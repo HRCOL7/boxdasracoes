@@ -177,3 +177,26 @@ html[data-theme="dark"] .reports-kpi .label{color:#CFC6B9}
 html[data-theme="dark"] .reports-table td,html[data-theme="dark"] .reports-table th{border-color:#4A4036}
 html[data-theme="dark"] .reports-bar.whatsapp{background:#2F8F57;color:#fff}
 html[data-theme="dark"] .reports-bar.checkout{background:#8A4A1A;color:#fff}
+
+/* ===== v9: painel admin — caixas dentro do layout e botão de tema visível ===== */
+.admin-layout{max-width:100%}
+.admin-list,.admin-form{min-width:0;overflow-wrap:anywhere}
+.site-settings-card{overflow:hidden}
+.site-settings-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;align-items:start}
+.site-settings-card label{display:flex;flex-direction:column;gap:8px;min-width:0}
+.site-settings-card label .help-btn{align-self:flex-start}
+.site-settings-card textarea,.site-settings-card input[type=text],.site-settings-card select,.site-settings-card input[type=file]{width:100%;max-width:100%;box-sizing:border-box}
+.site-settings-card textarea{resize:vertical;min-height:96px;max-height:220px;word-break:break-all;font-size:13px}
+.site-upload-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.site-upload-row input[type=file]{flex:1 1 180px;min-width:0;width:auto}
+.site-media-preview{display:flex;flex-wrap:wrap;gap:8px;max-width:100%}
+.site-settings-categories-wrap{min-width:0}
+.site-settings-categories-wrap *{max-width:100%}
+.admin-tools{border-radius:20px}
+.admin-head{position:relative}
+.admin-head .theme-toggle{position:absolute;top:0;right:0;margin:0;color:var(--ink);background:var(--chip);border:1.5px solid var(--line);width:44px;height:44px}
+.admin-head .theme-toggle:hover{background:var(--brand);color:var(--black);border-color:var(--brand)}
+html[data-theme="dark"] .admin-head .theme-toggle{color:#FFA24D;background:#3A2A1C;border-color:#6B5E4F}
+html[data-theme="dark"] .admin-head .theme-toggle:hover{background:var(--brand);color:#1F1B16}
+.site-settings-card .site-settings-toggle-label{flex-direction:row;align-items:center;gap:10px}
+.site-settings-card .site-settings-toggle-label input{width:22px;height:22px;flex:0 0 22px}

@@ -1,0 +1,18 @@
+/* ===== v9: janela da comanda do pedido ===== */
+.cmd-back{position:fixed;inset:0;z-index:99980;background:rgba(20,17,13,.65);display:flex;align-items:center;justify-content:center;padding:12px}
+.cmd{background:#fff;color:#1F1B16;width:100%;max-width:520px;max-height:94dvh;overflow:auto;border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.cmd h2{margin:0 0 6px;font-size:21px}
+.cmd-text{margin:0 0 12px;font-size:14px;line-height:1.5;color:#4a4339}
+.cmd-prev{border:1px solid #E4DBCF;border-radius:14px;overflow:hidden;max-height:42dvh;overflow-y:auto;background:#FBF8F3}
+.cmd-prev img{display:block;width:100%;height:auto}
+.cmd-actions{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.cmd-btn{min-height:48px;border-radius:999px;font:800 15px/1 inherit;font-family:inherit;cursor:pointer;padding:0 18px}
+.cmd-primary{background:#FF7A00;color:#1F1B16;border:2px solid #FF7A00}
+.cmd-secondary{background:transparent;color:#1F1B16;border:2px solid #1F1B16}
+.cmd-ghost{background:transparent;color:#6B645B;border:0;text-decoration:underline}
+.cmd-status{min-height:20px;margin:8px 0 0;font-size:13px;font-weight:700;color:#A84800}
+html[data-theme="dark"] .cmd{background:#2C2620;color:#F3EDE4}
+html[data-theme="dark"] .cmd-text{color:#CFC6B9}
+html[data-theme="dark"] .cmd-secondary{color:#F3EDE4;border-color:#F3EDE4}
+html[data-theme="dark"] .cmd-ghost{color:#CFC6B9}
+html[data-theme="dark"] .cmd-status{color:#FFA24D}

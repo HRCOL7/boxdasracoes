@@ -405,6 +405,7 @@
     bindWeightChipsScroll();
   }
 
+  let filtersDrawerOpen = false;
   function renderList(){
     const root=document.getElementById('product-list'); if(!root) return; root.innerHTML='';
     const products = read();
@@ -577,8 +578,8 @@
       let mobileFiltersExpanded = true;
       if(isMobileViewport){
         try{
-          mobileFiltersExpanded = sessionStorage.getItem('products_filters_mobile_expanded') === '1';
-        }catch(e){ mobileFiltersExpanded = false; }
+          mobileFiltersExpanded = true; // no celular os filtros agora abrem numa gaveta (barra fixa no topo)
+        }catch(e){ mobileFiltersExpanded = true; }
       }
 
       filtersRoot.innerHTML = '';
@@ -715,6 +716,51 @@
         manufacturerWrap.appendChild(row);
       });
       filtersRoot.appendChild(manufacturerWrap);
+
+      // ===== celular: gaveta de filtros + barra fixa (não precisa rolar até o fim da página) =====
+      const activeCount = wantAnimals.size + wantGroups.size + wantSubs.size + wantBrands.size + wantManufacturers.size + wantSizes.size + wantAges.size + (wantPromo ? 1 : 0) + (wantAvail ? 1 : 0) + ((priceMin !== null || priceMax !== null) ? 1 : 0);
+      let backdrop = document.getElementById('filters-backdrop');
+      const setDrawer = (open)=>{
+        filtersDrawerOpen = !!open;
+        filtersRoot.classList.toggle('fd-open', filtersDrawerOpen && isMobileViewport);
+        if(backdrop) backdrop.classList.toggle('show', filtersDrawerOpen && isMobileViewport);
+        document.body.classList.toggle('fd-lock', filtersDrawerOpen && isMobileViewport);
+        if(isMobileViewport){
+          filtersRoot.setAttribute('role', 'dialog'); filtersRoot.setAttribute('aria-modal', filtersDrawerOpen ? 'true' : 'false'); filtersRoot.setAttribute('aria-label', 'Filtros');
+          if(filtersDrawerOpen) filtersRoot.removeAttribute('inert'); else filtersRoot.setAttribute('inert', '');
+        }
+        const bt = document.getElementById('filters-open-btn'); if(bt) bt.setAttribute('aria-expanded', String(filtersDrawerOpen));
+      };
+      if(isMobileViewport){
+        if(!backdrop){ backdrop = document.createElement('div'); backdrop.id = 'filters-backdrop'; backdrop.className = 'filters-backdrop'; document.body.appendChild(backdrop); }
+        backdrop.onclick = ()=> setDrawer(false);
+        const head = document.createElement('div'); head.className = 'fd-head';
+        const closeX = document.createElement('button'); closeX.type = 'button'; closeX.className = 'fd-close'; closeX.setAttribute('aria-label', 'Fechar filtros'); closeX.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+        closeX.addEventListener('click', ()=> setDrawer(false));
+        const h = filtersRoot.querySelector('.filters-heading'); if(h){ head.appendChild(h); }
+        head.appendChild(closeX); filtersRoot.insertBefore(head, filtersRoot.firstChild);
+        const foot = document.createElement('div'); foot.className = 'fd-footer';
+        const clr = document.createElement('button'); clr.type = 'button'; clr.className = 'fd-clear'; clr.textContent = 'Limpar'; clr.addEventListener('click', ()=> applyFilterParams({ clear: true }));
+        const done = document.createElement('button'); done.type = 'button'; done.className = 'fd-done'; done.textContent = filtered.length === 1 ? 'Ver 1 produto' : ('Ver ' + filtered.length + ' produtos'); done.addEventListener('click', ()=> setDrawer(false));
+        foot.appendChild(clr); foot.appendChild(done); filtersRoot.appendChild(foot);
+        filtersRoot.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ setDrawer(false); const b = document.getElementById('filters-open-btn'); if(b) b.focus(); } });
+
+        let bar = document.getElementById('filters-bar');
+        if(!bar){
+          bar = document.createElement('div'); bar.id = 'filters-bar'; bar.className = 'filters-bar';
+          const pp = document.querySelector('.products-page'); if(pp && pp.parentNode) pp.parentNode.insertBefore(bar, pp);
+        }
+        bar.innerHTML = '';
+        const ob = document.createElement('button'); ob.type = 'button'; ob.id = 'filters-open-btn'; ob.className = 'filters-open-btn'; ob.setAttribute('aria-haspopup', 'dialog'); ob.setAttribute('aria-expanded', 'false');
+        ob.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span>Filtros</span>' + (activeCount ? '<b class="fb-badge" aria-label="' + activeCount + ' filtros ativos">' + activeCount + '</b>' : '');
+        ob.addEventListener('click', ()=>{ setDrawer(true); filtersRoot.setAttribute('tabindex', '-1'); filtersRoot.focus(); });
+        const bs = document.createElement('select'); bs.id = 'product-sort-bar'; bs.className = 'filters-sort'; bs.setAttribute('aria-label', 'Ordenar produtos');
+        bs.innerHTML = sortSel.innerHTML; bs.value = sortMode; bs.addEventListener('change', ()=> applyFilterParams({ sort: bs.value }));
+        const cnt = document.createElement('span'); cnt.className = 'filters-count'; cnt.textContent = filtered.length === 1 ? '1 produto' : (filtered.length + ' produtos');
+        bar.appendChild(ob); bar.appendChild(bs); bar.appendChild(cnt);
+        setDrawer(filtersDrawerOpen);
+        if(filtersDrawerOpen){ filtersRoot.setAttribute('tabindex', '-1'); filtersRoot.focus(); }
+      }
     }
 
     function buildProductCard(p){

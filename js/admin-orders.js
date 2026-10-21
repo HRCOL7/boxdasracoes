@@ -147,6 +147,7 @@
     var actions = '';
     if(st.next) actions += '<button type="button" class="btn btn-orange" id="ord-advance" data-next="' + st.next + '">' + esc(st.nextLabel) + '</button>';
     if(o.status !== 'cancelled' && o.status !== 'delivered') actions += '<button type="button" class="btn" id="ord-cancel">Cancelar pedido</button>';
+    actions += '<button type="button" class="btn" id="ord-comanda">Gerar comanda (imagem)</button>';
     if(wa) actions += '<a class="btn" target="_blank" rel="noopener noreferrer" href="' + esc(wa) + '">Falar com o cliente no WhatsApp<span class="sr-only"> (abre em nova aba)</span></a>';
     box.innerHTML =
       '<div class="ord-detail-head"><h3 class="ord-h3">Pedido #' + esc(o.order_number) + '</h3><span class="ord-badge ' + st.cls + '">' + esc(st.label) + '</span></div>' +
@@ -159,6 +160,23 @@
       (confirmed ? '<span class="ord-confirmed">✓ Endereço confirmado pelo cliente</span>' : '') + '</div>' +
       '<div class="ord-actions">' + actions + '</div>';
     var adv = $('ord-advance'); if(adv) adv.addEventListener('click', function(){ changeStatus(o, adv.dataset.next); });
+    var cmd = $('ord-comanda'); if(cmd) cmd.addEventListener('click', async function(){
+      if(!window.comanda){ setStatus('Comanda indisponível nesta página.', 'error'); return; }
+      cmd.disabled = true; cmd.textContent = 'Gerando…';
+      try{
+        var parts = (note['agendamento'] || '').split(' ');
+        var order = {
+          code: o.order_number, items: Array.isArray(o.items) ? o.items : [], total: Number(o.total || 0),
+          payment: note['pagamento escolhido'] || '', paymentLabel: note['pagamento escolhido'] || '',
+          needChange: /troco/i.test(o.note || ''), delivery: { street: addr, zip: note['cep'] || '', reference: note['referencia'] || '', date: '', window: note['agendamento'] || '' },
+          customer: { name: o.customer_name || '', phone: o.customer_phone || '', email: o.customer_email || '' },
+          createdAt: o.created_at
+        };
+        var blob = await window.comanda.build(order);
+        window.comanda.showDialog(order, blob);
+      }catch(e){ setStatus('Não foi possível gerar a comanda.', 'error'); }
+      cmd.disabled = false; cmd.textContent = 'Gerar comanda (imagem)';
+    });
     var can = $('ord-cancel'); if(can) can.addEventListener('click', function(){ if(confirm('Cancelar o pedido #' + o.order_number + '?')) changeStatus(o, 'cancelled'); });
   }
 

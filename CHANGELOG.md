@@ -1,3 +1,12 @@
+## v9
+- Lista de produtos: cards do mesmo tamanho (4 por linha no PC, 3 no tablet, 2 no celular), nome em 2 linhas e preço alinhado embaixo; sem rolagem horizontal.
+- Filtros no celular: barra fixa "Filtros (n) + Ordenar" e gaveta de baixo para cima com botão "Ver N produtos"; não precisa mais descer a página.
+- Menu lateral: mesmos ícones da home.
+- Produto: imagem em tela cheia (botão e clique na foto), com zoom, setas, deslizar e Esc.
+- Painel admin: botão Relatórios duplicado removido, caixas de configurações dentro do layout, botão de tema visível nos dois modos.
+- Pedido por WhatsApp: gera a COMANDA em imagem (cliente, entrega, pagamento, itens com foto, total) com botões Enviar pelo WhatsApp / Copiar / Baixar; o endereço confirmado e o agendamento agora vão no texto e no pedido salvo. No painel de pedidos há "Gerar comanda (imagem)".
+- Novo teste `tools/tests/v9_test.py`.
+
 ## v8
 - Busca corrigida: só aparecem produtos que contêm TODAS as palavras digitadas (nome, marca, grupo; descrição com peso menor); erro de digitação leve aceito. Enter/lupa abre `products.html?q=...` com a lista completa e filtro "Busca: ..." removível; a lista suspensa tem "Ver todos os resultados".
 - Cabeçalho único (`js/header.js`) igual em todas as páginas e nunca mais trocado durante o carregamento (acabou o "pulo" da barra de busca); resultados da busca flutuam sem empurrar a página.

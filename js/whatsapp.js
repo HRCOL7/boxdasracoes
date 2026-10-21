@@ -1,4 +1,28 @@
 (function(){
+  function deliveryText(dl){
+    if(!dl) return '';
+    var parts = [];
+    var a = [dl.street, dl.number].filter(Boolean).join(', ');
+    if(a) parts.push('Endereço: ' + a);
+    if(dl.neighborhood) parts.push('Bairro: ' + dl.neighborhood);
+    if(dl.zip) parts.push('CEP: ' + dl.zip);
+    if(dl.reference) parts.push('Ref.: ' + dl.reference);
+    if(dl.date || dl.window) parts.push('Entrega: ' + [dl.date ? dl.date.split('-').reverse().join('/') : '', dl.window].filter(Boolean).join(' ' ));
+    return parts.join(' | ');
+  }
+  function noteFor(data){
+    // linhas no mesmo formato que o painel de pedidos já entende (Endereco:, CEP:, Referencia:, Agendamento:...)
+    var n = [], dl = data.delivery || {};
+    if(data.needChange === 'yes' || data.needChange === true) n.push('Cliente informou que precisa de troco.' + (data.cashPaid ? ' Troco para R$ ' + Number(data.cashPaid).toFixed(2) + '.' : ''));
+    if(data.payment) n.push('Pagamento escolhido: ' + ((window.appUtils && window.appUtils.paymentLabels && window.appUtils.paymentLabels[data.payment]) || data.payment));
+    var addr = [dl.street, dl.number, dl.neighborhood].filter(Boolean).join(', ');
+    if(addr) n.push('Endereco: ' + addr);
+    if(dl.zip) n.push('CEP: ' + dl.zip);
+    if(dl.reference) n.push('Referencia: ' + dl.reference);
+    if(dl.date || dl.window) n.push('Agendamento: ' + [dl.date ? dl.date.split('-').reverse().join('/') : '', dl.window].filter(Boolean).join(' '));
+    if(addr) n.push('Endereco confirmado pelo cliente: sim');
+    return n.length ? n.join('\n') : null;
+  }
   async function createPreOrder(data){
     try{
       if(!window.supa || typeof window.supa.init !== 'function') return null;
@@ -17,7 +41,7 @@
         items: Array.isArray(data.items) ? data.items : [],
         payment: data.payment || null,
         total: Number(data.total || 0),
-        note: data.needChange === 'yes' || data.needChange === true ? 'Cliente informou que precisa de troco.' : null,
+        note: noteFor(data),
         status: 'pending',
         source: 'site_checkout'
       };
@@ -72,6 +96,10 @@
     lines.push('');
     lines.push(`Total: R$ ${Number(data.total || 0).toFixed(2)}`);
     lines.push(`Pagamento: ${payLabel}`);
+    if(data.delivery){
+      var dt = deliveryText(data.delivery);
+      if(dt){ lines.push(''); lines.push('Entrega:'); dt.split(' | ').forEach(function(l){ lines.push(l); }); }
+    }
     if(data.needChange === 'yes' || data.needChange === true) lines.push(`Necessita troco: ${data.needChange}`);
 
     if(settings.whatsappIncludeCustomerData !== false){
@@ -134,5 +162,21 @@
 
     if(popup && !popup.closed){ popup.location.href = url; }
     else { window.open(url, '_blank'); }
+
+    // Comanda em imagem (cliente, entrega, pagamento e itens com foto) para enviar junto ao WhatsApp
+    try{
+      if(window.comanda){
+        const au = (window.customerAuth && typeof window.customerAuth.getCurrentUser === 'function') ? window.customerAuth.getCurrentUser() : null;
+        const md = au && au.user_metadata ? au.user_metadata : {};
+        const order = {
+          code, items, total: Number(data.total || 0), payment: data.payment, paymentLabel: payLabel,
+          needChange: data.needChange, cashPaid: data.cashPaid, delivery: data.delivery || {},
+          customer: { name: md.full_name || '', phone: md.phone || '', email: au && au.email ? au.email : '', document: md.document || '' },
+          createdAt: Date.now()
+        };
+        const blob = await window.comanda.build(order);
+        window.comanda.showDialog(order, blob);
+      }
+    }catch(err){ console.warn('Falha ao gerar a comanda', err); }
   });
 })();

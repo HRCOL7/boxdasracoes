@@ -1,0 +1,17 @@
+# Mantém o projeto Supabase (plano gratuito) acordado: faz uma consulta leve a cada 3 dias.
+# Precisa de 2 "Secrets" no GitHub: SUPABASE_URL e SUPABASE_ANON_KEY (a chave pública "anon").
+name: Manter Supabase ativo
+on:
+  schedule:
+    - cron: "17 9 */3 * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta leve na tabela de produtos
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.SUPABASE_URL }}/rest/v1/products?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "HTTP $code"
+          test "$code" = "200"
