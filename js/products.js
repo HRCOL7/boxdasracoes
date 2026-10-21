@@ -74,10 +74,22 @@
     }
     return false;
   }
+  // Cache de 5 minutos: evita baixar o catálogo inteiro a cada página aberta (com milhares de visitantes isso
+  // multiplicaria as chamadas ao banco). O painel admin sempre busca dados novos.
+  const SYNC_KEY = 'products_synced_at', SYNC_TTL = 5 * 60 * 1000;
+  function cacheIsFresh(){
+    try{
+      if(location.pathname.indexOf('/admin/') !== -1) return false;
+      const t = Number(localStorage.getItem(SYNC_KEY) || 0);
+      return t > 0 && (Date.now() - t) < SYNC_TTL && read().length > 0;
+    }catch(e){ return false; }
+  }
+  function markSynced(){ try{ localStorage.setItem(SYNC_KEY, String(Date.now())); }catch(e){} }
   async function hydrateFromSupabase(){
     try{
       if(!hasSupabaseConfig()) return false;
-      const limit = 200;
+      if(cacheIsFresh()) return true;
+      const limit = 1000;
       const maxPages = 30;
       let offset = 0;
       const merged = [];
@@ -90,7 +102,7 @@
         offset += rows.length;
       }
       if(!merged.length) return false;
-      save(merged);
+      save(merged); markSynced();
       if(window.idbProducts && typeof window.idbProducts.clear === 'function' && typeof window.idbProducts.bulkPut === 'function'){
         try{ await window.idbProducts.clear(); await window.idbProducts.bulkPut(merged); }catch(e){ logWarn('Failed syncing Supabase data to IndexedDB', e); }
       }
@@ -102,7 +114,7 @@
     try{
       const supaHelper = window.supa;
       if(!supaHelper || typeof supaHelper.getProducts !== 'function') return false;
-      const limit = 200;
+      const limit = 1000;
       const maxPages = 30;
       let offset = 0;
       const merged = [];
@@ -115,7 +127,7 @@
         offset += rows.length;
       }
       if(!merged.length) return false;
-      save(merged);
+      save(merged); markSynced();
       if(window.idbProducts && typeof window.idbProducts.clear === 'function' && typeof window.idbProducts.bulkPut === 'function'){
         try{ await window.idbProducts.clear(); await window.idbProducts.bulkPut(merged); }catch(e){ logWarn('Fallback helper sync to IDB failed', e); }
       }

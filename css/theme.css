@@ -563,3 +563,11 @@ html[data-theme="dark"] .side-menu{background:var(--bg)}
 html[data-theme="dark"] .side-row{background:var(--surface)}
 html[data-theme="dark"] .side-sub{background:var(--surface-2)}
 html[data-theme="dark"] .side-head{background:#14110D;border-bottom:1px solid var(--line)}
+
+/* ===== v8.5: sem faixas brancas (a margem padrão de 8px do navegador) e cabeçalho de ponta a ponta ===== */
+html{margin:0;padding:0}
+body{margin:0 auto;padding:0}
+.site-header{--hdr-bg:#1F1B16;background:transparent;position:relative;z-index:1100}
+.site-header::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:100vw;transform:translateX(-50%);background:var(--hdr-bg);z-index:-1}
+@media (min-width:900px){.site-header{position:sticky;top:0}}
+html[data-theme="dark"] .site-header{--hdr-bg:#14110D}

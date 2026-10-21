@@ -167,7 +167,7 @@
 
     async function hydrateProductsFromSupabase(){
       try{
-        const limit = 200;
+        const limit = 1000;
         const maxPages = 20;
         let offset = 0;
         const merged = [];
@@ -197,7 +197,7 @@
         }
 
         if(!merged.length) return false;
-        try{ localStorage.setItem('products', JSON.stringify(merged)); }catch(e){}
+        try{ localStorage.setItem('products', JSON.stringify(merged)); localStorage.setItem('products_synced_at', String(Date.now())); }catch(e){}
         productsCacheRaw = null;
         productsCacheParsed = [];
         return true;
@@ -220,8 +220,9 @@
     async function findMatches(q, limit){
       const products = await ensureProductsReady();
       let matches = filterProducts(products, q);
-      if(matches.length === 0){
-        // lista local pode estar velha: busca de novo no servidor antes de dizer "nada encontrado"
+      var lastSync = 0; try{ lastSync = Number(localStorage.getItem('products_synced_at') || 0); }catch(e){}
+      if(matches.length === 0 && (Date.now() - lastSync) > 2 * 60 * 1000){
+        // lista local pode estar velha (mais de 2 min): busca de novo no servidor antes de dizer "nada encontrado"
         if(!hydratePromise){
           hydratePromise = hydrateProductsFromSupabase().finally(()=>{ hydratePromise = null; });
         }

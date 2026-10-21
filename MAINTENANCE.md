@@ -28,3 +28,15 @@ Considere como escopo principal:
 
 - Não alterar HTML/CSS/JS de produção sem necessidade explícita.
 - Toda melhoria deve manter comportamento visual e funcional existente.
+
+## Capacidade: muitos acessos ao mesmo tempo
+
+- **O site em si (HTML/CSS/JS/imagens)** fica no Netlify, que entrega por CDN: aguenta milhares de acessos simultâneos sem ajuste.
+- **O gargalo é o Supabase** (catálogo, login, pedidos). Medidas já aplicadas no código:
+  - o catálogo fica guardado no aparelho por 5 minutos (antes era baixado a cada página aberta);
+  - o catálogo é baixado em páginas de 1000 produtos (antes 200), ou seja, 5x menos chamadas;
+  - a busca não vai ao servidor a cada tecla: usa a lista local;
+  - a busca só consulta o servidor de novo se não achar nada e a lista tiver mais de 2 minutos.
+- **O que você precisa conferir no painel do Supabase (Settings → Billing / Compute):** o plano gratuito é pequeno. Para uma loja com picos de 1000+ pessoas, use o plano Pro e, se notar lentidão, aumente o "Compute" (Small ou Medium). Em Database → Reports, acompanhe CPU e conexões.
+- Teste de carga real (k6 ou Artillery) deve ser feito por você contra o seu projeto, de preferência fora do horário de pico, porque depende do plano contratado.
+- Próximo passo se crescer mais: servir uma cópia do catálogo como arquivo estático no Netlify (gerada a cada sincronização do ERP), tirando quase toda a carga de leitura do Supabase.
