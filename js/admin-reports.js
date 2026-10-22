@@ -177,12 +177,63 @@
     return Array.isArray(data) ? data : [];
   }
 
+  // ---------- Vendas confirmadas: vêm dos pedidos do painel (customer_orders), não dos cliques no site ----------
+  const SOLD = ['delivered', 'processed'];            // entregue (ou já conciliado com o ERP)
+  const OPEN = ['preparing', 'delivering'];
+  function bucketStart(iso, gran){
+    const d = new Date(iso); if(Number.isNaN(d.getTime())) return '';
+    let b;
+    if(gran === 'month') b = new Date(d.getFullYear(), d.getMonth(), 1);
+    else if(gran === 'week'){ const dow = (d.getDay() + 6) % 7; b = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow); }
+    else b = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return dateInputValue(b);
+  }
+  async function renderSales(sessions){
+    const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+    const gran = document.getElementById('reports-granularity')?.value || 'day';
+    const range = getRange(); const client = window.supa && window.supa.init ? window.supa.init() : null;
+    const tb = document.querySelector('#sales-table tbody'), top = document.querySelector('#sales-top tbody');
+    if(!range || !client || !client.from) return;
+    const res = await client.from('customer_orders').select('order_number,created_at,status,total,items')
+      .gte('created_at', range.start.toISOString()).lte('created_at', range.end.toISOString()).order('created_at', { ascending: true }).limit(5000);
+    if(res.error){ if(tb) tb.innerHTML = '<tr><td colspan="5">Nao foi possivel ler os pedidos (aplique a migracao 20261017000000_admin_orders.sql).</td></tr>'; return; }
+    const rows = res.data || [];
+    const sum = (arr) => arr.reduce((a, o) => a + Number(o.total || 0), 0);
+    const sold = rows.filter(o => SOLD.includes(o.status)), open = rows.filter(o => OPEN.includes(o.status));
+    const pend = rows.filter(o => o.status === 'pending'), canc = rows.filter(o => o.status === 'cancelled');
+    set('sale-count', fmtNumber(sold.length)); set('sale-value', fmtMoney(sum(sold)));
+    set('sale-ticket', fmtMoney(sold.length ? sum(sold) / sold.length : 0));
+    set('sale-open', fmtNumber(open.length)); set('sale-open-val', fmtMoney(sum(open)));
+    set('sale-pending', fmtNumber(pend.length)); set('sale-pending-val', fmtMoney(sum(pend)));
+    set('sale-cancel', fmtNumber(canc.length));
+    const sess = Number(sessions || 0);
+    set('sale-conv', sess > 0 ? ((sold.length / sess) * 100).toFixed(1).replace('.', ',') + '%' : '-');
+    const by = new Map();
+    rows.forEach(o => {
+      const k = bucketStart(o.created_at, gran); if(!k) return;
+      const e = by.get(k) || { recv: 0, sold: 0, val: 0, canc: 0 };
+      e.recv++; if(SOLD.includes(o.status)){ e.sold++; e.val += Number(o.total || 0); } if(o.status === 'cancelled') e.canc++;
+      by.set(k, e);
+    });
+    const keys = Array.from(by.keys()).sort();
+    if(tb) tb.innerHTML = keys.length ? keys.map(k => { const e = by.get(k); return `<tr><td>${fmtDate(k + 'T12:00:00', gran)}</td><td>${fmtNumber(e.recv)}</td><td>${fmtNumber(e.sold)}</td><td>${fmtMoney(e.val)}</td><td>${fmtNumber(e.canc)}</td></tr>`; }).join('') : '<tr><td colspan="5">Nenhum pedido no periodo.</td></tr>';
+    const prod = new Map();
+    sold.forEach(o => (Array.isArray(o.items) ? o.items : []).forEach(i => {
+      const k = String(i.name || 'Produto'); const e = prod.get(k) || { q: 0, v: 0 };
+      e.q += Number(i.qty || 1); e.v += Number(i.price || 0) * Number(i.qty || 1); prod.set(k, e);
+    }));
+    const list = Array.from(prod.entries()).sort((a, b) => b[1].v - a[1].v).slice(0, 10);
+    const esc = (t) => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    if(top) top.innerHTML = list.length ? list.map(([n, e]) => `<tr><td>${esc(n)}</td><td>${fmtNumber(e.q)}</td><td>${fmtMoney(e.v)}</td></tr>`).join('') : '<tr><td colspan="3">Nenhuma venda entregue no periodo.</td></tr>';
+  }
+
   async function renderReports(){
     const granularity = document.getElementById('reports-granularity')?.value || 'day';
     const rows = await fetchRows();
     setKpis(rows);
     renderBars(rows, granularity);
     renderTable(rows, granularity);
+    try{ await renderSales(rows.reduce((a, r) => a + Number(r.sessions || 0), 0)); }catch(e){ logWarn('vendas', e); }
   }
 
   async function ensureAdminAuthenticated(showWarning){

@@ -351,7 +351,7 @@ input, button, select, textarea{font-family:inherit;font-weight:600}
 .gallery{display:flex;gap:12px;align-items:flex-start}
 .thumbs{display:flex;flex-direction:column;gap:8px;flex:0 0 72px}
 .thumbs img{width:64px;height:64px;object-fit:contain;border-radius:6px;padding:6px;background:#fff;border:1px solid #f0f0f0;cursor:pointer}
-.thumbs img.active{outline:2px solid var(--orange)}
+.thumbs img.active,.thumbs .thumb.active{outline:2px solid var(--orange)}
 .main-image{width:100%;min-width:180px;display:flex;align-items:center;justify-content:center}
 .main-image img{display:block;width:100%;height:100%;object-fit:contain;border-radius:6px;padding:0;background:#fff;margin:0}
 /* larger layout when media is video: use responsive container (no fixed px width) */

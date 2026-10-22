@@ -30,6 +30,7 @@
     try{
       if(window.supa && typeof window.supa.getUser === 'function'){
         currentUser = await window.supa.getUser();
+        pullFavoritesFromProfile();
       }
     }catch(e){ currentUser = null; }
     return currentUser;
@@ -117,6 +118,7 @@
             <input type="password" name="password" required autocomplete="current-password" placeholder="Sua senha">
           </label>
           <button type="button" class="auth-link" data-view="forgot">Esqueci minha senha</button>
+          <p class="auth-legal">Ao entrar você concorda com os <a href="/termos.html" target="_blank" rel="noopener noreferrer">Termos de Uso<span class="sr-only"> (abre em nova aba)</span></a> e a <a href="/privacidade.html" target="_blank" rel="noopener noreferrer">Política de Privacidade<span class="sr-only"> (abre em nova aba)</span></a>.</p>
           <div class="customer-auth-actions">
             <button type="submit" class="btn btn-orange">Entrar</button>
             <button type="button" class="btn customer-auth-cancel">Cancelar</button>
@@ -169,8 +171,8 @@
               <label>Telefone / WhatsApp
                 <input type="tel" name="phone" required autocomplete="tel" placeholder="(79) 99999-9999">
               </label>
-              <label>CPF/CNPJ
-                <input type="text" name="document" required inputmode="numeric" placeholder="000.000.000-00">
+              <label>CPF/CNPJ (opcional)
+                <input type="text" name="document" inputmode="numeric" placeholder="Só se quiser nota com CPF/CNPJ">
               </label>
             </div>
           </fieldset>
@@ -205,6 +207,8 @@
             </div>
             <p class="auth-help">Você poderá confirmar ou alterar o endereço a cada pedido.</p>
           </fieldset>
+          <label class="auth-consent"><input type="checkbox" name="accept_terms" required>
+            <span>Li e concordo com a <a href="/privacidade.html" target="_blank" rel="noopener noreferrer">Política de Privacidade<span class="sr-only"> (abre em nova aba)</span></a> e os <a href="/termos.html" target="_blank" rel="noopener noreferrer">Termos de Uso<span class="sr-only"> (abre em nova aba)</span></a>.</span></label>
           <div class="customer-auth-actions">
             <button type="submit" class="btn btn-orange">Criar conta</button>
             <button type="button" class="btn customer-auth-cancel">Cancelar</button>
@@ -238,8 +242,12 @@
       forgot:   { form: forgotForm,   title: 'Esqueci minha senha',            sub: 'Vamos enviar um link para o seu e-mail.', tabs: false },
       reset:    { form: resetForm,     title: 'Criar nova senha',               sub: 'Escolha uma senha nova para entrar.', tabs: false }
     };
+    let curView = 'login';
+    const ORDER = ['login', 'register', 'forgot', 'reset'];
     function showView(name){
       const v = VIEWS[name] || VIEWS.login;
+      const dir = ORDER.indexOf(name) >= ORDER.indexOf(curView) ? 1 : -1;
+      curView = name;
       Object.keys(VIEWS).forEach(k=>VIEWS[k].form.classList.toggle('hidden', k !== name));
       titleEl.textContent = v.title; subEl.textContent = v.sub;
       tabsEl.classList.toggle('hidden', !v.tabs);
@@ -248,6 +256,7 @@
         b.classList.toggle('active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
       setStatus('');
+      if(modal.classList.contains('visible')){ animateIn(v.form, dir); animateIn(titleEl, dir); animateIn(subEl, dir); }
       const first = v.form.querySelector('input'); if(first && modal.classList.contains('visible')) first.focus();
     }
     modal._showView = showView;
@@ -338,7 +347,11 @@
         neighborhood: String(fd.get('neighborhood') || '').trim(),
         city: String(fd.get('city') || '').trim()
       };
-      if(!payload.full_name || !payload.email || !payload.password || !payload.password_confirm || !payload.phone || !payload.document || !payload.zip || !payload.state || !payload.street || !payload.number || !payload.neighborhood || !payload.city){
+      if(!fd.get('accept_terms')){
+        setStatus('Para criar a conta, marque que leu e concorda com a Política de Privacidade e os Termos de Uso.', 'error');
+        return;
+      }
+      if(!payload.full_name || !payload.email || !payload.password || !payload.password_confirm || !payload.phone || !payload.zip || !payload.state || !payload.street || !payload.number || !payload.neighborhood || !payload.city){
         setStatus('Preencha todos os campos do cadastro.', 'error');
         return;
       }
@@ -488,7 +501,31 @@
     if(!pid) return false;
     const ids = readFavoriteIdsByKey(key);
     const next = active ? Array.from(new Set(ids.concat(pid))) : ids.filter(id=>id !== pid);
-    return writeFavoriteIdsByKey(key, next);
+    const ok = writeFavoriteIdsByKey(key, next);
+    if(ok) pushFavoritesToProfile(next);
+    return ok;
+  }
+
+  // Favoritos também ficam na conta (user_metadata): aparecem em qualquer aparelho em que o cliente entrar.
+  function pullFavoritesFromProfile(){
+    try{
+      const md = (currentUser && currentUser.user_metadata) || {};
+      const key = favoriteStorageKeyForUser(currentUser);
+      if(key && Array.isArray(md.favorites)) writeFavoriteIdsByKey(key, md.favorites.map(String).slice(0, 200));
+    }catch(e){}
+  }
+  let favPushTimer = null;
+  function pushFavoritesToProfile(ids){
+    clearTimeout(favPushTimer);
+    favPushTimer = setTimeout(async function(){
+      try{
+        const client = getClient();
+        if(!client || !currentUser) return;
+        const md = currentUser.user_metadata || {};
+        const upd = await client.auth.updateUser({ data: { ...md, favorites: ids.slice(0, 200) } });
+        if(upd && upd.data && upd.data.user) currentUser = upd.data.user;
+      }catch(e){}
+    }, 800);
   }
 
   function toggleFavorite(productId){
@@ -532,6 +569,89 @@
     emitAuthChanged();
   }
 
+  // ---------- Livro de endereços (até 5), guardado na conta do cliente ----------
+  const MAX_ADDRESSES = 5;
+  function cleanAddr(a){
+    const t = (v, n)=> String(v == null ? '' : v).trim().slice(0, n || 120);
+    return {
+      id: t(a.id, 40) || ('a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+      label: t(a.label, 30) || 'Endereço',
+      street: t(a.street), number: t(a.number, 20), complement: t(a.complement, 60),
+      neighborhood: t(a.neighborhood, 80), city: t(a.city, 80), state: t(a.state, 2).toUpperCase(),
+      zip: t(a.zip, 12), reference: t(a.reference, 120)
+    };
+  }
+  function getAddresses(){
+    const md = (currentUser && currentUser.user_metadata) || {};
+    let list = Array.isArray(md.addresses) ? md.addresses.map(cleanAddr) : [];
+    if(!list.length && md.street){
+      list = [cleanAddr({ id: 'principal', label: 'Principal', street: md.street, number: md.number, complement: md.complement, neighborhood: md.neighborhood, city: md.city, state: md.state, zip: md.zip })];
+    }
+    return list;
+  }
+  function getDefaultAddressId(){
+    const md = (currentUser && currentUser.user_metadata) || {};
+    const list = getAddresses();
+    if(md.default_address_id && list.some(a=>a.id === md.default_address_id)) return md.default_address_id;
+    return list.length ? list[0].id : '';
+  }
+  async function saveAddressBook(list, defaultId){
+    const client = getClient();
+    if(!client || !currentUser) throw new Error('Usuário não autenticado.');
+    const clean = list.map(cleanAddr).slice(0, MAX_ADDRESSES);
+    const def = clean.find(a=>a.id === defaultId) || clean[0] || null;
+    const md = currentUser.user_metadata || {};
+    const data = { ...md, addresses: clean, default_address_id: def ? def.id : '' };
+    // mantém os campos antigos com o endereço padrão (o texto do WhatsApp e o perfil usam eles)
+    ['street','number','complement','neighborhood','city','state','zip'].forEach(k=>{ data[k] = def ? def[k] : ''; });
+    const upd = await client.auth.updateUser({ data });
+    if(upd && upd.error) throw upd.error;
+    if(def) await upsertAddressInProfile(client, currentUser, def);
+    await getUser();
+    emitAuthChanged();
+    return clean;
+  }
+  async function addOrUpdateAddress(addr, makeDefault){
+    const list = getAddresses();
+    const a = cleanAddr(addr);
+    const same = list.findIndex(x=>x.id === a.id || (x.street.toLowerCase() === a.street.toLowerCase() && x.number === a.number && x.zip === a.zip));
+    if(same >= 0){ a.id = list[same].id; list[same] = { ...list[same], ...a }; }
+    else {
+      if(list.length >= MAX_ADDRESSES) throw new Error('Você já tem ' + MAX_ADDRESSES + ' endereços salvos. Exclua um para salvar outro.');
+      list.push(a);
+    }
+    const defId = (makeDefault || !list.length || list.length === 1) ? a.id : getDefaultAddressId();
+    return saveAddressBook(list, defId);
+  }
+  async function removeAddress(id){
+    const list = getAddresses().filter(a=>a.id !== id);
+    return saveAddressBook(list, getDefaultAddressId() === id ? '' : getDefaultAddressId());
+  }
+
+  // ---------- Histórico de compras ----------
+  async function fetchOrders(limit){
+    const client = getClient();
+    if(!client || !currentUser) return [];
+    const cols = 'order_number,created_at,status,total,payment,items,public_token';
+    let r = await client.from('customer_orders').select(cols).eq('customer_id', currentUser.id).order('created_at', { ascending: false }).limit(limit || 20);
+    if(r && r.error){
+      r = await client.from('customer_orders').select('order_number,created_at,status,total,payment,items').eq('customer_id', currentUser.id).order('created_at', { ascending: false }).limit(limit || 20);
+    }
+    if(r && r.error) throw r.error;
+    return (r && r.data) || [];
+  }
+
+  // transição suave ao trocar de aba/tela (respeita "reduzir movimento")
+  function animateIn(el, dir){
+    if(!el) return;
+    try{
+      if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      el.classList.remove('view-in'); void el.offsetWidth;
+      el.style.setProperty('--dx', ((dir || 1) * 22) + 'px');
+      el.classList.add('view-in');
+    }catch(e){}
+  }
+
   function ensureAccountModal(){
     let modal = document.getElementById(ACCOUNT_MODAL_ID);
     if(modal) return modal;
@@ -545,12 +665,20 @@
         <div id="customer-account-status" class="customer-auth-status" style="display:none"></div>
 
         <div class="customer-auth-tabs">
-          <button type="button" class="btn customer-auth-tab active" data-account-tab="address">Endereço</button>
-          <button type="button" class="btn customer-auth-tab" data-account-tab="password">Senha</button>
+          <button type="button" class="btn customer-auth-tab active" data-account-tab="address">Endereços</button>
+          <button type="button" class="btn customer-auth-tab" data-account-tab="orders">Meus pedidos</button>
           <button type="button" class="btn customer-auth-tab" data-account-tab="favorites">Favoritos</button>
+          <button type="button" class="btn customer-auth-tab" data-account-tab="password">Senha</button>
         </div>
 
+        <div id="customer-address-list" class="addr-list" aria-live="polite"></div>
+
         <form id="customer-account-address" class="customer-auth-form">
+          <h4 id="addr-form-title" class="addr-form-title">Novo endereço</h4>
+          <input type="hidden" name="id" value="">
+          <label>Nome do endereço
+            <input type="text" name="label" maxlength="30" placeholder="Ex.: Casa, Trabalho, Mãe">
+          </label>
           <div class="customer-auth-grid two-cols">
             <label>Telefone
               <input type="text" name="phone" placeholder="(79) 99999-9999">
@@ -583,10 +711,16 @@
               <input type="text" name="state" maxlength="2" placeholder="SE">
             </label>
           </div>
+          <label class="addr-default-row"><input type="checkbox" name="make_default"> Usar como endereço padrão</label>
           <div class="customer-auth-actions">
             <button type="submit" class="btn btn-orange">Salvar endereço</button>
+            <button type="button" id="addr-cancel" class="btn hidden">Cancelar edição</button>
           </div>
         </form>
+
+        <div id="customer-account-orders" class="customer-auth-form hidden">
+          <div id="customer-orders-list" class="orders-list"></div>
+        </div>
 
         <form id="customer-account-password" class="customer-auth-form hidden">
           <label>Nova senha
@@ -621,6 +755,9 @@
     const addressForm = modal.querySelector('#customer-account-address');
     const passwordForm = modal.querySelector('#customer-account-password');
     const favoritesPane = modal.querySelector('#customer-account-favorites');
+    const ordersPane = modal.querySelector('#customer-account-orders');
+    const ordersList = modal.querySelector('#customer-orders-list');
+    const addrList = modal.querySelector('#customer-address-list');
     const favoritesList = modal.querySelector('#customer-favorites-list');
 
     function setStatus(msg, type){
@@ -640,21 +777,51 @@
       const el = addressForm && addressForm.querySelector(`[name="${name}"]`);
       if(el) el.value = val || '';
     };
-    set('phone', md.phone);
-    set('zip', md.zip);
-    set('street', md.street);
-    set('number', md.number);
-    set('complement', md.complement);
-    set('neighborhood', md.neighborhood);
-    set('city', md.city);
-    set('state', md.state);
+    function fillForm(a){
+      a = a || {};
+      set('id', a.id); set('label', a.label); set('phone', md.phone);
+      set('zip', a.zip); set('street', a.street); set('number', a.number); set('complement', a.complement);
+      set('neighborhood', a.neighborhood); set('city', a.city); set('state', a.state);
+      const cb = addressForm.querySelector('[name="make_default"]'); if(cb) cb.checked = false;
+      const t = modal.querySelector('#addr-form-title'); if(t) t.textContent = a.id ? 'Editar endereço' : 'Novo endereço';
+      const c = modal.querySelector('#addr-cancel'); if(c) c.classList.toggle('hidden', !a.id);
+    }
+    function renderAddrList(){
+      const list = getAddresses(); const def = getDefaultAddressId();
+      if(!list.length){ addrList.innerHTML = '<p class="addr-empty">Você ainda não salvou nenhum endereço. Preencha abaixo.</p>'; return; }
+      addrList.innerHTML = list.map(a=>`
+        <div class="addr-card${a.id === def ? ' is-default' : ''}" data-addr="${escapeHtml(a.id)}">
+          <div class="addr-card-main">
+            <strong>${escapeHtml(a.label)}</strong>${a.id === def ? '<span class="addr-badge">Padrão</span>' : ''}
+            <p>${escapeHtml([a.street + (a.number ? ', ' + a.number : ''), a.complement, a.neighborhood, [a.city, a.state].filter(Boolean).join('/'), a.zip ? 'CEP ' + a.zip : ''].filter(Boolean).join(' - '))}</p>
+          </div>
+          <div class="addr-card-actions">
+            ${a.id === def ? '' : `<button type="button" class="btn" data-addr-act="default" data-id="${escapeHtml(a.id)}">Usar como padrão</button>`}
+            <button type="button" class="btn" data-addr-act="edit" data-id="${escapeHtml(a.id)}">Editar</button>
+            <button type="button" class="btn" data-addr-act="remove" data-id="${escapeHtml(a.id)}">Excluir</button>
+          </div>
+        </div>`).join('');
+    }
+    fillForm({});
+    renderAddrList();
 
+    const TAB_ORDER = ['address', 'orders', 'favorites', 'password'];
+    let curTab = '';
     function switchTab(tab){
+      const dir = (curTab && TAB_ORDER.indexOf(tab) < TAB_ORDER.indexOf(curTab)) ? -1 : 1;
+      const first = !curTab; curTab = tab;
       modal.querySelectorAll('[data-account-tab]').forEach(btn=>btn.classList.toggle('active', btn.dataset.accountTab === tab));
       addressForm.classList.toggle('hidden', tab !== 'address');
       passwordForm.classList.toggle('hidden', tab !== 'password');
       favoritesPane.classList.toggle('hidden', tab !== 'favorites');
+      ordersPane.classList.toggle('hidden', tab !== 'orders');
+      addrList.classList.toggle('hidden', tab !== 'address');
       setStatus('');
+      if(tab === 'orders') loadOrders();
+      if(!first){
+        if(tab === 'address'){ animateIn(addrList, dir); animateIn(addressForm, dir); }
+        else animateIn(tab === 'orders' ? ordersPane : tab === 'favorites' ? favoritesPane : passwordForm, dir);
+      }
       if(tab === 'favorites'){
         const ids = getFavoriteIds();
         let products = [];
@@ -686,6 +853,54 @@
       }
     }
 
+    const STATUS_LABEL = { pending: 'Recebido', preparing: 'Em preparo', delivering: 'A caminho', delivered: 'Entregue', processed: 'Processado', cancelled: 'Cancelado', canceled: 'Cancelado' };
+    async function loadOrders(){
+      ordersList.innerHTML = '<p class="addr-empty">Carregando seus pedidos...</p>';
+      try{
+        const rows = await fetchOrders(20);
+        if(!rows.length){ ordersList.innerHTML = '<p class="addr-empty">Você ainda não fez nenhum pedido por aqui.</p>'; return; }
+        ordersList.innerHTML = rows.map((o, idx)=>{
+          const items = Array.isArray(o.items) ? o.items : [];
+          const dt = o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '';
+          const link = o.public_token ? `<a class="btn" target="_blank" rel="noopener noreferrer" href="/comanda.html?c=${encodeURIComponent(o.public_token)}">Ver comanda<span class="sr-only"> do pedido ${escapeHtml(String(o.order_number))} (abre em nova aba)</span></a>` : '';
+          return `<article class="order-card">
+            <header><strong>Pedido ${escapeHtml(String(o.order_number))}</strong><span>${escapeHtml(dt)}</span><span class="order-status">${escapeHtml(STATUS_LABEL[o.status] || o.status || '')}</span></header>
+            <ul>${items.slice(0, 8).map(i=>`<li>${escapeHtml(String(i.qty || 1))}x ${escapeHtml(String(i.name || 'Produto'))}</li>`).join('')}${items.length > 8 ? `<li>+ ${items.length - 8} itens</li>` : ''}</ul>
+            <footer><strong>R$ ${Number(o.total || 0).toFixed(2).replace('.', ',')}</strong>
+              <button type="button" class="btn btn-orange" data-reorder="${idx}">Comprar de novo<span class="sr-only"> o pedido ${escapeHtml(String(o.order_number))}</span></button>${link}</footer>
+          </article>`;
+        }).join('');
+        ordersList._rows = rows;
+      }catch(err){
+        ordersList.innerHTML = '<p class="addr-empty">Não consegui carregar seus pedidos agora. Tente de novo em instantes.</p>';
+      }
+    }
+    if(!modal.dataset.bound2){
+      modal.dataset.bound2 = '1';
+      ordersList.addEventListener('click', function(e){
+        const b = e.target.closest && e.target.closest('[data-reorder]'); if(!b) return;
+        const o = (ordersList._rows || [])[Number(b.dataset.reorder)]; if(!o) return;
+        (o.items || []).forEach(i=>{
+          if(i.productId == null) return;
+          for(let k = 0; k < Math.min(99, Number(i.qty) || 1); k++) document.dispatchEvent(new CustomEvent('add-to-cart', { detail: { id: i.productId, variantIndex: i.variantIndex == null ? null : i.variantIndex } }));
+        });
+        modal.classList.remove('visible');
+        if(window.appA11y) window.appA11y.announce('Itens do pedido adicionados ao carrinho.');
+        const cb = document.getElementById('cart-btn'); if(cb) cb.click();
+      });
+      addrList.addEventListener('click', async function(e){
+        const b = e.target.closest && e.target.closest('[data-addr-act]'); if(!b) return;
+        const id = b.dataset.id, act = b.dataset.addrAct;
+        try{
+          if(act === 'edit'){ fillForm(getAddresses().find(a=>a.id === id) || {}); addressForm.scrollIntoView({ block: 'nearest' }); const f = addressForm.querySelector('[name="label"]'); if(f) f.focus(); }
+          else if(act === 'default'){ await saveAddressBook(getAddresses(), id); renderAddrList(); setStatus('Endereço padrão atualizado.', 'success'); }
+          else if(act === 'remove'){ if(!window.confirm('Excluir este endereço?')) return; await removeAddress(id); fillForm({}); renderAddrList(); setStatus('Endereço excluído.', 'success'); }
+        }catch(err){ setStatus('Não foi possível concluir: ' + (err && err.message ? err.message : String(err)), 'error'); }
+      });
+      modal.querySelector('#addr-cancel')?.addEventListener('click', function(){ fillForm({}); });
+    }
+    modal._refreshAddr = function(){ fillForm({}); renderAddrList(); };
+
     if(!modal.dataset.bound){
       modal.dataset.bound = '1';
       modal.querySelectorAll('[data-account-tab]').forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.accountTab)));
@@ -704,24 +919,26 @@
           const client = getClient();
           if(!client || !currentUser) throw new Error('Usuário não autenticado.');
           const fd = new FormData(addressForm);
-          const payload = {
-            phone: String(fd.get('phone') || '').trim(),
-            zip: String(fd.get('zip') || '').trim(),
-            street: String(fd.get('street') || '').trim(),
-            number: String(fd.get('number') || '').trim(),
-            complement: String(fd.get('complement') || '').trim(),
-            neighborhood: String(fd.get('neighborhood') || '').trim(),
-            city: String(fd.get('city') || '').trim(),
-            state: String(fd.get('state') || '').trim().toUpperCase()
-          };
-          const userData = { ...(currentUser.user_metadata || {}), ...payload };
-          const upd = await client.auth.updateUser({ data: userData });
-          if(upd && upd.error) throw upd.error;
-          await upsertAddressInProfile(client, currentUser, payload);
-          await getUser();
-          setStatus('Endereço atualizado com sucesso.', 'success');
+          const g = (k)=> String(fd.get(k) || '').trim();
+          if(!g('street') || !g('number') || !g('neighborhood')) throw new Error('Informe rua, número e bairro.');
+          const phone = g('phone');
+          const curMd = currentUser.user_metadata || {};
+          if(phone && phone !== (curMd.phone || '')){
+            const u1 = await client.auth.updateUser({ data: { ...curMd, phone } });
+            if(u1 && u1.error) throw u1.error;
+            await getUser();
+          }
+          const hadAny = getAddresses().length > 0;
+          await addOrUpdateAddress({
+            id: g('id'), label: g('label') || (hadAny ? 'Endereço ' + (getAddresses().length + 1) : 'Casa'),
+            street: g('street'), number: g('number'), complement: g('complement'), neighborhood: g('neighborhood'),
+            city: g('city'), state: g('state'), zip: g('zip')
+          }, !!fd.get('make_default'));
+          const m2 = (currentUser && currentUser.user_metadata) || {};
+          if(modal._refreshAddr) modal._refreshAddr();
+          setStatus('Endereço salvo com sucesso.', 'success');
         }catch(err){
-          setStatus('Falha ao atualizar endereço: ' + (err && err.message ? err.message : String(err)), 'error');
+          setStatus('Falha ao salvar endereço: ' + (err && err.message ? err.message : String(err)), 'error');
         }
       });
 
@@ -805,6 +1022,12 @@
     openAuthModal: openModal,
     openAccountModal,
     saveAddress,
+    getAddresses,
+    getDefaultAddressId,
+    addOrUpdateAddress,
+    removeAddress,
+    saveAddressBook,
+    fetchOrders,
     getFavoriteIds,
     isFavorite,
     setFavorite,

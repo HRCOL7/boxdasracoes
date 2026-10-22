@@ -46,15 +46,20 @@
         source: 'site_checkout'
       };
 
-      const result = await client
+      let result = await client
         .from('customer_orders')
         .insert(payload)
-        .select('order_number')
+        .select('order_number,public_token')
         .single();
+
+      // Banco ainda sem a coluna public_token (migração da comanda não aplicada): grava sem o link.
+      if(result && result.error && /public_token|42703|PGRST/i.test(String(result.error.code || '') + ' ' + String(result.error.message || ''))){
+        result = await client.from('customer_orders').insert(payload).select('order_number').single();
+      }
 
       if(result && result.error) throw result.error;
       if(result && result.data && result.data.order_number){
-        return String(result.data.order_number);
+        return { number: String(result.data.order_number), token: result.data.public_token ? String(result.data.public_token) : '' };
       }
       return null;
     }catch(err){
@@ -77,7 +82,9 @@
       }
     }catch(err){ console.warn('Falha ao registrar evento checkout_started', err); }
     const popup = window.open('', '_blank');
-    const code = await createPreOrder(data) || ('ORD' + Date.now().toString(36).toUpperCase().slice(-8));
+    const pre = await createPreOrder(data);
+    const code = (pre && pre.number) || ('ORD' + Date.now().toString(36).toUpperCase().slice(-8));
+    const comandaUrl = (pre && pre.token) ? (location.origin + '/comanda.html?c=' + encodeURIComponent(pre.token)) : '';
     const settings = (window.appUtils && typeof window.appUtils.getSiteSettings === 'function')
       ? window.appUtils.getSiteSettings()
       : { whatsappIncludeCustomerData: true };
@@ -109,9 +116,7 @@
       const md = authUser && authUser.user_metadata ? authUser.user_metadata : {};
       const customerLines = [
         md.full_name ? `Cliente: ${stripTags(md.full_name)}` : '',
-        authUser && authUser.email ? `Email: ${stripTags(authUser.email)}` : '',
         md.phone ? `Telefone: ${stripTags(md.phone)}` : '',
-        md.document ? `Documento: ${stripTags(md.document)}` : '',
         md.street ? `Rua: ${stripTags(md.street)}` : '',
         md.number ? `Número: ${stripTags(md.number)}` : '',
         md.neighborhood ? `Bairro: ${stripTags(md.neighborhood)}` : '',
@@ -124,6 +129,7 @@
       }
     }
 
+    if(comandaUrl){ lines.push(''); lines.push('Comanda com fotos e dados do pedido:'); lines.push(comandaUrl); }
     const text = lines.join('\n');
     const encoded = encodeURIComponent(text);
 
@@ -165,13 +171,14 @@
 
     // Comanda em imagem (cliente, entrega, pagamento e itens com foto) para enviar junto ao WhatsApp
     try{
-      if(window.comanda){
+      // Com o link da comanda dentro da mensagem, o cliente não precisa baixar nem anexar nada.
+      if(window.comanda && !comandaUrl){
         const au = (window.customerAuth && typeof window.customerAuth.getCurrentUser === 'function') ? window.customerAuth.getCurrentUser() : null;
         const md = au && au.user_metadata ? au.user_metadata : {};
         const order = {
           code, items, total: Number(data.total || 0), payment: data.payment, paymentLabel: payLabel,
           needChange: data.needChange, cashPaid: data.cashPaid, delivery: data.delivery || {},
-          customer: { name: md.full_name || '', phone: md.phone || '', email: au && au.email ? au.email : '', document: md.document || '' },
+          customer: { name: md.full_name || '', phone: md.phone || '' },
           createdAt: Date.now()
         };
         const blob = await window.comanda.build(order);

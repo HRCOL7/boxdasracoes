@@ -148,6 +148,7 @@
     if(st.next) actions += '<button type="button" class="btn btn-orange" id="ord-advance" data-next="' + st.next + '">' + esc(st.nextLabel) + '</button>';
     if(o.status !== 'cancelled' && o.status !== 'delivered') actions += '<button type="button" class="btn" id="ord-cancel">Cancelar pedido</button>';
     actions += '<button type="button" class="btn" id="ord-comanda">Gerar comanda (imagem)</button>';
+    if(o.public_token) actions += '<a class="btn" target="_blank" rel="noopener noreferrer" href="/comanda.html?c=' + encodeURIComponent(o.public_token) + '">Abrir página da comanda<span class="sr-only"> (abre em nova aba)</span></a>';
     if(wa) actions += '<a class="btn" target="_blank" rel="noopener noreferrer" href="' + esc(wa) + '">Falar com o cliente no WhatsApp<span class="sr-only"> (abre em nova aba)</span></a>';
     box.innerHTML =
       '<div class="ord-detail-head"><h3 class="ord-h3">Pedido #' + esc(o.order_number) + '</h3><span class="ord-badge ' + st.cls + '">' + esc(st.label) + '</span></div>' +

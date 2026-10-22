@@ -245,8 +245,15 @@
           if(!btn) return;
           if(btn.classList.contains('disabled') || btn.disabled) return;
           setActiveVariant(Number(btn.dataset.vi));
+          try{ const vv = variants[Number(btn.dataset.vi)]; if(vv){ const o = JSON.parse(localStorage.getItem('weight_pref_v1') || '{}') || {}; o[String(p.id)] = String(vv.weight); localStorage.setItem('weight_pref_v1', JSON.stringify(o)); } }catch(e){}
         });
-        setActiveVariant(firstAvailableVariantIndex > -1 ? firstAvailableVariantIndex : 0);
+        let startIdx = firstAvailableVariantIndex > -1 ? firstAvailableVariantIndex : 0;
+        try{
+          // este script roda antes do utils.js (que é defer), então lê o peso salvo direto do armazenamento
+          const saved = String((JSON.parse(localStorage.getItem('weight_pref_v1') || '{}') || {})[String(p.id)] || '').toLowerCase().replace(/\s+/g, '');
+          if(saved){ const sv = variants.findIndex(v=> String(v && v.weight || '').toLowerCase().replace(/\s+/g, '') === saved && !isVariantUnavailable(v)); if(sv >= 0) startIdx = sv; }
+        }catch(e){}
+        setActiveVariant(startIdx);
       }
 
       // quantity controls (allow typing in the number input)
@@ -348,15 +355,15 @@
       const images = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : []);
       const mediaList = [];
       (images||[]).forEach(src=> mediaList.push({type:'image', src}));
-      if(p.video){ const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(p.video||''); const thumb = (yt && yt[1]) ? `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg` : (images && images[0]) || ''; mediaList.push({type:'video', src: p.video, thumb}); }
+      if(p.video){ const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(p.video||''); const thumb = (images && images[0]) || ''; mediaList.push({type:'video', src: p.video, thumb}); }
       let currentImageIndex = 0; let showingVideo = false;
 
       function renderDots(){ if(!dotsWrap) return; dotsWrap.innerHTML = ''; mediaList.forEach((_,i)=>{ const btn = document.createElement('button'); btn.className = 'dot'; btn.dataset.index = String(i); btn.setAttribute('aria-label', 'mídia ' + (i+1)); dotsWrap.appendChild(btn); }); updateDots(); }
       function updateDots(){ if(!dotsWrap) return; Array.from(dotsWrap.children).forEach((b,idx)=> b.classList.toggle('active', idx===currentImageIndex)); }
 
-      function makeVideoPlayerIframe(src){ if(!src) return null; const container = document.createElement('div'); container.className = 'media-frame'; const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(src); if(yt && yt[1]){ const id = yt[1]; const iframe = document.createElement('iframe'); iframe.setAttribute('src', 'https://www.youtube.com/embed/' + encodeURIComponent(id) + '?autoplay=1'); iframe.setAttribute('frameborder','0'); iframe.setAttribute('allow','accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture'); iframe.setAttribute('allowfullscreen',''); container.appendChild(iframe); return container; } const video = document.createElement('video'); video.id = 'main-video'; video.controls = true; video.autoplay = true; video.src = src; container.appendChild(video); return container; }
+      function makeVideoPlayerIframe(src){ if(!src) return null; const container = document.createElement('div'); container.className = 'media-frame'; const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(src); if(yt && yt[1]){ const id = yt[1]; const iframe = document.createElement('iframe'); iframe.setAttribute('src', 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?autoplay=1'); iframe.setAttribute('frameborder','0'); iframe.setAttribute('allow','accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture'); iframe.setAttribute('allowfullscreen',''); container.appendChild(iframe); return container; } const video = document.createElement('video'); video.id = 'main-video'; video.controls = true; video.autoplay = true; video.src = src; container.appendChild(video); return container; }
 
-      function makeVideoThumbnail(src, fallbackImage){ const container = document.createElement('div'); container.className = 'media-frame'; const inner = document.createElement('div'); inner.className = 'video-thumb'; inner.dataset.src = src || ''; const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(src||''); const thumb = (yt && yt[1]) ? ('https://img.youtube.com/vi/' + yt[1] + '/hqdefault.jpg') : (fallbackImage || ''); if(thumb) inner.style.backgroundImage = 'url("' + thumb + '")'; const btn = document.createElement('button'); btn.className = 'play-btn'; btn.setAttribute('aria-label','Reproduzir'); btn.textContent = '▶'; inner.appendChild(btn); container.appendChild(inner); return container; }
+      function makeVideoThumbnail(src, fallbackImage){ const container = document.createElement('div'); container.className = 'media-frame'; const inner = document.createElement('div'); inner.className = 'video-thumb'; inner.dataset.src = src || ''; const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/i.exec(src||''); const thumb = fallbackImage || ''; if(thumb) inner.style.backgroundImage = 'url("' + thumb + '")'; const btn = document.createElement('button'); btn.className = 'play-btn'; btn.setAttribute('aria-label','Reproduzir vídeo (carrega do YouTube)'); btn.textContent = '▶'; inner.appendChild(btn); const vn = document.createElement('span'); vn.className = 'video-note'; vn.textContent = 'Ao reproduzir, o vídeo é carregado do YouTube.'; inner.appendChild(vn); container.appendChild(inner); return container; }
 
       function showMediaImage(i){ if(!mediaWrap) return; showingVideo = false; currentImageIndex = i < 0 ? 0 : (i >= mediaList.length ? 0 : i); const item = mediaList[currentImageIndex]; mediaWrap.innerHTML = ''; if(item && item.type === 'image'){ const wrap = document.createElement('div'); wrap.id = 'main-img-wrap'; wrap.className = 'media-frame'; const imgEl = document.createElement('img'); imgEl.id = 'main-img'; imgEl.src = item.src; imgEl.alt = esc(displayName); wrap.appendChild(imgEl); mediaWrap.appendChild(wrap); const mainImgEl = imgEl; if(mainImgEl){ let touchStartX = 0; mainImgEl.addEventListener('touchstart', (e)=>{ touchStartX = e.changedTouches[0].clientX; }, {passive:true}); mainImgEl.addEventListener('touchend', (e)=>{ const dx = e.changedTouches[0].clientX - touchStartX; if(Math.abs(dx) > 30){ if(dx < 0) showMediaAt(currentImageIndex + 1); else showMediaAt(currentImageIndex - 1); } }, {passive:true}); } } else { const no = document.createElement('div'); no.className = 'no-image'; no.textContent = 'Sem imagem'; mediaWrap.appendChild(no); } if(thumbs){ Array.from(thumbs.children).forEach((el,idx)=> el.classList.toggle('active', idx===currentImageIndex)); } updateDots(); const mainImageContainer = mediaWrap.closest('.main-image'); if(mainImageContainer){ mainImageContainer.classList.remove('has-video'); } }
 
@@ -366,7 +373,21 @@
 
       if(dotsWrap && mediaList.length>0){ renderDots(); dotsWrap.addEventListener('click', (ev)=>{ const b = ev.target.closest('button[data-index]'); if(b) showMediaAt(Number(b.dataset.index)); }); }
 
-      if(thumbs){ thumbs.innerHTML = ''; mediaList.forEach((m,i)=>{ if(m.type==='image'){ const im = document.createElement('img'); im.src = m.src; im.dataset.index = String(i); im.alt = 'thumb'; thumbs.appendChild(im); } else { const div = document.createElement('div'); div.className = 'thumb-video'; div.dataset.index = String(i); div.style.width = '64px'; div.style.height = '64px'; if(m.thumb) div.style.backgroundImage = 'url("' + m.thumb + '")'; div.style.backgroundSize = 'cover'; div.style.borderRadius = '6px'; div.style.border = '1px solid #f0f0f0'; thumbs.appendChild(div); } }); thumbs.addEventListener('click',(ev)=>{ const t = ev.target.closest('[data-index]'); if(t){ const idx=Number(t.dataset.index); if(!Number.isNaN(idx)) showMediaAt(idx); } }); const first = thumbs.querySelector('[data-index="0"]'); if(first) first.classList.add('active'); }
+      if(thumbs){
+        thumbs.innerHTML = '';
+        mediaList.forEach((m,i)=>{
+          const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'thumb' + (m.type === 'video' ? ' thumb-video' : ''); bt.dataset.index = String(i);
+          bt.setAttribute('aria-label', m.type === 'video' ? 'Ver vídeo do produto' : ('Ver imagem ' + (i + 1) + ' de ' + mediaList.length));
+          const src = m.type === 'video' ? (m.thumb || '') : m.src;
+          if(src){ const im = document.createElement('img'); im.src = src; im.alt = ''; im.loading = 'lazy'; im.dataset.full = m.type === 'image' ? m.src : ''; bt.appendChild(im); }
+          if(m.type === 'video'){ const pl = document.createElement('span'); pl.className = 'thumb-play'; pl.setAttribute('aria-hidden', 'true'); pl.textContent = '▶'; bt.appendChild(pl); }
+          thumbs.appendChild(bt);
+        });
+        thumbs.addEventListener('click',(ev)=>{ const t = ev.target.closest('[data-index]'); if(t){ const idx=Number(t.dataset.index); if(!Number.isNaN(idx)) showMediaAt(idx); } });
+        const first = thumbs.querySelector('[data-index="0"]'); if(first) first.classList.add('active');
+      }
+      // lista de mídias para a galeria em tela cheia (js/lightbox.js)
+      window.__productMedia = { list: mediaList, index: function(){ return currentImageIndex; }, show: function(i){ showMediaAt(i); }, step: function(d){ if(mediaList.length < 2) return; showMediaAt((currentImageIndex + d + mediaList.length) % mediaList.length); }, name: displayName };
 
       if(mediaList.length>0){ showMediaAt(0); }
 
@@ -378,12 +399,39 @@
       const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
       const div=document.createElement('div'); div.className='item';
       const imgAttr = String(prod.image||'https://via.placeholder.com/182').replace(/"/g,'&quot;');
+      const vs = Array.isArray(prod.variants) ? prod.variants : [];
+      const norm = (w)=> String(w||'').toLowerCase().replace(/\s+/g,'');
+      let saved = ''; try{ saved = norm((JSON.parse(localStorage.getItem('weight_pref_v1')||'{}')||{})[String(prod.id)]); }catch(e){}
+      let vi0 = vs.findIndex(v=> saved && norm(v.weight)===saved && !isVariantUnavailable(v));
+      if(vi0 < 0) vi0 = Math.max(0, vs.findIndex(v=>!isVariantUnavailable(v)));
+      const chips = vs.length ? '<div class="weight-chips">' + vs.map((v,i)=>`<button type="button" class="weight-chip${i===vi0?' active':''}${isVariantUnavailable(v)?' disabled':''}" data-id="${esc(prod.id)}" data-vi="${i}" aria-pressed="${i===vi0?'true':'false'}"${isVariantUnavailable(v)?' disabled aria-disabled="true"':''}>${esc(v.weight||'')}</button>`).join('') + '</div>' : '';
+      const priceOf = (i)=> Number(vs.length ? (vs[i]||vs[0]).price : prod.price||0);
       div.innerHTML = `
-        <div class="image-wrap"><img src="${imgAttr}" alt="${esc(prod.name||'')}"></div>
+        <div class="image-wrap"><img src="${imgAttr}" alt="${esc(prod.name||'')}"><button type="button" class="add-circle" data-id="${esc(prod.id)}" aria-label="Adicionar ${esc(prod.name||'')} ao carrinho">+</button></div>
+        ${chips}
         <div class="product-name">${esc(prod.name||'')}</div>
-        <div class="price">R$ ${Number((Array.isArray(prod.variants)&&prod.variants.length)?prod.variants[0].price:prod.price||0).toFixed(2)}</div>
+        <div class="price">R$ ${priceOf(vi0).toFixed(2)}</div>
       `;
-      div.addEventListener('click',()=>{ window.location.href = 'product.html?id='+encodeURIComponent(prod.id)+'&name='+encodeURIComponent(prod.name||''); });
+      div.dataset.vi = String(vi0);
+      div.addEventListener('click',(ev)=>{
+        const chip = ev.target.closest('.weight-chip');
+        if(chip){
+          ev.stopPropagation(); if(chip.disabled) return;
+          const vi = Number(chip.dataset.vi); div.dataset.vi = String(vi);
+          div.querySelectorAll('.weight-chip').forEach(c=>{ const on = c===chip; c.classList.toggle('active', on); c.setAttribute('aria-pressed', on?'true':'false'); });
+          const pr = div.querySelector('.price'); if(pr) pr.textContent = 'R$ ' + priceOf(vi).toFixed(2);
+          try{ const o = JSON.parse(localStorage.getItem('weight_pref_v1')||'{}')||{}; o[String(prod.id)] = String(vs[vi].weight); localStorage.setItem('weight_pref_v1', JSON.stringify(o)); }catch(e){}
+          return;
+        }
+        if(ev.target.closest('.fav-heart')) return;
+        if(ev.target.closest('.add-circle')){
+          ev.stopPropagation();
+          document.dispatchEvent(new CustomEvent('add-to-cart',{detail:{id: prod.id, variantIndex: vs.length ? Number(div.dataset.vi) : null}}));
+          if(window.appA11y) window.appA11y.announce('Adicionado ao carrinho.');
+          return;
+        }
+        window.location.href = 'product.html?id='+encodeURIComponent(prod.id)+'&name='+encodeURIComponent(prod.name||'');
+      });
       carousel.appendChild(div);
     })}
   })();

@@ -14,7 +14,7 @@ while True:
     ids+= [r["id"] for r in rows]
     if len(rows)<1000: break
     off+=1000
-base=["/","/products.html","/products.html?animal=caes","/products.html?animal=gatos","/products.html?animal=medicamentos","/products.html?promo=1"]
+base=["/","/products.html","/products.html?animal=caes","/products.html?animal=gatos","/products.html?animal=medicamentos","/products.html?promo=1","/privacidade.html","/termos.html","/cookies.html","/trocas-e-reembolso.html"]
 out=['<?xml version="1.0" encoding="UTF-8"?>','<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
 for u in base: out.append(f"  <url><loc>{SITE}{u.replace('&','&amp;')}</loc></url>")
 for i in ids: out.append(f"  <url><loc>{SITE}/product.html?id={i}</loc></url>")

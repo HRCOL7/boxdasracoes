@@ -384,8 +384,25 @@
     if(btn){ btn.textContent = on ? 'Pronto' : 'Alterar endereço'; btn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
     const save = document.getElementById('delivery-save-row'); const logged = !!(window.customerAuth && window.customerAuth.getCurrentUser && window.customerAuth.getCurrentUser());
     if(save) save.classList.toggle('hidden', !(on && logged));
+    if(on) renderAddressPicker();
     if(on){ const f = document.getElementById('checkout-street'); if(f) f.focus(); }
     refreshDeliverySummary();
+  }
+  function renderAddressPicker(){
+    const pk = document.getElementById('delivery-picker'); if(!pk) return;
+    const list = (window.customerAuth && window.customerAuth.getAddresses) ? window.customerAuth.getAddresses() : [];
+    const logged = !!(window.customerAuth && window.customerAuth.getCurrentUser && window.customerAuth.getCurrentUser());
+    if(!logged || !list.length){ pk.classList.add('hidden'); pk.innerHTML = ''; return; }
+    const cur = collectDeliveryData(false) || {};
+    let matched = false;
+    const rows = list.map(function(a){
+      const on = !matched && a.street === cur.street && a.number === cur.number;
+      if(on) matched = true;
+      return '<label class="dp-opt"><input type="radio" name="delivery-addr" value="' + esc(a.id) + '"' + (on ? ' checked' : '') + '><span><strong>' + esc(a.label) + '</strong> ' + esc(addressLine(a)) + '</span></label>';
+    });
+    rows.push('<label class="dp-opt"><input type="radio" name="delivery-addr" value="__new"' + (matched ? '' : ' checked') + '><span><strong>Outro endereço</strong> digitar abaixo</span></label>');
+    pk.innerHTML = '<p class="dp-title">Entregar em qual endereço?</p>' + rows.join('');
+    pk.classList.remove('hidden');
   }
   function refreshDeliverySummary(){
     const sum = document.getElementById('delivery-summary'); if(!sum) return;
@@ -404,10 +421,32 @@
     head.innerHTML = '<p id="delivery-summary" class="delivery-summary" aria-live="polite"></p>' +
       '<button type="button" id="delivery-edit-btn" class="delivery-edit-btn" aria-expanded="false">Alterar endereço</button>';
     if(title) title.after(head); else box.prepend(head);
-    const saveRow = document.createElement('label');
+    const picker = document.createElement('div');
+    picker.id = 'delivery-picker'; picker.className = 'delivery-picker hidden';
+    picker.setAttribute('role', 'radiogroup'); picker.setAttribute('aria-label', 'Endereços salvos');
+    head.after(picker);
+    picker.addEventListener('change', function(e){
+      const r = e.target; if(!r || r.name !== 'delivery-addr') return;
+      if(r.value === '__new'){
+        ['checkout-street','checkout-number','checkout-neighborhood','checkout-zip','checkout-reference'].forEach(function(id){ const el = document.getElementById(id); if(el) el.value = ''; });
+        box.dataset.touched = '1'; refreshDeliverySummary(); updateCheckoutState();
+        const f = document.getElementById('checkout-street'); if(f) f.focus();
+        return;
+      }
+      const a = (window.customerAuth && window.customerAuth.getAddresses ? window.customerAuth.getAddresses() : []).find(function(x){ return x.id === r.value; });
+      if(!a) return;
+      const set = function(id, v){ const el = document.getElementById(id); if(el) el.value = v || ''; };
+      set('checkout-street', a.street); set('checkout-number', a.number); set('checkout-neighborhood', a.neighborhood); set('checkout-zip', a.zip); set('checkout-reference', a.reference);
+      box.dataset.touched = '1'; refreshDeliverySummary(); updateCheckoutState();
+    });
+    const saveRow = document.createElement('div');
     saveRow.id = 'delivery-save-row'; saveRow.className = 'delivery-save-row hidden';
-    saveRow.innerHTML = '<input type="checkbox" id="delivery-save-default"> Salvar como meu endereço padrão';
+    saveRow.innerHTML = '<label class="dsr-check"><input type="checkbox" id="delivery-save-default"> Salvar este endereço na minha conta</label>' +
+      '<label class="dsr-name hidden" id="delivery-save-name-wrap">Nome do endereço <input type="text" id="delivery-save-name" maxlength="30" placeholder="Ex.: Casa, Trabalho"></label>';
     box.appendChild(saveRow);
+    saveRow.querySelector('#delivery-save-default').addEventListener('change', function(e){
+      saveRow.querySelector('#delivery-save-name-wrap').classList.toggle('hidden', !e.target.checked);
+    });
     document.getElementById('delivery-edit-btn').addEventListener('click', function(){
       setDeliveryEditing(box.classList.contains('collapsed'));
     });
@@ -421,8 +460,10 @@
     const chk = document.getElementById('delivery-save-default');
     if(!chk || !chk.checked) return;
     try{
-      if(window.customerAuth && typeof window.customerAuth.saveAddress === 'function'){
-        await window.customerAuth.saveAddress({ street: d.street, number: d.number, neighborhood: d.neighborhood, zip: d.zip });
+      if(window.customerAuth && typeof window.customerAuth.addOrUpdateAddress === 'function'){
+        const nm = document.getElementById('delivery-save-name');
+        await window.customerAuth.addOrUpdateAddress({ label: (nm && nm.value.trim()) || (window.customerAuth.getAddresses().length ? 'Endereço ' + (window.customerAuth.getAddresses().length + 1) : 'Casa'), street: d.street, number: d.number, neighborhood: d.neighborhood, zip: d.zip, reference: d.reference }, false);
+        if(nm) nm.value = '';
       }
     }catch(e){ logError('Falha ao salvar endereço padrão', e); }
     chk.checked = false;
@@ -436,13 +477,17 @@
       const modal = document.createElement('div');
       modal.className = 'modal address-confirm-modal';
       modal.setAttribute('data-remove-on-close', '1');
+      let termsOk = false; try{ termsOk = localStorage.getItem('terms_accepted_v1') === '1'; }catch(e){}
+      const termsRow = termsOk ? '' :
+        '<label class="ac-terms"><input type="checkbox" id="ac-terms-chk"> <span>Li e aceito os <a href="/termos.html" target="_blank" rel="noopener noreferrer">Termos de Uso</a>, a <a href="/privacidade.html" target="_blank" rel="noopener noreferrer">Política de Privacidade</a> e a <a href="/trocas-e-reembolso.html" target="_blank" rel="noopener noreferrer">Política de Trocas e Reembolso</a> (abrem em nova aba).</span></label>' +
+        '<p class="ac-terms-err" id="ac-terms-err" role="alert" hidden>Marque a caixa acima para continuar.</p>';
       const when = (d.date || d.window) ? '<p class="ac-when">Entrega: ' + esc([d.date ? d.date.split('-').reverse().join('/') : '', d.window].filter(Boolean).join(' · ')) + '</p>' : '';
       modal.innerHTML =
         '<div class="modal-body address-confirm-card">' +
           '<h2 id="ac-title" class="ac-title">' + (filled ? 'Confirme o endereço de entrega' : 'Falta o endereço de entrega') + '</h2>' +
           (filled
             ? '<p class="ac-address">' + esc(addressLine(d)) + '</p>' + (d.reference ? '<p class="ac-ref">Referência: ' + esc(d.reference) + '</p>' : '') + when +
-              '<p class="ac-help">Estamos entregando neste endereço. Está certo?</p>'
+              '<p class="ac-help">Estamos entregando neste endereço. Está certo?</p>' + termsRow
             : '<p class="ac-help">Informe rua, número e bairro para continuar.</p>') +
           '<div class="ac-actions">' +
             (filled ? '<button type="button" class="btn btn-orange" data-ac="ok">Confirmar e finalizar</button>' : '') +
@@ -461,7 +506,12 @@
       modal.addEventListener('click', function(e){
         const b = e.target.closest && e.target.closest('[data-ac]');
         if(!b) return;
-        if(b.dataset.ac === 'ok'){ saveDefaultAddressIfAsked(d).then(function(){ finish(true); }); }
+        if(b.dataset.ac === 'ok'){
+          const chk = modal.querySelector('#ac-terms-chk');
+          if(chk && !chk.checked){ const er = modal.querySelector('#ac-terms-err'); if(er) er.hidden = false; chk.focus(); return; }
+          if(chk){ try{ localStorage.setItem('terms_accepted_v1', '1'); }catch(e){} }
+          saveDefaultAddressIfAsked(d).then(function(){ finish(true); });
+        }
         else { finish(false); setTimeout(function(){ setDeliveryEditing(true); }, 150); }
       });
       // Esc fecha sem confirmar (a11y.js cuida do foco)
@@ -618,7 +668,7 @@
   // run setup on DOMContentLoaded and when header include finishes loading
   document.addEventListener('DOMContentLoaded', setupBindings);
   document.addEventListener('header:loaded', setupBindings);
-  document.addEventListener('customer-auth:changed', ()=>{ try{ prefillCheckoutFromProfile(); }catch(e){} });
+  document.addEventListener('customer-auth:changed', ()=>{ try{ prefillCheckoutFromProfile(); const bx = document.querySelector('.checkout-delivery'); if(bx && !bx.classList.contains('collapsed')) renderAddressPicker(); }catch(e){} });
   if(document.readyState !== 'loading'){ setupBindings(); }
   // watch for header/cart being injected later — ensure bindings attach
   try{

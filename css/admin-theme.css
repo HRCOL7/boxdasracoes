@@ -200,3 +200,19 @@ html[data-theme="dark"] .admin-head .theme-toggle{color:#FFA24D;background:#3A2A
 html[data-theme="dark"] .admin-head .theme-toggle:hover{background:var(--brand);color:#1F1B16}
 .site-settings-card .site-settings-toggle-label{flex-direction:row;align-items:center;gap:10px}
 .site-settings-card .site-settings-toggle-label input{width:22px;height:22px;flex:0 0 22px}
+
+/* ===== v10: botão de modo escuro do painel (dentro do cabeçalho, sem sobrepor o título) ===== */
+.admin-head{position:relative}
+.admin-head .admin-head-title{flex:1 1 0;min-width:0;font-size:clamp(20px,5.2vw,26px);overflow-wrap:anywhere}
+.admin-head .theme-toggle{position:static!important;order:2;flex:0 0 44px;width:44px!important;height:44px!important;margin:0 0 0 auto!important;padding:0!important;border-radius:50%!important;border:2px solid rgba(255,255,255,.6)!important;background:transparent!important;color:#fff!important;display:inline-flex!important;align-items:center;justify-content:center;cursor:pointer;font-size:0;box-shadow:none!important}
+.admin-head .theme-toggle svg{width:22px;height:22px;display:block;stroke:currentColor;fill:none}
+.admin-head .theme-toggle:hover{background:rgba(255,255,255,.16)!important}
+.admin-head .theme-toggle:focus-visible{outline:3px solid #FFB070;outline-offset:2px}
+.admin-head .admin-nav{order:3;flex:1 1 100%;margin-left:0}
+.sales-real{margin-bottom:18px}
+.sales-help{margin:0 0 12px;color:var(--muted)}
+.interest-title{margin:22px 0 8px}
+.reports-kpi small{display:block;color:var(--muted);font-weight:700}
+.kpi-sale{border-left-color:#1F7A4D}
+html[data-theme="dark"] .kpi-sale{border-left-color:#7BE0A3}
+.reports-kpi strong{font-size:clamp(20px,5.4vw,28px)!important;white-space:nowrap}

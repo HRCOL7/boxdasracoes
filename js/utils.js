@@ -217,6 +217,36 @@
   }
   window.appUtils.weightToKg = window.appUtils.weightToKg || weightToKg;
   window.appUtils.perKgValue = window.appUtils.perKgValue || perKgValue;
+  // peso escolhido por produto: vale em todas as páginas deste aparelho
+  (function(){
+    var KEY = 'weight_pref_v1';
+    function readAll(){ try{ var o = JSON.parse(localStorage.getItem(KEY) || '{}'); return (o && typeof o === 'object') ? o : {}; }catch(e){ return {}; } }
+    function norm(w){ return String(w == null ? '' : w).toLowerCase().replace(/\s+/g, ''); }
+    window.appUtils.weightPref = {
+      get: function(id){ var v = readAll()[String(id)]; return v ? String(v) : ''; },
+      set: function(id, weight){
+        try{
+          var o = readAll(); var keys = Object.keys(o);
+          if(keys.length > 300) delete o[keys[0]];
+          if(weight) o[String(id)] = String(weight); else delete o[String(id)];
+          localStorage.setItem(KEY, JSON.stringify(o));
+        }catch(e){}
+      },
+      // índice da variante salva, ou -1
+      indexFor: function(product, allowed){
+        if(!product || !Array.isArray(product.variants)) return -1;
+        var w = norm(this.get(product.id)); if(!w) return -1;
+        for(var i = 0; i < product.variants.length; i++){
+          var v = product.variants[i];
+          if(norm(v && v.weight) === w && !(v && (v.is_unavailable === true || v.is_unavailable === 'true'))){
+            if(Array.isArray(allowed) && allowed.length && allowed.indexOf(i) < 0) return -1;
+            return i;
+          }
+        }
+        return -1;
+      }
+    };
+  })();
   // standardized payment label map (code -> display)
   const PAYMENT_LABELS = {
     PIX: 'PIX',

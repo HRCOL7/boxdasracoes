@@ -10,7 +10,9 @@
         ['cart','Guarda os itens do seu carrinho neste aparelho.','até limpar'],
         ['theme_v1','Lembra se você prefere o modo claro ou escuro.','1 ano'],
         ['consent_v1','Guarda as suas escolhas de cookies.','1 ano'],
-        ['products','Cópia da lista de produtos para a busca e as páginas abrirem mais rápido.','até atualizar']
+        ['products','Cópia da lista de produtos para a busca e as páginas abrirem mais rápido.','até atualizar'],
+        ['weight_pref_v1 / last_order_items_v1 / favorite_product_ids','Lembram o peso (kg) que você escolheu, o seu último pedido e os seus favoritos.','até limpar'],
+        ['terms_accepted_v1','Lembra que você já leu os termos neste aparelho.','até limpar']
       ] },
     { id:'functional', name:'Cookies de funcionalidade',
       text:'Permitem recursos extras e mais personalizados, como lembrar dados de preenchimento. No momento o site não usa nenhum cookie opcional desta categoria.', items:[] },

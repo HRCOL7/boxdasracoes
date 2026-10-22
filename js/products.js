@@ -283,6 +283,10 @@
   function getFirstAvailableVariantIndex(product, preferredIndexes){
     const variants = Array.isArray(product && product.variants) ? product.variants : [];
     if(!variants.length) return 0;
+    if(window.appUtils && window.appUtils.weightPref){
+      const saved = window.appUtils.weightPref.indexFor(product, preferredIndexes);
+      if(saved >= 0) return saved;
+    }
     const list = Array.isArray(preferredIndexes) && preferredIndexes.length
       ? preferredIndexes
       : variants.map((_, idx) => idx);
@@ -361,7 +365,7 @@
         : getFirstAvailableVariantIndex(p);
       const chips = isPromoProduct
         ? buildChipsHtml(p, esc, { variantIndexes: promoVariantIndexes, highlightedIndexes: promoVariantIndexes, activeIndex: defaultVariantIndex })
-        : buildChipsHtml(p, esc, { activeIndex: null });
+        : buildChipsHtml(p, esc, { activeIndex: (window.appUtils && window.appUtils.weightPref && window.appUtils.weightPref.indexFor(p) >= 0) ? defaultVariantIndex : null });
       const basePrice = getVariantBasePrice(p, defaultVariantIndex);
       const promoPrice = getVariantPromoPrice(p, defaultVariantIndex);
       const promoPriceHtml = buildPriceHtml(basePrice, promoPrice);
@@ -869,11 +873,11 @@
     const esc = (s)=> (window.appUtils && typeof window.appUtils.escapeHtml === 'function') ? window.appUtils.escapeHtml(s) : (s===null||s===undefined?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'));
     const imgAttr = window.appUtils.safeImageUrl(product.image || 'https://via.placeholder.com/64');
     modal.innerHTML = `
-      <div class="modal-body" style="max-width:480px;width:92%;padding:18px;background:#fff;border-radius:10px;">
-        <button type="button" class="modal-close" aria-label="Fechar" style="float:right;border:none;background:transparent;font-size:20px;min-width:44px;min-height:44px"><span aria-hidden="true">×</span></button>
+      <div class="modal-body" style="max-width:480px;width:92%;padding:18px;background:var(--surface,#fff);color:var(--ink,#1F1B16);border-radius:10px;">
+        <button type="button" class="modal-close" aria-label="Fechar" style="float:right;border:none;background:transparent;color:inherit;font-size:20px;min-width:44px;min-height:44px"><span aria-hidden="true">×</span></button>
         <h3 style="margin:6px 0 12px">Qual você gostaria?</h3>
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
-          <img src="${imgAttr}" style="width:64px;height:64px;object-fit:contain;border-radius:6px;border:1px solid #eee;margin-right:8px">
+          <img src="${imgAttr}" style="width:64px;height:64px;object-fit:contain;border-radius:6px;border:1px solid var(--line,#eee);background:#fff;margin-right:8px">
           <div style="flex:1"><div style="font-weight:700">${esc(product.name||'')}</div></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -882,14 +886,14 @@
             const promo = getVariantPromoPrice(product, i);
             const unavailable = isVariantUnavailable(v);
             const priceHtml = (promo !== null)
-              ? `<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1"><span style="font-size:12px;color:#6b6b6b;text-decoration:line-through">R$ ${base.toFixed(2)}</span><span style="font-weight:700;color:var(--orange,#bf5600)">R$ ${promo.toFixed(2)}</span></div>`
+              ? `<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1"><span style="font-size:12px;color:var(--muted,#6b6b6b);text-decoration:line-through">R$ ${base.toFixed(2)}</span><span style="font-weight:700;color:var(--orange,#bf5600)">R$ ${promo.toFixed(2)}</span></div>`
               : `<div style="font-weight:700;color:var(--orange,#bf5600)">R$ ${base.toFixed(2)}</div>`;
             const buttonStyle = unavailable
               ? 'background:#bdbdbd;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:not-allowed;opacity:.9'
               : 'background:var(--orange,#bf5600);color:#fff;border:none;padding:6px 10px;border-radius:6px';
             const buttonLabel = unavailable ? 'Indisponível' : 'Adicionar à sacola';
             const buttonAttrs = unavailable ? ' disabled aria-disabled="true"' : '';
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid #eee;background:#fff"><div>${esc(v.weight||'')}${unavailable ? '<div style="font-size:12px;color:#6b6b6b">Indisponível</div>' : ''}</div><div style="display:flex;gap:10px;align-items:center">${priceHtml}<button class="variant-add" data-id="${product.id}" data-vi="${i}" style="${buttonStyle}"${buttonAttrs}>${buttonLabel}</button></div></div>`;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;border:1px solid var(--line,#eee);background:var(--surface,#fff);color:var(--ink,#1F1B16)"><div>${esc(v.weight||'')}${unavailable ? '<div style="font-size:12px;color:var(--muted,#6b6b6b)">Indisponível</div>' : ''}</div><div style="display:flex;gap:10px;align-items:center">${priceHtml}<button class="variant-add" data-id="${product.id}" data-vi="${i}" style="${buttonStyle}"${buttonAttrs}>${buttonLabel}</button></div></div>`;
           }).join('')}
         </div>
       </div>
@@ -1055,6 +1059,9 @@
       if(!wasActive){
         chip.classList.add('active');
         chip.setAttribute('aria-pressed','true');
+        if(p && Array.isArray(p.variants) && p.variants[vi] && window.appUtils && window.appUtils.weightPref){
+          window.appUtils.weightPref.set(id, p.variants[vi].weight);
+        }
       }
 
       if(item){

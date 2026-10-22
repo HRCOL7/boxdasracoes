@@ -30,11 +30,15 @@
         : [];
       const finalBanners = safeBanners.length ? safeBanners : [fallbackBanner(0), fallbackBanner(1), fallbackBanner(2)];
 
-      finalBanners.forEach((src,idx)=>{
+      finalBanners.forEach((entry,idx)=>{
+        // formato aceito no admin: "https://endereco-da-imagem | texto que descreve a imagem"
+        const parts = String(entry).split('|');
+        const src = parts[0].trim();
+        const altText = parts.slice(1).join('|').trim();
         const d = document.createElement('div'); d.className='item';
         const img = document.createElement('img');
         img.src = src;
-        img.alt = `Destaque ${idx+1} de ${finalBanners.length}`;
+        img.alt = altText || `Destaque ${idx+1} de ${finalBanners.length}`;
         img.loading='lazy';
         img.onerror = ()=>{ img.src = fallbackBanner(idx); };
         d.appendChild(img);

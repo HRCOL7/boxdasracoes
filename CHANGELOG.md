@@ -1,3 +1,23 @@
+## v10 (parte 4)
+- Relatório: nova seção "Vendas confirmadas" (só pedidos Entregues contam como venda; ticket médio, andamento, cancelados, top produtos). Rótulos antigos renomeados para "mensagens de pedido enviadas".
+- Botão de modo escuro do painel admin dentro do cabeçalho.
+
+## v10 (parte 3)
+- Transição ao trocar Entrar/Cadastrar e as abas da conta; discos de kg em "Você também pode gostar" (com + e peso salvo).
+
+## v10 (parte 2)
+- Páginas legais, rodapé, consentimento, CPF opcional, alt dos banners (ver CHECKLIST-LEGAL.md).
+
+## v10 (parte 1)
+- Comanda por link: o texto do WhatsApp leva um link para `comanda.html` (pedido completo com fotos); o cliente não baixa nem anexa nada. Precisa da migração `supabase/migrations/20261021000000_comanda_link.sql` (sem ela, o pedido continua funcionando, só sem o link).
+- Corações de favorito nos cards; favoritos ficam na conta (valem em qualquer aparelho).
+- Minha conta: até 5 endereços (com padrão), aba "Meus pedidos" (histórico + comprar de novo + ver comanda).
+- Carrinho: "Alterar endereço" mostra os endereços salvos para escolher; opção de salvar o endereço usado.
+- Kg escolhido fica salvo por produto em todas as páginas.
+- Texto do modal "Qual você gostaria?" legível no modo escuro.
+- Botão de pausar do banner quase transparente (aparece ao passar o mouse/foco; continua acessível por teclado).
+- Galeria do produto (computador): miniaturas em botões, painel cinza, setas, bolinhas, vídeo na galeria e na tela cheia (YouTube via youtube-nocookie).
+
 ## v9
 - Lista de produtos: cards do mesmo tamanho (4 por linha no PC, 3 no tablet, 2 no celular), nome em 2 linhas e preço alinhado embaixo; sem rolagem horizontal.
 - Filtros no celular: barra fixa "Filtros (n) + Ordenar" e gaveta de baixo para cima com botão "Ver N produtos"; não precisa mais descer a página.

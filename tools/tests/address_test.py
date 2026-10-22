@@ -42,7 +42,7 @@ try:
     pg.fill("#checkout-number","456")
     pg.click("#checkout"); pg.wait_for_timeout(300)
     check("diálogo mostra o endereço alterado", "Rua das Flores, 456" in pg.inner_text(".ac-address"))
-    pg.click("[data-ac=ok]"); pg.wait_for_timeout(500)
+    pg.check("#ac-terms-chk"); pg.click("[data-ac=ok]"); pg.wait_for_timeout(500)
     ready=pg.evaluate("window.__ready")
     check("confirmado: pedido enviado com o endereço novo", len(ready)==1 and ready[0]["delivery"]["number"]=="456", ready)
     check("sem erros de JS", not errs, errs)

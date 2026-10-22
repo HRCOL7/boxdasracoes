@@ -107,14 +107,14 @@
     const brandsPreview = document.getElementById('admin-brands-preview');
     if(bannersPreview){
       bannersPreview.innerHTML = '';
-      (adminSiteSettings.banners || []).slice(0, 8).forEach(src=>{
+      (adminSiteSettings.banners || []).slice(0, 8).forEach((entry, bi)=>{ const src = String(entry).split('|')[0].trim();
         const img = document.createElement('img');
         img.className = 'media-thumb';
         // O admin fica em /admin/: caminhos do site como "img/x.jpg" precisam de "../".
         const rawSrc = String(src || '').trim();
         const isRelative = rawSrc && !/^([a-z][a-z0-9+.-]*:|\/|\.\.\/)/i.test(rawSrc);
         img.src = window.appUtils.safeImageUrl(isRelative ? '../' + rawSrc : rawSrc);
-        img.alt = 'Banner ' + (adminSiteSettings.banners.indexOf(src) + 1);
+        img.alt = String(entry).split('|').slice(1).join('|').trim() || ('Banner ' + (bi + 1));
         bannersPreview.appendChild(img);
       });
     }

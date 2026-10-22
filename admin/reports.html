@@ -62,6 +62,34 @@
 
       <div id="reports-status" class="reports-status" aria-live="polite"></div>
 
+      <section class="admin-products sales-real" aria-labelledby="sales-title">
+        <h3 id="sales-title">Vendas confirmadas (pedidos do painel)</h3>
+        <p class="sales-help">Conta como <strong>venda</strong> só o pedido marcado como <strong>Entregue</strong> no painel de Pedidos. Mensagem enviada no WhatsApp ainda não é venda. Atualize o status dos pedidos para este relatório refletir a realidade.</p>
+        <div class="reports-kpis" id="sales-kpis">
+          <article class="reports-kpi kpi-sale"><span class="label">Vendas (entregues)</span><strong id="sale-count">0</strong></article>
+          <article class="reports-kpi kpi-sale"><span class="label">Faturamento (entregues)</span><strong id="sale-value">R$ 0,00</strong></article>
+          <article class="reports-kpi"><span class="label">Ticket medio</span><strong id="sale-ticket">R$ 0,00</strong></article>
+          <article class="reports-kpi"><span class="label">Em andamento</span><strong id="sale-open">0</strong><small id="sale-open-val"></small></article>
+          <article class="reports-kpi"><span class="label">Aguardando confirmacao</span><strong id="sale-pending">0</strong><small id="sale-pending-val"></small></article>
+          <article class="reports-kpi"><span class="label">Cancelados</span><strong id="sale-cancel">0</strong></article>
+          <article class="reports-kpi"><span class="label">Visita que virou venda</span><strong id="sale-conv">-</strong></article>
+        </div>
+        <div class="reports-table-scroll">
+          <table class="reports-table" id="sales-table">
+            <thead><tr><th>Periodo</th><th>Pedidos recebidos</th><th>Vendas (entregues)</th><th>Faturamento</th><th>Cancelados</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <h4>Produtos mais vendidos (pedidos entregues)</h4>
+        <div class="reports-table-scroll">
+          <table class="reports-table" id="sales-top">
+            <thead><tr><th>Produto</th><th>Quantidade</th><th>Valor da msg.</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <h3 class="interest-title">Interesse no site (nao sao vendas)</h3>
       <section class="reports-kpis" id="reports-kpis">
         <article class="reports-kpi"><span class="label">Sessoes</span><strong id="kpi-sessions">0</strong></article>
         <article class="reports-kpi"><span class="label">Visualizacoes</span><strong id="kpi-pageviews">0</strong></article>
@@ -69,8 +97,8 @@
         <article class="reports-kpi"><span class="label">Checkout iniciado</span><strong id="kpi-checkouts">0</strong></article>
         <article class="reports-kpi"><span class="label">WhatsApp aberto</span><strong id="kpi-whatsapp">0</strong></article>
         <article class="reports-kpi"><span class="label">WPP estoque</span><strong id="kpi-stock-whatsapp">0</strong></article>
-        <article class="reports-kpi"><span class="label">Pre-vendas</span><strong id="kpi-preorders">0</strong></article>
-        <article class="reports-kpi"><span class="label">Valor pre-vendas</span><strong id="kpi-value">R$ 0,00</strong></article>
+        <article class="reports-kpi"><span class="label">Mensagens de pedido enviadas</span><strong id="kpi-preorders">0</strong></article>
+        <article class="reports-kpi"><span class="label">Valor dessas mensagens (nao e venda)</span><strong id="kpi-value">R$ 0,00</strong></article>
       </section>
 
       <section class="admin-products reports-timeseries-wrap">
@@ -91,8 +119,8 @@
                 <th>Checkout</th>
                 <th>WhatsApp</th>
                 <th>WPP estoque</th>
-                <th>Pre-venda</th>
-                <th>Valor</th>
+                <th>Msg. de pedido</th>
+                <th>Valor da msg.</th>
               </tr>
             </thead>
             <tbody></tbody>
