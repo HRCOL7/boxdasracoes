@@ -812,3 +812,21 @@ html[data-theme="dark"] #customer-account-address .customer-auth-actions{backgro
 /* rodapé: ajuda e acessibilidade */
 .site-footer .as-restore{background:transparent;border:0;padding:0;margin:10px auto 0;max-width:1100px;text-align:left}
 .site-footer .as-restore-btn{color:#fff;padding:0;min-height:44px}
+
+/* v10.2 — janela "Endereço de entrega" (alterar/adicionar sem sair do carrinho) */
+.address-edit-modal .ae-card{max-height:calc(100dvh - 24px);overflow-y:auto;width:min(480px,calc(100vw - 24px))}
+.address-edit-modal .ae-lab{display:block;margin:10px 0 4px;font-weight:700;font-size:.9rem}
+.address-edit-modal .ae-fields input,.address-edit-modal #ae-name-row input{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--border,#d9cfc4);border-radius:10px;font:inherit;background:var(--surface,#fff);color:inherit}
+.address-edit-modal .ae-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.address-edit-modal .ae-save{margin-top:12px}
+.address-edit-modal .delivery-picker{margin:8px 0}
+.address-edit-modal .ac-actions{position:sticky;bottom:0;background:inherit;padding-top:10px}
+html[data-theme="dark"] .address-edit-modal .ae-fields input,html[data-theme="dark"] .address-edit-modal #ae-name-row input{background:#241f1a;border-color:#4a3f35;color:#f3ece4}
+
+/* v10.3 — abas da conta: o fundo preto não ultrapassa a borda arredondada */
+.customer-auth-modal .customer-auth-tabs{box-sizing:border-box;max-width:100%;overflow:hidden}
+.customer-auth-modal .customer-auth-tab{min-width:0;box-sizing:border-box;padding:0 8px;line-height:1.15;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:520px){
+  .customer-auth-modal .customer-auth-tabs{border-radius:22px;padding:6px;gap:6px}
+  .customer-auth-modal .customer-auth-tab{border-radius:16px;min-height:44px}
+}

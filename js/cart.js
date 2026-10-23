@@ -379,14 +379,77 @@
   function addressIsFilled(d){ return !!(d && d.street && d.number && d.neighborhood); }
   function setDeliveryEditing(on){
     const box = document.querySelector('.checkout-delivery'); if(!box) return;
-    box.classList.toggle('collapsed', !on);
+    box.classList.add('collapsed');
     const btn = document.getElementById('delivery-edit-btn');
-    if(btn){ btn.textContent = on ? 'Pronto' : 'Alterar endereço'; btn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
-    const save = document.getElementById('delivery-save-row'); const logged = !!(window.customerAuth && window.customerAuth.getCurrentUser && window.customerAuth.getCurrentUser());
-    if(save) save.classList.toggle('hidden', !(on && logged));
-    if(on) renderAddressPicker();
-    if(on){ const f = document.getElementById('checkout-street'); if(f) f.focus(); }
+    if(btn){ btn.textContent = 'Alterar endereço'; btn.setAttribute('aria-haspopup', 'dialog'); btn.removeAttribute('aria-expanded'); }
+    const save = document.getElementById('delivery-save-row'); if(save) save.classList.add('hidden');
     refreshDeliverySummary();
+    if(on) openAddressEditor();
+  }
+
+  // Janela para alterar/adicionar endereço sem sair do carrinho
+  function openAddressEditor(){
+    return new Promise(function(resolve){
+      if(document.querySelector('.address-edit-modal')){ resolve(false); return; }
+      const cur = collectDeliveryData(false) || {};
+      const logged = !!(window.customerAuth && window.customerAuth.getCurrentUser && window.customerAuth.getCurrentUser());
+      const list = (logged && window.customerAuth.getAddresses) ? window.customerAuth.getAddresses() : [];
+      const canAdd = list.length < 5;
+      let matched = false;
+      const opts = list.map(function(a){
+        const on = !matched && a.street === cur.street && a.number === cur.number;
+        if(on) matched = true;
+        return '<label class="dp-opt"><input type="radio" name="ae-addr" value="' + esc(a.id) + '"' + (on ? ' checked' : '') + '><span><strong>' + esc(a.label) + '</strong> ' + esc(addressLine(a)) + '</span></label>';
+      });
+      if(list.length) opts.push('<label class="dp-opt"><input type="radio" name="ae-addr" value="__new"' + (matched ? '' : ' checked') + '><span><strong>Outro endereço</strong> digitar abaixo</span></label>');
+      const modal = document.createElement('div');
+      modal.className = 'modal address-confirm-modal address-edit-modal';
+      modal.setAttribute('data-remove-on-close', '1');
+      modal.setAttribute('aria-labelledby', 'ae-title');
+      function fld(id, label, val, extra){ return '<label for="' + id + '" class="ae-lab">' + label + '</label><input id="' + id + '" type="text" value="' + esc(val || '') + '" ' + (extra || '') + '>'; }
+      modal.innerHTML =
+        '<div class="modal-body address-confirm-card ae-card">' +
+          '<h2 id="ae-title" class="ac-title">Endereço de entrega</h2>' +
+          (list.length ? '<div class="delivery-picker" role="radiogroup" aria-label="Endereços salvos"><p class="dp-title">Entregar em qual endereço?</p>' + opts.join('') + '</div>' : '') +
+          '<div class="ae-fields">' +
+            fld('ae-street', 'Rua', cur.street, 'autocomplete="address-line1"') +
+            '<div class="ae-row">' + '<div>' + fld('ae-number', 'Número', cur.number, 'autocomplete="address-line2"') + '</div><div>' + fld('ae-zip', 'CEP', cur.zip, 'inputmode="numeric" autocomplete="postal-code"') + '</div></div>' +
+            fld('ae-neigh', 'Bairro', cur.neighborhood, 'autocomplete="address-level2"') +
+            fld('ae-ref', 'Referência (opcional)', cur.reference) +
+          '</div>' +
+          (logged && canAdd ? '<label class="ac-terms ae-save"><input type="checkbox" id="ae-save"> <span>Salvar este endereço na minha conta</span></label><div id="ae-name-row" hidden>' + fld('ae-name', 'Nome do endereço (ex.: Casa, Trabalho)', '', 'maxlength="30"') + '</div>' : '') +
+          (!logged ? '<p class="ac-help">Dica: entre na sua conta para salvar até 5 endereços.</p>' : '') +
+          '<p class="ac-terms-err" id="ae-err" role="alert" hidden>Preencha rua, número e bairro.</p>' +
+          '<div class="ac-actions"><button type="button" class="btn btn-orange" data-ae="ok">Usar este endereço</button><button type="button" class="btn" data-ae="cancel">Cancelar</button></div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      const q = function(id){ return modal.querySelector('#' + id); };
+      let done = false;
+      function close(ok){ if(done) return; done = true; modal.classList.remove('visible'); setTimeout(function(){ if(modal.parentNode) modal.remove(); }, 50); resolve(ok); }
+      function fill(a){ q('ae-street').value = a.street || ''; q('ae-number').value = a.number || ''; q('ae-neigh').value = a.neighborhood || ''; q('ae-zip').value = a.zip || ''; q('ae-ref').value = a.reference || ''; }
+      modal.addEventListener('change', function(e){
+        const t = e.target;
+        if(t && t.name === 'ae-addr'){ if(t.value === '__new') fill({}); else { const a = list.find(function(x){ return x.id === t.value; }); if(a) fill(a); } }
+        if(t && t.id === 'ae-save'){ const r = q('ae-name-row'); if(r) r.hidden = !t.checked; }
+      });
+      modal.addEventListener('click', async function(e){
+        const b = e.target.closest && e.target.closest('[data-ae]'); if(!b) return;
+        if(b.dataset.ae === 'cancel'){ close(false); return; }
+        const d = { street: q('ae-street').value.trim(), number: q('ae-number').value.trim(), neighborhood: q('ae-neigh').value.trim(), zip: q('ae-zip').value.trim(), reference: q('ae-ref').value.trim() };
+        if(!addressIsFilled(d)){ q('ae-err').hidden = false; q('ae-street').focus(); return; }
+        [['checkout-street', d.street], ['checkout-number', d.number], ['checkout-neighborhood', d.neighborhood], ['checkout-zip', d.zip], ['checkout-reference', d.reference]].forEach(function(p){ const el = document.getElementById(p[0]); if(el){ el.value = p[1]; el.dispatchEvent(new Event('input', { bubbles: true })); } });
+        const bx = document.querySelector('.checkout-delivery'); if(bx) bx.dataset.touched = '1';
+        const sv = q('ae-save');
+        if(sv && sv.checked){
+          try{ const nm = q('ae-name'); await window.customerAuth.addOrUpdateAddress({ label: (nm && nm.value.trim()) || ('Endereço ' + (list.length + 1)), street: d.street, number: d.number, neighborhood: d.neighborhood, zip: d.zip, reference: d.reference }, false); }
+          catch(err){ logError('Falha ao salvar endereço', err); }
+        }
+        refreshDeliverySummary(); updateCheckoutState();
+        close(true);
+      });
+      modal.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ close(false); } });
+      requestAnimationFrame(function(){ modal.classList.add('visible'); const f = q('ae-street'); if(f) f.focus(); });
+    });
   }
   function renderAddressPicker(){
     const pk = document.getElementById('delivery-picker'); if(!pk) return;
@@ -460,12 +523,11 @@
       btn.disabled = false;
     });
     document.getElementById('delivery-edit-btn').addEventListener('click', function(){
-      box.dataset.userOpened = '1';
-      setDeliveryEditing(box.classList.contains('collapsed'));
+      openAddressEditor();
     });
     box.addEventListener('input', function(){ box.dataset.touched = '1'; refreshDeliverySummary(); });
     const d = collectDeliveryData(false);
-    setDeliveryEditing(!addressIsFilled(d));
+    setDeliveryEditing(false);
     refreshDeliverySummary();
   }
 
@@ -525,7 +587,7 @@
           if(chk){ try{ localStorage.setItem('terms_accepted_v1', '1'); }catch(e){} }
           saveDefaultAddressIfAsked(d).then(function(){ finish(true); });
         }
-        else { finish(false); setTimeout(function(){ const b = document.querySelector('.checkout-delivery'); if(b) b.dataset.userOpened = '1'; setDeliveryEditing(true); }, 150); }
+        else { finish(false); setTimeout(function(){ openAddressEditor(); }, 120); }
       });
       // Esc fecha sem confirmar (a11y.js cuida do foco)
       modal.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ finish(false); } });
@@ -681,7 +743,7 @@
   // run setup on DOMContentLoaded and when header include finishes loading
   document.addEventListener('DOMContentLoaded', setupBindings);
   document.addEventListener('header:loaded', setupBindings);
-  document.addEventListener('customer-auth:changed', ()=>{ try{ prefillCheckoutFromProfile(); const bx = document.querySelector('.checkout-delivery'); if(bx && !bx.classList.contains('collapsed')) renderAddressPicker(); }catch(e){} });
+  document.addEventListener('customer-auth:changed', ()=>{ try{ prefillCheckoutFromProfile(); const bx = document.querySelector('.checkout-delivery');  }catch(e){} });
   if(document.readyState !== 'loading'){ setupBindings(); }
   // watch for header/cart being injected later — ensure bindings attach
   try{
