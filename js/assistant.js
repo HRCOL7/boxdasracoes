@@ -380,7 +380,10 @@
 
     els.panel.appendChild(head);
     els.panel.appendChild(mk('div', { 'class': 'as-body' }, [prefs, els.log, els.status, form, actions, note]));
-    root.appendChild(els.dock); root.appendChild(els.panel); root.appendChild(els.restore);
+    root.appendChild(els.dock); root.appendChild(els.panel);
+    // O link "Mostrar ajuda e acessibilidade" fica na faixa preta do rodapé (se não houver rodapé, no fim da página).
+    var ft = document.querySelector('.site-footer');
+    if(ft) ft.appendChild(els.restore); else root.appendChild(els.restore);
     document.body.appendChild(root);
 
     state.log.forEach(function(m){ addMsg(m.role, m.text, m.links, true); });

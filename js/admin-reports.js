@@ -227,13 +227,28 @@
     if(top) top.innerHTML = list.length ? list.map(([n, e]) => `<tr><td>${esc(n)}</td><td>${fmtNumber(e.q)}</td><td>${fmtMoney(e.v)}</td></tr>`).join('') : '<tr><td colspan="3">Nenhuma venda entregue no periodo.</td></tr>';
   }
 
+  // Encolhe a fonte até o número caber no cartão (valores grandes, ex.: R$ 1.917.000,00)
+  function fitKpis(){
+    document.querySelectorAll('.reports-kpi strong').forEach(el=>{
+      el.style.display = 'block'; el.style.whiteSpace = 'nowrap'; el.style.fontSize = '';
+      const host = el.parentElement; const cs = getComputedStyle(host);
+      const avail = host.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0);
+      let size = parseFloat(getComputedStyle(el).fontSize) || 28;
+      while(el.scrollWidth > avail + 1 && size > 12){ size -= 1; el.style.fontSize = size + 'px'; }
+    });
+  }
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ try{ fitKpis(); }catch(e){} });
+  window.addEventListener('resize', fitKpis);
+
   async function renderReports(){
     const granularity = document.getElementById('reports-granularity')?.value || 'day';
     const rows = await fetchRows();
     setKpis(rows);
     renderBars(rows, granularity);
     renderTable(rows, granularity);
+    fitKpis();
     try{ await renderSales(rows.reduce((a, r) => a + Number(r.sessions || 0), 0)); }catch(e){ logWarn('vendas', e); }
+    fitKpis();
   }
 
   async function ensureAdminAuthenticated(showWarning){

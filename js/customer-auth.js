@@ -672,6 +672,7 @@
         </div>
 
         <div id="customer-address-list" class="addr-list" aria-live="polite"></div>
+        <div class="addr-add-row"><button type="button" id="addr-add" class="btn btn-orange">+ Adicionar novo endereço</button></div>
 
         <form id="customer-account-address" class="customer-auth-form">
           <h4 id="addr-form-title" class="addr-form-title">Novo endereço</h4>
@@ -719,6 +720,12 @@
         </form>
 
         <div id="customer-account-orders" class="customer-auth-form hidden">
+          <div class="acc-filters" role="search" aria-label="Filtrar pedidos">
+            <label>Buscar<input type="search" id="ord-q" placeholder="Nº do pedido ou produto" autocomplete="off"></label>
+            <label>Situação<select id="ord-status"><option value="">Todos</option><option value="open">Em andamento</option><option value="done">Entregues</option><option value="cancelled">Cancelados</option></select></label>
+            <label>Período<select id="ord-period"><option value="0">Tudo</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="365">Último ano</option></select></label>
+          </div>
+          <p id="ord-count" class="acc-count" role="status"></p>
           <div id="customer-orders-list" class="orders-list"></div>
         </div>
 
@@ -735,6 +742,10 @@
         </form>
 
         <div id="customer-account-favorites" class="customer-auth-form hidden">
+          <div class="acc-filters" role="search" aria-label="Filtrar favoritos">
+            <label>Buscar<input type="search" id="fav-q" placeholder="Nome ou marca do produto" autocomplete="off"></label>
+            <label>Ordenar<select id="fav-sort"><option value="">Mais recentes</option><option value="az">Nome (A a Z)</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></label>
+          </div>
           <div id="customer-favorites-list" class="customer-favorites-list"></div>
         </div>
 
@@ -777,14 +788,23 @@
       const el = addressForm && addressForm.querySelector(`[name="${name}"]`);
       if(el) el.value = val || '';
     };
-    function fillForm(a){
+    let addrFormOpen = false, curTabName = 'address';
+    function syncAddrVisibility(){
+      const open = addrFormOpen || getAddresses().length === 0;
+      const onTab = curTabName === 'address';
+      addressForm.classList.toggle('hidden', !(onTab && open));
+      const addRow = modal.querySelector('.addr-add-row'); if(addRow) addRow.classList.toggle('hidden', !(onTab && !open));
+      const c = modal.querySelector('#addr-cancel'); if(c) c.classList.toggle('hidden', !(open && getAddresses().length > 0));
+    }
+    function fillForm(a, open){
       a = a || {};
+      addrFormOpen = !!open;
       set('id', a.id); set('label', a.label); set('phone', md.phone);
       set('zip', a.zip); set('street', a.street); set('number', a.number); set('complement', a.complement);
       set('neighborhood', a.neighborhood); set('city', a.city); set('state', a.state);
       const cb = addressForm.querySelector('[name="make_default"]'); if(cb) cb.checked = false;
       const t = modal.querySelector('#addr-form-title'); if(t) t.textContent = a.id ? 'Editar endereço' : 'Novo endereço';
-      const c = modal.querySelector('#addr-cancel'); if(c) c.classList.toggle('hidden', !a.id);
+      syncAddrVisibility();
     }
     function renderAddrList(){
       const list = getAddresses(); const def = getDefaultAddressId();
@@ -805,13 +825,48 @@
     fillForm({});
     renderAddrList();
 
+    function renderFavorites(){
+        const ids = getFavoriteIds();
+        let products = [];
+        try{ products = JSON.parse(localStorage.getItem('products') || '[]'); }catch(e){ products = []; }
+        const map = new Map((Array.isArray(products) ? products : []).map(p=>[String(p.id), p]));
+        if(!ids.length){
+          favoritesList.innerHTML = '<div class="customer-fav-empty">Nenhum produto favoritado ainda.</div>';
+          return;
+        }
+        const fq = String((modal.querySelector('#fav-q') || {}).value || '').trim().toLowerCase();
+        const fsort = String((modal.querySelector('#fav-sort') || {}).value || '');
+        let list = ids.map(id=>map.get(String(id))).filter(Boolean);
+        if(fq){ const toks = fq.split(/\s+/); list = list.filter(p=>{ const hay = (String(p.name||'') + ' ' + String(p.brand||'') + ' ' + String(p.group||'') + ' ' + String(p.subgroup||'')).toLowerCase(); return toks.every(t=>hay.includes(t)); }); }
+        const priceOf = (p)=> (Array.isArray(p.variants) && p.variants.length) ? Number(p.variants[0].price || 0) : Number(p.price || 0);
+        if(fsort === 'az') list.sort((x,y)=>String(x.name||'').localeCompare(String(y.name||''), 'pt-BR'));
+        else if(fsort === 'low') list.sort((x,y)=>priceOf(x)-priceOf(y));
+        else if(fsort === 'high') list.sort((x,y)=>priceOf(y)-priceOf(x));
+        const cards = list.map(p=>{
+          const image = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || 'https://via.placeholder.com/200');
+          const variants = Array.isArray(p.variants) ? p.variants : [];
+          const chips = variants.length
+            ? '<div class="customer-fav-chips">' + variants.slice(0,3).map(v=>`<span class="customer-fav-chip">${escapeHtml(v.weight || '')}</span>`).join('') + '</div>'
+            : (p.variant ? `<div class="customer-fav-chips"><span class="customer-fav-chip">${escapeHtml(p.variant)}</span></div>` : '');
+          return `
+            <a class="customer-fav-card" href="product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name || '')}">
+              <div class="customer-fav-image-wrap"><img src="${window.appUtils.safeImageUrl(image)}" alt="${escapeHtml(p.name || 'Produto')}"></div>
+              ${chips}
+              <div class="customer-fav-name">${escapeHtml(p.name || 'Produto')}</div>
+              <div class="customer-fav-price">R$ ${priceOf(p).toFixed(2)}</div>
+            </a>
+          `;
+        }).join('');
+        favoritesList.innerHTML = cards || '<div class="customer-fav-empty">Nenhum favorito encontrado com esse filtro.</div>';
+    }
+
     const TAB_ORDER = ['address', 'orders', 'favorites', 'password'];
     let curTab = '';
     function switchTab(tab){
       const dir = (curTab && TAB_ORDER.indexOf(tab) < TAB_ORDER.indexOf(curTab)) ? -1 : 1;
       const first = !curTab; curTab = tab;
       modal.querySelectorAll('[data-account-tab]').forEach(btn=>btn.classList.toggle('active', btn.dataset.accountTab === tab));
-      addressForm.classList.toggle('hidden', tab !== 'address');
+      curTabName = tab; syncAddrVisibility();
       passwordForm.classList.toggle('hidden', tab !== 'password');
       favoritesPane.classList.toggle('hidden', tab !== 'favorites');
       ordersPane.classList.toggle('hidden', tab !== 'orders');
@@ -822,44 +877,31 @@
         if(tab === 'address'){ animateIn(addrList, dir); animateIn(addressForm, dir); }
         else animateIn(tab === 'orders' ? ordersPane : tab === 'favorites' ? favoritesPane : passwordForm, dir);
       }
-      if(tab === 'favorites'){
-        const ids = getFavoriteIds();
-        let products = [];
-        try{ products = JSON.parse(localStorage.getItem('products') || '[]'); }catch(e){ products = []; }
-        const map = new Map((Array.isArray(products) ? products : []).map(p=>[String(p.id), p]));
-        if(!ids.length){
-          favoritesList.innerHTML = '<div class="customer-fav-empty">Nenhum produto favoritado ainda.</div>';
-          return;
-        }
-        const cards = ids.map(id=>{
-          const p = map.get(String(id));
-          if(!p) return '';
-          const image = (Array.isArray(p.images) && p.images.length) ? p.images[0] : (p.image || 'https://via.placeholder.com/200');
-          const variants = Array.isArray(p.variants) ? p.variants : [];
-          const chips = variants.length
-            ? '<div class="customer-fav-chips">' + variants.slice(0,3).map(v=>`<span class="customer-fav-chip">${escapeHtml(v.weight || '')}</span>`).join('') + '</div>'
-            : (p.variant ? `<div class="customer-fav-chips"><span class="customer-fav-chip">${escapeHtml(p.variant)}</span></div>` : '');
-          const firstPrice = variants.length ? Number(variants[0].price || 0) : Number(p.price || 0);
-          return `
-            <a class="customer-fav-card" href="product.html?id=${encodeURIComponent(p.id)}&name=${encodeURIComponent(p.name || '')}">
-              <div class="customer-fav-image-wrap"><img src="${window.appUtils.safeImageUrl(image)}" alt="${escapeHtml(p.name || 'Produto')}"></div>
-              ${chips}
-              <div class="customer-fav-name">${escapeHtml(p.name || 'Produto')}</div>
-              <div class="customer-fav-price">R$ ${firstPrice.toFixed(2)}</div>
-            </a>
-          `;
-        }).filter(Boolean).join('');
-        favoritesList.innerHTML = cards || '<div class="customer-fav-empty">Nenhum favorito disponível no cache atual.</div>';
-      }
+      if(tab === 'favorites') renderFavorites();
     }
 
     const STATUS_LABEL = { pending: 'Recebido', preparing: 'Em preparo', delivering: 'A caminho', delivered: 'Entregue', processed: 'Processado', cancelled: 'Cancelado', canceled: 'Cancelado' };
-    async function loadOrders(){
-      ordersList.innerHTML = '<p class="addr-empty">Carregando seus pedidos...</p>';
-      try{
-        const rows = await fetchOrders(20);
-        if(!rows.length){ ordersList.innerHTML = '<p class="addr-empty">Você ainda não fez nenhum pedido por aqui.</p>'; return; }
-        ordersList.innerHTML = rows.map((o, idx)=>{
+    function renderOrders(){
+      const all = ordersList._all || [];
+      const q = String((modal.querySelector('#ord-q') || {}).value || '').trim().toLowerCase();
+      const st = String((modal.querySelector('#ord-status') || {}).value || '');
+      const days = Number((modal.querySelector('#ord-period') || {}).value || 0);
+      const since = days ? Date.now() - days * 86400000 : 0;
+      const rows = all.filter(o=>{
+        if(st === 'open' && !['pending','preparing','delivering'].includes(o.status)) return false;
+        if(st === 'done' && !['delivered','processed'].includes(o.status)) return false;
+        if(st === 'cancelled' && !['cancelled','canceled'].includes(o.status)) return false;
+        if(since && new Date(o.created_at).getTime() < since) return false;
+        if(q){
+          const hay = (String(o.order_number) + ' ' + (Array.isArray(o.items) ? o.items.map(i=>i.name||'').join(' ') : '')).toLowerCase();
+          if(!q.split(/\s+/).every(t=>hay.includes(t))) return false;
+        }
+        return true;
+      });
+      ordersList._rows = rows;
+      const cnt = modal.querySelector('#ord-count'); if(cnt) cnt.textContent = rows.length === all.length ? '' : rows.length + ' de ' + all.length + ' pedidos';
+      if(!rows.length){ ordersList.innerHTML = '<p class="addr-empty">Nenhum pedido encontrado com esse filtro.</p>'; return; }
+      ordersList.innerHTML = rows.map((o, idx)=>{
           const items = Array.isArray(o.items) ? o.items : [];
           const dt = o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '';
           const link = o.public_token ? `<a class="btn" target="_blank" rel="noopener noreferrer" href="/comanda.html?c=${encodeURIComponent(o.public_token)}">Ver comanda<span class="sr-only"> do pedido ${escapeHtml(String(o.order_number))} (abre em nova aba)</span></a>` : '';
@@ -870,13 +912,22 @@
               <button type="button" class="btn btn-orange" data-reorder="${idx}">Comprar de novo<span class="sr-only"> o pedido ${escapeHtml(String(o.order_number))}</span></button>${link}</footer>
           </article>`;
         }).join('');
-        ordersList._rows = rows;
+    }
+    async function loadOrders(){
+      ordersList.innerHTML = '<p class="addr-empty">Carregando seus pedidos...</p>';
+      try{
+        const rows = await fetchOrders(60);
+        ordersList._all = rows;
+        if(!rows.length){ ordersList.innerHTML = '<p class="addr-empty">Você ainda não fez nenhum pedido por aqui.</p>'; return; }
+        renderOrders();
       }catch(err){
         ordersList.innerHTML = '<p class="addr-empty">Não consegui carregar seus pedidos agora. Tente de novo em instantes.</p>';
       }
     }
     if(!modal.dataset.bound2){
       modal.dataset.bound2 = '1';
+      ['#ord-q', '#ord-status', '#ord-period'].forEach(sel=>{ const el = modal.querySelector(sel); if(el){ el.addEventListener('input', renderOrders); el.addEventListener('change', renderOrders); } });
+      ['#fav-q', '#fav-sort'].forEach(sel=>{ const el = modal.querySelector(sel); if(el){ el.addEventListener('input', renderFavorites); el.addEventListener('change', renderFavorites); } });
       ordersList.addEventListener('click', function(e){
         const b = e.target.closest && e.target.closest('[data-reorder]'); if(!b) return;
         const o = (ordersList._rows || [])[Number(b.dataset.reorder)]; if(!o) return;
@@ -892,12 +943,13 @@
         const b = e.target.closest && e.target.closest('[data-addr-act]'); if(!b) return;
         const id = b.dataset.id, act = b.dataset.addrAct;
         try{
-          if(act === 'edit'){ fillForm(getAddresses().find(a=>a.id === id) || {}); addressForm.scrollIntoView({ block: 'nearest' }); const f = addressForm.querySelector('[name="label"]'); if(f) f.focus(); }
+          if(act === 'edit'){ fillForm(getAddresses().find(a=>a.id === id) || {}, true); addressForm.scrollIntoView({ block: 'center', behavior: 'smooth' }); const f = addressForm.querySelector('[name="label"]'); if(f) f.focus(); }
           else if(act === 'default'){ await saveAddressBook(getAddresses(), id); renderAddrList(); setStatus('Endereço padrão atualizado.', 'success'); }
           else if(act === 'remove'){ if(!window.confirm('Excluir este endereço?')) return; await removeAddress(id); fillForm({}); renderAddrList(); setStatus('Endereço excluído.', 'success'); }
         }catch(err){ setStatus('Não foi possível concluir: ' + (err && err.message ? err.message : String(err)), 'error'); }
       });
-      modal.querySelector('#addr-cancel')?.addEventListener('click', function(){ fillForm({}); });
+      modal.querySelector('#addr-cancel')?.addEventListener('click', function(){ fillForm({}, false); });
+      modal.querySelector('#addr-add')?.addEventListener('click', function(){ fillForm({}, true); addressForm.scrollIntoView({ block: 'center', behavior: 'smooth' }); const f = addressForm.querySelector('[name="label"]'); if(f) f.focus(); });
     }
     modal._refreshAddr = function(){ fillForm({}); renderAddrList(); };
 

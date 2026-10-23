@@ -339,7 +339,7 @@
     try{
       enhanceDeliveryBlock();
       const bx = document.querySelector('.checkout-delivery');
-      if(bx && !bx.dataset.touched && addressIsFilled(collectDeliveryData(false))) setDeliveryEditing(false);
+      if(bx && !bx.dataset.touched && !bx.dataset.userOpened && addressIsFilled(collectDeliveryData(false))) setDeliveryEditing(false);
       refreshDeliverySummary();
     }catch(e){}
   }
@@ -441,13 +441,26 @@
     });
     const saveRow = document.createElement('div');
     saveRow.id = 'delivery-save-row'; saveRow.className = 'delivery-save-row hidden';
-    saveRow.innerHTML = '<label class="dsr-check"><input type="checkbox" id="delivery-save-default"> Salvar este endereço na minha conta</label>' +
-      '<label class="dsr-name hidden" id="delivery-save-name-wrap">Nome do endereço <input type="text" id="delivery-save-name" maxlength="30" placeholder="Ex.: Casa, Trabalho"></label>';
+    saveRow.innerHTML = '<label class="dsr-name" id="delivery-save-name-wrap">Nome para salvar este endereço <input type="text" id="delivery-save-name" maxlength="30" placeholder="Ex.: Casa, Trabalho"></label>' +
+      '<button type="button" id="delivery-save-btn" class="btn delivery-save-btn">Salvar este endereço na minha conta</button>' +
+      '<p id="delivery-save-msg" class="delivery-save-msg" role="status" aria-live="polite"></p>';
     box.appendChild(saveRow);
-    saveRow.querySelector('#delivery-save-default').addEventListener('change', function(e){
-      saveRow.querySelector('#delivery-save-name-wrap').classList.toggle('hidden', !e.target.checked);
+    saveRow.querySelector('#delivery-save-btn').addEventListener('click', async function(){
+      const msg = document.getElementById('delivery-save-msg'); const d = collectDeliveryData(false) || {};
+      if(!addressIsFilled(d)){ msg.textContent = 'Preencha rua, número e bairro antes de salvar.'; msg.className = 'delivery-save-msg err'; return; }
+      const btn = this; btn.disabled = true; msg.className = 'delivery-save-msg'; msg.textContent = 'Salvando...';
+      try{
+        const nm = document.getElementById('delivery-save-name');
+        const n = window.customerAuth.getAddresses().length;
+        await window.customerAuth.addOrUpdateAddress({ label: (nm && nm.value.trim()) || (n ? 'Endereço ' + (n + 1) : 'Casa'), street: d.street, number: d.number, neighborhood: d.neighborhood, zip: d.zip, reference: d.reference }, false);
+        if(nm) nm.value = '';
+        msg.textContent = 'Endereço salvo na sua conta.'; msg.className = 'delivery-save-msg ok';
+        renderAddressPicker();
+      }catch(e){ msg.textContent = (e && e.message) || 'Não foi possível salvar agora. Tente de novo.'; msg.className = 'delivery-save-msg err'; }
+      btn.disabled = false;
     });
     document.getElementById('delivery-edit-btn').addEventListener('click', function(){
+      box.dataset.userOpened = '1';
       setDeliveryEditing(box.classList.contains('collapsed'));
     });
     box.addEventListener('input', function(){ box.dataset.touched = '1'; refreshDeliverySummary(); });
@@ -512,7 +525,7 @@
           if(chk){ try{ localStorage.setItem('terms_accepted_v1', '1'); }catch(e){} }
           saveDefaultAddressIfAsked(d).then(function(){ finish(true); });
         }
-        else { finish(false); setTimeout(function(){ setDeliveryEditing(true); }, 150); }
+        else { finish(false); setTimeout(function(){ const b = document.querySelector('.checkout-delivery'); if(b) b.dataset.userOpened = '1'; setDeliveryEditing(true); }, 150); }
       });
       // Esc fecha sem confirmar (a11y.js cuida do foco)
       modal.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ finish(false); } });

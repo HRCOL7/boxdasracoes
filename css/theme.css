@@ -786,3 +786,29 @@ html[data-theme="dark"] .ac-terms-err{color:#FF9A92}
 .view-in{animation:viewIn .28s cubic-bezier(.2,.7,.2,1) both}
 .customer-auth-tab{transition:background-color .22s ease,color .22s ease,box-shadow .22s ease}
 @media (prefers-reduced-motion:reduce){.view-in{animation:none}.customer-auth-tab{transition:none}}
+
+/* v10.1: mobile — endereço, filtros, tabs da conta, botões do admin */
+.delivery-save-btn{min-height:48px;border-radius:999px;border:2px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-weight:800;cursor:pointer;padding:0 16px}
+.delivery-save-btn:disabled{opacity:.6}
+.delivery-save-msg{margin:4px 0 0;font-weight:700;font-size:14px;min-height:20px}
+.delivery-save-msg.ok{color:#1F7A4D}.delivery-save-msg.err{color:#B3261E}
+html[data-theme="dark"] .delivery-save-btn{border-color:var(--ink);color:var(--ink)}
+html[data-theme="dark"] .delivery-save-msg.ok{color:#7BE0A3}html[data-theme="dark"] .delivery-save-msg.err{color:#FF9A92}
+.acc-filters{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 10px}
+@media (min-width:560px){.acc-filters{grid-template-columns:2fr 1fr 1fr}}
+.acc-filters label{margin:0!important;font-size:13px}
+.acc-filters input,.acc-filters select{width:100%;min-height:48px;margin-top:4px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font:inherit}
+html[data-theme="dark"] .acc-filters input,html[data-theme="dark"] .acc-filters select{background:var(--surface);color:var(--ink)}
+.acc-count{margin:0 0 8px;color:var(--muted);font-size:14px;min-height:18px}
+.addr-add-row{margin:0 0 12px}.addr-add-row.hidden{display:none}
+#customer-account-address .customer-auth-actions{position:sticky;bottom:0;background:var(--bg,#FBF8F3);padding:10px 0 4px;margin-top:8px;z-index:2;border-top:1px solid var(--line)}
+html[data-theme="dark"] #customer-account-address .customer-auth-actions{background:#2C2620}
+@media (max-width:520px){
+  .customer-auth-modal .customer-auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .customer-auth-modal .customer-auth-tab{white-space:normal;min-height:44px}
+  body:has(#cart-panel:not(.hidden)) .as-dock{display:none!important}
+}
+@media (max-width:899px){body:has(#cart-panel:not(.hidden)) .as-dock{display:none!important}}
+/* rodapé: ajuda e acessibilidade */
+.site-footer .as-restore{background:transparent;border:0;padding:0;margin:10px auto 0;max-width:1100px;text-align:left}
+.site-footer .as-restore-btn{color:#fff;padding:0;min-height:44px}

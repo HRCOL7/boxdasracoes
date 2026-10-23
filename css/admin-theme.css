@@ -216,3 +216,21 @@ html[data-theme="dark"] .admin-head .theme-toggle:hover{background:var(--brand);
 .kpi-sale{border-left-color:#1F7A4D}
 html[data-theme="dark"] .kpi-sale{border-left-color:#7BE0A3}
 .reports-kpi strong{font-size:clamp(20px,5.4vw,28px)!important;white-space:nowrap}
+/* v10.1: botões da lista de produtos sem quebrar a palavra + KPIs que cabem no cartão */
+.admin-products .row-actions,.row-actions{display:flex;gap:8px;flex-wrap:nowrap;align-items:center;flex:0 0 auto}
+.row-actions .btn-edit,.row-actions .btn-delete{white-space:nowrap;word-break:keep-all;overflow-wrap:normal;min-width:84px;width:auto;height:auto;min-height:44px;padding:0 14px;border-radius:999px}
+
+.admin-products .admin-row{align-items:center}
+.reports-kpis{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.reports-kpi{min-width:0;overflow:hidden}
+.reports-kpi strong{display:block;white-space:nowrap}
+.admin-confirm-back{position:fixed;inset:0;z-index:99995;background:rgba(15,12,9,.7);display:flex;align-items:center;justify-content:center;padding:16px}
+.admin-confirm{background:#fff;color:#1F1B16;border-radius:18px;padding:20px;max-width:420px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.admin-confirm h3{margin:0 0 8px;font-size:20px}
+.admin-confirm p{margin:0 0 16px;overflow-wrap:anywhere}
+.admin-confirm .ac-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.admin-confirm button{min-height:48px;padding:0 20px;border-radius:999px;border:2px solid #1F1B16;background:#fff;color:#1F1B16;font:inherit;font-weight:800;cursor:pointer}
+.admin-confirm button.danger{background:#B3261E;border-color:#B3261E;color:#fff}
+html[data-theme="dark"] .admin-confirm{background:#2C2620;color:#F3EDE4}
+html[data-theme="dark"] .admin-confirm button{background:transparent;border-color:#F3EDE4;color:#F3EDE4}
+html[data-theme="dark"] .admin-confirm button.danger{background:#FF6B60;border-color:#FF6B60;color:#1F1B16}

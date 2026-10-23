@@ -538,13 +538,31 @@
     return false;
   }
 
+  // Confirmação bonita e acessível (no lugar do confirm() do navegador)
+  function confirmDanger(title, text, okLabel){
+    return new Promise(resolve=>{
+      const back = document.createElement('div'); back.className = 'admin-confirm-back';
+      back.innerHTML = '<div class="admin-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ac-t" aria-describedby="ac-d"><h3 id="ac-t"></h3><p id="ac-d"></p><div class="ac-row"><button type="button" data-no>Cancelar</button><button type="button" class="danger" data-yes></button></div></div>';
+      back.querySelector('#ac-t').textContent = title; back.querySelector('#ac-d').textContent = text; back.querySelector('[data-yes]').textContent = okLabel || 'Confirmar';
+      const prev = document.activeElement;
+      const done = (v)=>{ back.remove(); if(prev && prev.focus) try{ prev.focus(); }catch(e){} resolve(v); };
+      back.addEventListener('click', e=>{ if(e.target === back) done(false); if(e.target.closest('[data-no]')) done(false); if(e.target.closest('[data-yes]')) done(true); });
+      back.addEventListener('keydown', e=>{
+        if(e.key === 'Escape'){ done(false); }
+        if(e.key === 'Tab'){ const f = back.querySelectorAll('button'); const a = f[0], z = f[f.length - 1]; if(e.shiftKey && document.activeElement === a){ e.preventDefault(); z.focus(); } else if(!e.shiftKey && document.activeElement === z){ e.preventDefault(); a.focus(); } }
+      });
+      document.body.appendChild(back); back.querySelector('[data-no]').focus();
+    });
+  }
+
   // Delegated click handler defined separately so it can be attached/removed
   async function adminListClickHandler(e){
     const btn = e.target.closest && e.target.closest('.btn-delete, .btn-edit'); if(!btn) return;
     if(!(await ensureAdminAuthenticated(true))) return;
     const id = btn.dataset && btn.dataset.id; if(!id) return; const nid = Number(id);
     if(btn.classList.contains('btn-delete')){
-      if(!confirm('Remover este produto?')) return;
+      const pname = (btn.closest('.admin-row') && (btn.closest('.admin-row').querySelector('.name, strong, h4, .title') || {}).textContent || '').trim();
+      if(!(await confirmDanger('Remover este produto?', (pname ? '"' + pname + '" ' : 'O produto ') + 'será removido da loja. Essa ação não pode ser desfeita.', 'Sim, remover'))) return;
       try{
         // In production with Supabase configured, do not allow local-only deletes.
         if(hasSupabaseConfig()){

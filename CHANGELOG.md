@@ -117,3 +117,11 @@
 - Admins: enquanto a migração de segurança não for aplicada, a interface do admin não reconhece ninguém (falha fechada, de propósito).
 - axe-core/Lighthouse não rodaram aqui (rede bloqueada): rode no seu PC (veja PASSO-A-PASSO.md).
 - Nada foi aplicado no seu Supabase nem publicado no Netlify.
+
+## v10 (parte 5)
+- Corrigido: "Alterar endereço" no carrinho do celular fechava sozinho quando o login terminava de carregar (o carrinho recolhia o endereço de novo). Agora, depois que o cliente toca no botão, o formulário não recolhe mais sozinho.
+- Removida a segunda "Preferências de cookies"; "Mostrar ajuda e acessibilidade" foi para o rodapé preto.
+- Endereços no celular: botão explícito "Salvar este endereço", formulário recolhido na conta com "+ Adicionar novo endereço".
+- Filtros no histórico de pedidos e nos favoritos.
+- Admin: botões Editar/Remover sem quebra de linha; confirmação ao remover produto; números grandes dos KPIs cabem na caixa.
+- Versões de cache (`?v=20261023`) e service worker `boxracoes-shell-v4` atualizados para o navegador baixar o JS novo.

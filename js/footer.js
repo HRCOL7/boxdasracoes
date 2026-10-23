@@ -16,7 +16,7 @@
     + '<li><a href="/termos.html">Termos de Uso</a></li>'
     + '<li><a href="/cookies.html">Política de Cookies</a></li>'
     + '<li><a href="/trocas-e-reembolso.html">Trocas e Reembolso</a></li>'
-    + '<li><button type="button" class="ft-cookie-btn" id="ft-cookie-prefs">Preferências de cookies</button></li></ul></nav>';
+    + '<li><button type="button" class="ft-cookie-btn ck-open-prefs" id="ft-cookie-prefs">Preferências de cookies</button></li></ul></nav>';
   var f = document.createElement('footer');
   f.className = 'site-footer'; f.setAttribute('aria-label', 'Rodapé');
   f.innerHTML = '<div class="footer-grid">' + col1 + col2 + col3 + '</div>' + legal

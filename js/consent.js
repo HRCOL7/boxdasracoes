@@ -191,7 +191,7 @@
   state = read();
 
   function init(){
-    addFooterLink();
+    // o link "Preferências de cookies" fica só no rodapé (js/footer.js)
     if(!state) buildBanner();
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

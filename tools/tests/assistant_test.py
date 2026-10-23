@@ -88,7 +88,7 @@ try:
     check("ocultar: ajustes já escolhidos (fonte) continuam valendo", ph.evaluate("document.documentElement.dataset.a11yFont")=="lg")
     ph.reload(); ph.wait_for_timeout(800)
     check("ocultar: continua oculto depois de recarregar a página", not ph.is_visible(".as-dock") and ph.is_visible(".as-restore-btn"))
-    check("o link 'Mostrar' é o último item focável da página", ph.evaluate("(()=>{const f=[...document.querySelectorAll('a[href],button:not([disabled]),input,select,textarea')].filter(e=>e.getClientRects().length&&!e.closest('[inert]'));return f[f.length-1].className})()")=="as-restore-btn")
+    check("o link 'Mostrar' fica na faixa preta do rodapé", ph.evaluate("!!document.querySelector('.site-footer .as-restore-btn')"))
     ph.focus(".as-restore-btn"); ph.keyboard.press("Enter"); ph.wait_for_timeout(300)
     check("mostrar: botão volta e recebe o foco", ph.is_visible(".as-launcher") and ph.evaluate("document.activeElement.className").startswith("as-launcher") and not ph.is_visible(".as-restore"))
     ph.reload(); ph.wait_for_timeout(800)
