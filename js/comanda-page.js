@@ -4,7 +4,15 @@
   var $ = function(id){ return document.getElementById(id); };
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
   function money(n){ return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ','); }
-  function safeImg(u){ return (typeof u === 'string' && /^https:\/\//i.test(u)) ? u : ''; }
+  function safeImg(u){
+    if(typeof u !== 'string') return '';
+    u = u.trim(); if(!u) return '';
+    if(/^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(u)) return u;
+    if(/^https:\/\//i.test(u)) return u;
+    if(/^(javascript|data|http|file|blob):/i.test(u) || u.indexOf('//') === 0) return '';
+    try{ return new URL(u, location.origin + '/').href; }catch(e){ return ''; }
+  }
+  var imgById = Object.create(null);
 
   function parseNote(note){
     var out = { delivery: {}, change: '', pay: '' };
@@ -34,7 +42,7 @@
     html += '<section class="cp-box" aria-labelledby="cp-h-ent"><h2 id="cp-h-ent">Entrega</h2><dl>' + row('Endereço', addr) + row('Bairro', d.neighborhood) + row('CEP', d.zip) + row('Referência', d.reference) + row('Data e horário', d.when) + '</dl></section>';
     html += '<section class="cp-box" aria-labelledby="cp-h-pag"><h2 id="cp-h-pag">Pagamento</h2><dl>' + row('Forma', n.pay || o.payment) + row('Troco', n.change) + '</dl></section>';
     html += '<section class="cp-box" aria-labelledby="cp-h-it"><h2 id="cp-h-it">Itens</h2><ul class="cp-items">' + items.map(function(i){
-      var im = safeImg(i.image);
+      var im = safeImg(i.image) || safeImg(imgById[String(i.productId)]);
       return '<li>' + (im ? '<img src="' + esc(im) + '" alt="" loading="lazy">' : '<span class="cp-noimg" aria-hidden="true"></span>') +
         '<div class="cp-it-main"><strong>' + esc(i.name || 'Produto') + '</strong>' + (i.internal ? '<small>Cód. ' + esc(i.internal) + '</small>' : '') + '</div>' +
         '<div class="cp-it-qty">' + esc(String(i.qty || 1)) + ' x ' + money(i.price) + '</div><div class="cp-it-sum">' + money((Number(i.price) || 0) * (Number(i.qty) || 1)) + '</div></li>';
@@ -69,6 +77,17 @@
       var r = await client.rpc('get_order_comanda', { p_token: token });
       if(r.error) throw r.error;
       if(!r.data){ st.textContent = 'Comanda não encontrada. Confira se o link foi copiado inteiro.'; st.className = 'cp-msg cp-err'; return; }
+      var items = Array.isArray(r.data.items) ? r.data.items : [];
+      var ids = Array.from(new Set(items.filter(function(i){
+        return i && i.productId != null && !safeImg(i.image);
+      }).map(function(i){ return String(i.productId); })));
+      if(ids.length){
+        try{
+          var products = await client.from('products').select('id,image').in('id', ids);
+          if(products.error) throw products.error;
+          (products.data || []).forEach(function(p){ imgById[String(p.id)] = p.image; });
+        }catch(err){ console.warn('Não foi possível carregar as imagens dos produtos da comanda.', err); }
+      }
       render(r.data);
       $('main').focus();
     }catch(e){ st.textContent = 'Não foi possível carregar a comanda agora. Tente de novo em instantes.'; st.className = 'cp-msg cp-err'; }

@@ -15,8 +15,8 @@ window.__orders=[{order_number:130001,created_at:'2026-10-20T12:00:00Z',status:'
 window.__updates=[];window.__inserts=[];
 window.supabase={createClient:function(){
  var user=%s;
- function q(table){var o={select:function(){return o},eq:function(){return o},order:function(){return o},limit:function(){return Promise.resolve({data:table==='customer_orders'?window.__orders:[],error:null})},insert:function(p){window.__inserts.push(p);return {select:function(){return {single:function(){return Promise.resolve({data:{order_number:130002,public_token:'22222222-2222-2222-2222-222222222222'},error:null})}}}}},upsert:function(){return Promise.resolve({error:null})},then:function(r){r({data:[],error:null})}};return o}
- return {from:q,rpc:function(n,a){ if(n==='get_order_comanda'){return Promise.resolve({data:{order_number:130002,created_at:'2026-10-21T10:00:00Z',status:'pending',payment:'PIX',total:50,note:'Pagamento escolhido: PIX\\nEndereco: Rua A, 1, Centro\\nCEP: 49000-000\\nReferencia: Casa azul',customer_name:'Maria',customer_phone:'79999',items:[{name:'Ração Teste',qty:2,price:25,image:'https://x/y.png'}]},error:null})} return Promise.resolve({data:true,error:null})},
+ function q(table){var o={select:function(){return o},eq:function(){return o},order:function(){return o},limit:function(){return Promise.resolve({data:table==='customer_orders'?window.__orders:[],error:null})},in:function(col,ids){return Promise.resolve({data:table==='products'&&ids.includes('7')?[{id:7,image:'/img/banner2.jpg'}]:[],error:null})},insert:function(p){window.__inserts.push(p);return {select:function(){return {single:function(){return Promise.resolve({data:{order_number:130002,public_token:'22222222-2222-2222-2222-222222222222'},error:null})}}}}},upsert:function(){return Promise.resolve({error:null})},then:function(r){r({data:[],error:null})}};return o}
+ return {from:q,rpc:function(n,a){ if(n==='get_order_comanda'){return Promise.resolve({data:{order_number:130002,created_at:'2026-10-21T10:00:00Z',status:'pending',payment:'PIX',total:50,note:'Pagamento escolhido: PIX\\nEndereco: Rua A, 1, Centro\\nCEP: 49000-000\\nReferencia: Casa azul',customer_name:'Maria',customer_phone:'79999',items:[{name:'Ração Teste',qty:2,price:25,image:'https://x/y.png'},{name:'Imagem do cadastro',productId:7,qty:1,price:0,image:''}]},error:null})} return Promise.resolve({data:true,error:null})},
   auth:{getUser:function(){return Promise.resolve({data:{user:user}})},getSession:function(){return Promise.resolve({data:{session:user?{user:user}:null}})},updateUser:function(p){window.__updates.push(p);user.user_metadata=Object.assign({},p.data);return Promise.resolve({data:{user:user},error:null})},onAuthStateChange:function(){return {data:{subscription:{unsubscribe(){}}}}}}}}};
 """ % json.dumps(USER)
 try:
@@ -97,6 +97,7 @@ try:
     pg3=page(); pg3.goto(f"http://localhost:{PORT}/comanda.html?c=22222222-2222-2222-2222-222222222222"); pg3.wait_for_timeout(1200)
     txt=pg3.inner_text("#cp-body") if pg3.is_visible("#cp-body") else ""
     check("página da comanda mostra pedido, cliente, endereço e itens", all(x in txt for x in ["Maria","Rua A, 1","Casa azul","Ração Teste","R$ 50,00"]), txt[:200])
+    check("comanda recupera imagem do cadastro quando pedido não contém imagem", pg3.locator('.cp-items img[src*="banner2.jpg"]').count()==1)
     pg3.screenshot(path="v10-comanda.png")
     pg4=page(); pg4.goto(f"http://localhost:{PORT}/comanda.html?c=abc"); pg4.wait_for_timeout(500)
     check("link inválido mostra aviso", "inválido" in pg4.inner_text("#cp-status"))
